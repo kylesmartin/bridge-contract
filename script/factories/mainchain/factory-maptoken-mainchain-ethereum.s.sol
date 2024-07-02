@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
+import { Network, TNetwork } from "../../utils/Network.sol";
+import { LibProposal } from "script/shared/libraries/LibProposal.sol";
+import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
+import { Contract } from "../../utils/Contract.sol";
+import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import "./factory-maptoken-mainchain.s.sol";
+
+abstract contract Factory__MapTokensMainchainEthereum is Factory__MapTokensMainchain {
+  using LibCompanionNetwork for *;
+
+  function setUp() public override {
+    super.setUp();
+
+    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _mainchainGatewayV3 = config.getAddress(network().companionNetwork(), Contract.MainchainGatewayV3.key());
+    _mainchainBridgeManager = config.getAddress(network().companionNetwork(), Contract.MainchainBridgeManager.key());
+
+    _governor = _initCaller();
+  }
+
+  function run() public virtual override {
+    Proposal.ProposalDetail memory proposal = _createAndVerifyProposal(block.chainid, 0);
+    _propose(proposal);
+  }
+}

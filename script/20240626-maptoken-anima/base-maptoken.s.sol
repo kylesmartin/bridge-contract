@@ -5,10 +5,19 @@ import "forge-std/console2.sol";
 
 import "./caller-configs.s.sol";
 import "./maptoken-anima-configs.s.sol";
+import "./governors-configs.s.sol";
 
-contract Base__MapToken is Migration__Caller_Config, Migration__MapToken_Anima_Config {
+contract Base__MapToken is Migration__Caller_Config, Migration__MapToken_Anima_Config, Migration__Governors_Config {
   function _initCaller() internal virtual returns (address) {
     return SM_GOVERNOR;
+  }
+
+  function _initGovernors() internal virtual returns (address[] memory) {
+    return governors;
+  }
+
+  function _initGovernorPKs() internal virtual returns (uint256[] memory) {
+    return governorPks;
   }
 
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos) {
