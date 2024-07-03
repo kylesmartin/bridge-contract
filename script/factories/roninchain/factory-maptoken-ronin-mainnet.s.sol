@@ -9,7 +9,7 @@ import { Contract } from "../../utils/Contract.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
 import "./factory-maptoken-roninchain.s.sol";
 
-abstract contract Factory__MapTokensRonin_Testnet is Factory__MapTokensRoninchain {
+abstract contract Factory__MapTokensRonin_Mainnet is Factory__MapTokensRoninchain {
   using LibCompanionNetwork for *;
 
   function setUp() public override {
@@ -18,8 +18,6 @@ abstract contract Factory__MapTokensRonin_Testnet is Factory__MapTokensRoninchai
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
     _governor = _initCaller();
   }
-
-  function _initGovernors() internal virtual returns (address[] memory);
 
   function run() public virtual override {
     Proposal.ProposalDetail memory proposal = _createAndVerifyProposal();
