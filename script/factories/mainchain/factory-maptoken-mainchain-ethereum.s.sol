@@ -9,7 +9,7 @@ import { Contract } from "../../utils/Contract.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
 import "./factory-maptoken-mainchain.s.sol";
 
-abstract contract Factory__MapTokensMainchainEthereum is Factory__MapTokensMainchain {
+abstract contract Factory__MapTokensMainchain_Ethereum is Factory__MapTokensMainchain {
   using LibCompanionNetwork for *;
 
   function setUp() public override {
@@ -19,11 +19,11 @@ abstract contract Factory__MapTokensMainchainEthereum is Factory__MapTokensMainc
     _mainchainGatewayV3 = config.getAddress(network().companionNetwork(), Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddress(network().companionNetwork(), Contract.MainchainBridgeManager.key());
 
-    _governor = _initCaller();
+    _specifiedCaller = _initCaller();
   }
 
   function run() public virtual override {
-    Proposal.ProposalDetail memory proposal = _createAndVerifyProposal(block.chainid, 0);
+    Proposal.ProposalDetail memory proposal = _createAndVerifyProposalOnMainchain(network().companionChainId(), 0);
     _propose(proposal);
   }
 }

@@ -2,10 +2,10 @@
 pragma solidity ^0.8.19;
 
 import { console2 } from "forge-std/console2.sol";
-import "../factories/factory-maptoken-roninchain.s.sol";
+import "../factories/roninchain/factory-maptoken-ronin-mainnet.s.sol";
 import "./base-maptoken.s.sol";
 
-contract Migration__20240308_MapTokenAperiosRoninchain is Base__MapToken, Factory__MapTokensRoninchain {
+contract Migration__20240308_MapTokenAperiosRoninchain is Base__MapToken, Factory__MapTokensRonin_Mainnet {
   function _initCaller() internal override(Base__MapToken, Factory__MapTokensRoninchain) returns (address) {
     return Base__MapToken._initCaller();
   }

@@ -20,6 +20,6 @@ contract Migration__20242606_MapTokenAnimaRoninTestnet is Base__MapToken, Factor
   }
 
   function run() public override {
-    super.run();
+    Factory__MapTokensRonin_Testnet.run();
   }
 }

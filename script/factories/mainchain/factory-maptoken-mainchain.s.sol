@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@ronin/contracts/libraries/Ballot.sol";
-import { console2 } from "forge-std/console2.sol";
+import { console2 as console } from "forge-std/console2.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -26,7 +26,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
   RoninBridgeManager internal _roninBridgeManager;
   address internal _mainchainGatewayV3;
   address internal _mainchainBridgeManager;
-  address internal _governor;
+  address internal _specifiedCaller;
   address[] internal _governors;
   uint256[] internal _governorPKs;
 
@@ -35,7 +35,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
   function _propose(Proposal.ProposalDetail memory proposal) internal virtual {
-    vm.broadcast(_governor);
+    vm.broadcast(_specifiedCaller);
     _roninBridgeManager.propose(
       proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
     );
@@ -63,11 +63,25 @@ abstract contract Factory__MapTokensMainchain is Migration {
     MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, supports_, signatures);
   }
 
-  function _createAndVerifyProposal(uint256 chainId, uint256 nonce) internal returns (Proposal.ProposalDetail memory proposal) {
-    (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds) =
-      _prepareMapTokensAndThresholds();
-    bytes memory innerData = abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds));
-    bytes memory proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
+  function _createAndVerifyProposalOnMainchain(uint256 chainId, uint256 nonce) internal returns (Proposal.ProposalDetail memory proposal) {
+    (uint256 N, MapTokenInfo[] memory tokenInfos) = _initTokenList();
+    require(tokenInfos.length > 0, "Number of tokens required to map cannot be 0.");
+
+    bytes memory innerData;
+    bytes memory proxyData;
+
+    if (tokenInfos[0].standard == TokenStandard.ERC20) {
+      (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds) =
+        _prepareMapTokensAndThresholds(N, tokenInfos);
+
+      innerData = abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds));
+      proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
+    } else {
+      (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards) = _prepareMapTokens(N, tokenInfos);
+
+      innerData = abi.encodeCall(IMainchainGatewayV3.mapTokens, (mainchainTokens, roninTokens, standards));
+      proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
+    }
 
     uint256 expiredTime = block.timestamp + 14 days;
     address[] memory targets = new address[](1);
@@ -80,13 +94,15 @@ abstract contract Factory__MapTokensMainchain is Migration {
     calldatas[0] = proxyData;
     gasAmounts[0] = 1_000_000;
 
-    // Verify gas when call from mainchain.
-    LibProposal.verifyProposalGasAmount(address(_mainchainBridgeManager), targets, values, calldatas, gasAmounts);
-
-    // // Verify gas when call from ronin.
-    // (uint256 companionChainId, TNetwork companionNetwork) = network().companionNetworkData();
-    // address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
-    // LibProposal.verifyMainchainProposalGasAmount(companionNetwork, companionManager, targets, values, calldatas, gasAmounts);
+    if (block.chainid == 2020) {
+      // Verify gas when call from ronin.
+      (uint256 companionChainId, TNetwork companionNetwork) = network().companionNetworkData();
+      address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
+      LibProposal.verifyMainchainProposalGasAmount(companionNetwork, companionManager, targets, values, calldatas, gasAmounts);
+    } else {
+      // Verify gas when call from mainchain.
+      LibProposal.verifyProposalGasAmount(address(_mainchainBridgeManager), targets, values, calldatas, gasAmounts);
+    }
 
     proposal = Proposal.ProposalDetail({
       nonce: nonce,
@@ -100,17 +116,16 @@ abstract contract Factory__MapTokensMainchain is Migration {
     });
   }
 
-  function _prepareMapTokensAndThresholds()
-    internal
-    returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds)
-  {
+  function _prepareMapTokensAndThresholds(
+    uint256 N,
+    MapTokenInfo[] memory tokenInfos
+  ) internal returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds) {
     // function mapTokensAndThresholds(
     //   address[] calldata _mainchainTokens,
     //   address[] calldata _roninTokens,
     //   TokenStandard.ERC20[] calldata _standards,
     //   uint256[][4] calldata _thresholds
     // )
-    (uint256 N, MapTokenInfo[] memory tokenInfos) = _initTokenList();
 
     mainchainTokens = new address[](N);
     roninTokens = new address[](N);
@@ -124,7 +139,8 @@ abstract contract Factory__MapTokensMainchain is Migration {
     for (uint256 i; i < N; ++i) {
       mainchainTokens[i] = tokenInfos[i].mainchainToken;
       roninTokens[i] = tokenInfos[i].roninToken;
-      standards[i] = TokenStandard.ERC20;
+      standards[i] = tokenInfos[i].standard;
+
       thresholds[0][i] = tokenInfos[i].highTierThreshold;
       thresholds[1][i] = tokenInfos[i].lockedThreshold;
       thresholds[2][i] = tokenInfos[i].unlockFeePercentages;
@@ -132,15 +148,39 @@ abstract contract Factory__MapTokensMainchain is Migration {
     }
   }
 
-  function _cheatStorage(address[] memory governors) internal {
-    bytes32 governorsSlot = keccak256(abi.encode(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300));
+  function _prepareMapTokens(
+    uint256 N,
+    MapTokenInfo[] memory tokenInfos
+  ) internal returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards) {
+    //  function mapTokens(
+    //    address[] calldata _mainchainTokens,
+    //    address[] calldata _roninTokens,
+    //    TokenStandard[] calldata _standards
+    // );
+
+    mainchainTokens = new address[](N);
+    roninTokens = new address[](N);
+    standards = new TokenStandard[](N);
+
+    for (uint256 i; i < N; ++i) {
+      mainchainTokens[i] = tokenInfos[i].mainchainToken;
+      roninTokens[i] = tokenInfos[i].roninToken;
+      standards[i] = tokenInfos[i].standard;
+    }
+  }
+
+  function _cheatLocalReplaceGovernors(address[] memory governors) internal {
+    bytes32 governorsSlot = keccak256(abi.encode(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc3830));
+    console.logBytes32(governorsSlot);
     uint256 length = governors.length;
-    //cheat governors addresses
+
+    // Cheat governors addresses.
     for (uint256 i; i < length; ++i) {
       bytes32 governorSlotId = bytes32(uint256(governorsSlot) + uint256(i));
       vm.store(_mainchainBridgeManager, governorSlotId, bytes32(uint256(uint160(governors[i]))));
     }
-    //after cheat
+
+    // Check if cheat successfully.
     for (uint256 i; i < length; ++i) {
       bytes32 governorSlotId = bytes32(uint256(governorsSlot) + uint256(i));
       bytes32 afterCheatData = vm.load(_mainchainBridgeManager, bytes32(uint256(governorsSlot) + uint256(i)));
@@ -148,13 +188,12 @@ abstract contract Factory__MapTokensMainchain is Migration {
       assertEq(afterCheatData, bytes32(uint256(uint160(governors[i]))));
     }
 
-    //cheat governors weights
+    // Cheat governors weights.
     bytes32 governorsWeightSlot = bytes32(uint256(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300) + uint256(2));
     for (uint256 i; i < length; ++i) {
       address key = governors[i];
       bytes32 valueSlot = keccak256(abi.encode(key, governorsWeightSlot));
       vm.store(_mainchainBridgeManager, valueSlot, bytes32(uint256(uint96(100))));
     }
-    bytes32 governorsWeightData = vm.load(_mainchainBridgeManager, keccak256(abi.encode(0x087D08e3ba42e64E3948962dd1371F906D1278b9, governorsWeightSlot)));
   }
 }

@@ -25,17 +25,84 @@ abstract contract Factory__MapTokensRoninchain is Migration {
 
   RoninBridgeManager internal _roninBridgeManager;
   address internal _roninGatewayV3;
-  address internal  _governor;
+  address internal _specifiedCaller;
   address[] internal _governors;
 
   function run() public virtual;
   function _initCaller() internal virtual returns (address);
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
-  function _proposeAndExecute(Proposal.ProposalDetail memory proposal) internal {
+  function _proposeAndExecuteProposal(Proposal.ProposalDetail memory proposal) internal {
     proposal.executor = _governors[0];
     _propose(proposal);
+    _executeProposal(proposal);
+  }
 
+  function _createAndVerifyProposalOnRonin() internal returns (Proposal.ProposalDetail memory proposal) {
+    (uint256 N, MapTokenInfo[] memory tokenInfos) = _initTokenList();
+
+    (address[] memory roninTokens, address[] memory mainchainTokens, uint256[] memory chainIds, TokenStandard[] memory standards) = _prepareMapTokens();
+
+    // Assume that all tokens have the same standard.
+    TokenStandard tokenStandard = standards[0];
+
+    address[] memory targets;
+    uint256[] memory values;
+    bytes[] memory calldatas;
+    uint256[] memory gasAmounts;
+
+    targets = new address[](1);
+    values = new uint256[](1);
+    calldatas = new bytes[](1);
+    gasAmounts = new uint256[](1);
+
+    bytes memory innerData = abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards));
+    bytes memory proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
+
+    uint256 expiredTime = block.timestamp + 14 days;
+    targets[0] = _roninGatewayV3;
+    values[0] = 0;
+    calldatas[0] = proxyData;
+    gasAmounts[0] = 1_000_000;
+
+    if (tokenStandard == TokenStandard.ERC20) {
+      targets = new address[](2);
+      values = new uint256[](2);
+      calldatas = new bytes[](2);
+      gasAmounts = new uint256[](2);
+
+      uint256 expiredTime = block.timestamp + 14 days;
+      targets[0] = _roninGatewayV3;
+      values[0] = 0;
+      calldatas[0] = proxyData;
+      gasAmounts[0] = 1_000_000;
+
+      (address[] memory roninTokensToSetMinThreshold, uint256[] memory minThresholds) = _prepareSetMinThreshold();
+
+      innerData = abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (roninTokensToSetMinThreshold, minThresholds));
+      proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
+
+      targets[1] = _roninGatewayV3;
+      values[1] = 0;
+      calldatas[1] = proxyData;
+      gasAmounts[1] = 1_000_000;
+    }
+
+    LibProposal.verifyProposalGasAmount(address(_roninBridgeManager), targets, values, calldatas, gasAmounts);
+
+    proposal = Proposal.ProposalDetail({
+      nonce: RoninBridgeManager(_roninBridgeManager).round(block.chainid) + 1,
+      chainId: block.chainid,
+      expiryTimestamp: expiredTime,
+      executor: address(0),
+      targets: targets,
+      values: values,
+      calldatas: calldatas,
+      gasAmounts: gasAmounts
+    });
+  }
+
+  function _executeProposal(Proposal.ProposalDetail memory proposal) internal {
     uint256 minVoteWeight = _roninBridgeManager.minimumVoteWeight();
     uint256 sumVoteWeight;
     uint256 numberGovernorsNeedToVote;
@@ -62,50 +129,10 @@ abstract contract Factory__MapTokensRoninchain is Migration {
   }
 
   function _propose(Proposal.ProposalDetail memory proposal) internal virtual {
-    vm.broadcast(_governor);
+    vm.broadcast(_specifiedCaller);
     _roninBridgeManager.propose(
       proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
     );
-  }
-
-  function _createAndVerifyProposal() internal returns (Proposal.ProposalDetail memory proposal) {
-    (address[] memory roninTokens, address[] memory mainchainTokens, uint256[] memory chainIds, TokenStandard[] memory standards) = _prepareMapToken();
-    (address[] memory roninTokensToSetMinThreshold, uint256[] memory minThresholds) = _prepareSetMinThreshold();
-
-    address[] memory targets = new address[](2);
-    uint256[] memory values = new uint256[](2);
-    bytes[] memory calldatas = new bytes[](2);
-    uint256[] memory gasAmounts = new uint256[](2);
-
-    bytes memory innerData = abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards));
-    bytes memory proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
-
-    uint256 expiredTime = block.timestamp + 14 days;
-    targets[0] = _roninGatewayV3;
-    values[0] = 0;
-    calldatas[0] = proxyData;
-    gasAmounts[0] = 1_000_000;
-
-    innerData = abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (roninTokensToSetMinThreshold, minThresholds));
-    proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
-
-    targets[1] = _roninGatewayV3;
-    values[1] = 0;
-    calldatas[1] = proxyData;
-    gasAmounts[1] = 1_000_000;
-
-    LibProposal.verifyProposalGasAmount(address(_roninBridgeManager), targets, values, calldatas, gasAmounts);
-
-    proposal = Proposal.ProposalDetail({
-      nonce: RoninBridgeManager(_roninBridgeManager).round(2021) + 1,
-      chainId: block.chainid,
-      expiryTimestamp: expiredTime,
-      executor: address(0),
-      targets: targets,
-      values: values,
-      calldatas: calldatas,
-      gasAmounts: gasAmounts
-    });
   }
 
   function _cheatWeightOperator(address gov) internal {
@@ -117,7 +144,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
     vm.store(address(_roninBridgeManager), $, newOpAndWeight);
   }
 
-  function _prepareMapToken()
+  function _prepareMapTokens()
     internal
     returns (address[] memory roninTokens, address[] memory mainchainTokens, uint256[] memory chainIds, TokenStandard[] memory standards)
   {
@@ -140,7 +167,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
       roninTokens[i] = tokenInfos[i].roninToken;
       mainchainTokens[i] = tokenInfos[i].mainchainToken;
       chainIds[i] = network().companionChainId();
-      standards[i] = TokenStandard.ERC20;
+      standards[i] = tokenInfos[i].standard;
     }
   }
 

@@ -16,19 +16,19 @@ abstract contract Factory__MapTokensRonin_Testnet is Factory__MapTokensRoninchai
     super.setUp();
     _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
-    _governor = _initCaller();
+    _specifiedCaller = _initCaller();
   }
 
   function _initGovernors() internal virtual returns (address[] memory);
 
   function run() public virtual override {
-    address[] memory governorsM = _initGovernors();
+    address[] memory mGovernors = _initGovernors();
 
-    for (uint256 i; i < governorsM.length; ++i) {
-      _governors.push(governorsM[i]);
+    for (uint256 i; i < mGovernors.length; ++i) {
+      _governors.push(mGovernors[i]);
     }
 
-    Proposal.ProposalDetail memory proposal = _createAndVerifyProposal();
-    _proposeAndExecute(proposal);
+    Proposal.ProposalDetail memory proposal = _createAndVerifyProposalOnRonin();
+    _proposeAndExecuteProposal(proposal);
   }
 }

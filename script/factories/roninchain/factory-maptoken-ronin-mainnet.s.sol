@@ -16,11 +16,11 @@ abstract contract Factory__MapTokensRonin_Mainnet is Factory__MapTokensRoninchai
     super.setUp();
     _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
-    _governor = _initCaller();
+    _specifiedCaller = _initCaller();
   }
 
   function run() public virtual override {
-    Proposal.ProposalDetail memory proposal = _createAndVerifyProposal();
+    Proposal.ProposalDetail memory proposal = _createAndVerifyProposalOnRonin();
     _propose(proposal);
   }
 }

@@ -1,40 +1,58 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
 import { Network, TNetwork } from "../../utils/Network.sol";
-import { console2 } from "forge-std/console2.sol";
+import { console2 as console } from "forge-std/console2.sol";
+import { StdStyle } from "forge-std/StdStyle.sol";
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { Contract } from "../../utils/Contract.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
 import "./factory-maptoken-mainchain.s.sol";
 
-abstract contract Factory__MapTokensMainchainSepolia is Factory__MapTokensMainchain {
-  using LibCompanionNetwork for *;
-
+abstract contract Factory__MapTokensMainchain_Sepolia is Factory__MapTokensMainchain {
   function setUp() public override {
     super.setUp();
     _mainchainGatewayV3 = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
   }
 
+  function _isLocalSimulation() internal virtual returns (bool);
   function _initGovernorPKs() internal virtual returns (uint256[] memory);
   function _initGovernors() internal virtual returns (address[] memory);
 
-  function run() public virtual override {
-    address[] memory governorsM = _initGovernors();
-    uint256[] memory governorsPksM = _initGovernorPKs();
+  function _initLocalGovernorPKs() internal virtual returns (uint256[] memory) {
+    require(_isLocalSimulation(), "Not in local simulation mode");
+    revert("_initLocalGovernorPKs() must be implemented for local simulation");
+  }
 
-    for (uint256 i; i < governorsM.length; ++i) {
-      _governors.push(governorsM[i]);
-      _governorPKs.push(governorsPksM[i]);
+  function _initLocalGovernors() internal virtual returns (address[] memory) {
+    require(_isLocalSimulation(), "Not in local simulation mode");
+    revert("_initLocalGovernors() must be implemented for local simulation");
+  }
+
+  function run() public virtual override {
+    address[] memory mGovernors;
+    uint256[] memory mGovernorsPk;
+
+    if (_isLocalSimulation()) {
+      mGovernors = _initLocalGovernors();
+      mGovernorsPk = _initLocalGovernorPKs();
+
+      _cheatLocalReplaceGovernors(mGovernors);
+    } else {
+      mGovernors = _initGovernors();
+      mGovernorsPk = _initGovernorPKs();
     }
-    _cheatStorage(_governors);
+
+    for (uint256 i; i < mGovernors.length; ++i) {
+      _governors.push(mGovernors[i]);
+      _governorPKs.push(mGovernorsPk[i]);
+    }
 
     uint256 chainId = block.chainid;
     uint256 nonce = MainchainBridgeManager(_mainchainBridgeManager).round(chainId) + 1;
-    Proposal.ProposalDetail memory proposal = _createAndVerifyProposal(chainId, nonce);
+    Proposal.ProposalDetail memory proposal = _createAndVerifyProposalOnMainchain(chainId, nonce);
     _relayProposal(proposal);
   }
 }
