@@ -15,8 +15,6 @@ abstract contract Factory__MapTokensMainchain_Sepolia is Factory__MapTokensMainc
     super.setUp();
     _mainchainGatewayV3 = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
-
-    _specifiedCaller = _initCaller();
   }
 
   function _initGovernorPKs() internal virtual returns (uint256[] memory);
