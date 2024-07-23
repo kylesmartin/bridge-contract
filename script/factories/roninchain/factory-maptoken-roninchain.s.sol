@@ -40,8 +40,6 @@ abstract contract Factory__MapTokensRoninchain is Migration {
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
   function _propose(Proposal.ProposalDetail memory proposal) internal virtual {
-    _simulateProposeAndExecuteProposal(proposal);
-
     vm.broadcast(_specifiedCaller);
     _roninBridgeManager.propose(
       proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
@@ -78,46 +76,6 @@ abstract contract Factory__MapTokensRoninchain is Migration {
 
     vm.broadcast(_specifiedCaller);
     _roninBridgeManager.execute{ gas: gasAmounts }(proposal);
-  }
-
-  function _simulateProposeAndExecuteProposal(Proposal.ProposalDetail memory proposal) internal {
-    Proposal.ProposalDetail memory cheatingProposal = proposal;
-    Ballot.VoteType cheatingSupport = Ballot.VoteType.For;
-    uint256 snapshot = vm.snapshot();
-    address cheatingGov = makeAddr("Governor");
-    _cheatWeightOperator(cheatingGov);
-
-    vm.startPrank(cheatingGov);
-    _roninBridgeManager.propose(
-      cheatingProposal.chainId,
-      cheatingProposal.expiryTimestamp,
-      cheatingProposal.executor,
-      cheatingProposal.targets,
-      cheatingProposal.values,
-      cheatingProposal.calldatas,
-      cheatingProposal.gasAmounts
-    );
-    _roninBridgeManager.castProposalVoteForCurrentNetwork(cheatingProposal, cheatingSupport);
-    vm.stopPrank();
-
-    if (cheatingProposal.executor != address(0)) {
-      vm.prank(cheatingProposal.executor);
-      _roninBridgeManager.execute(proposal);
-    }
-
-    vm.revertTo(snapshot);
-  }
-
-  function _cheatWeightOperator(address gov) internal {
-    bytes32 governorsWeightSlot = bytes32(uint256(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300) + uint256(2));
-
-    bytes32 $ = keccak256(abi.encode(gov, governorsWeightSlot));
-    bytes32 opAndWeight = vm.load(address(_roninBridgeManager), $);
-
-    uint256 totalWeight = _roninBridgeManager.getTotalWeight();
-    bytes32 newOpAndWeight = bytes32((totalWeight << 160) + uint160(uint256(totalWeight)));
-    vm.store(address(_roninBridgeManager), $, newOpAndWeight);
-    _roninBridgeManager.getGovernorWeight(gov);
   }
 
   function _createAndVerifyProposalOnRonin() internal returns (Proposal.ProposalDetail memory proposal) {

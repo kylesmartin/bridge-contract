@@ -21,6 +21,7 @@ import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBrid
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { Network, TNetwork } from "../../utils/Network.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 abstract contract Factory__MapTokensMainchain is Migration {
   using LibCompanionNetwork for *;
@@ -42,8 +43,6 @@ abstract contract Factory__MapTokensMainchain is Migration {
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
   function _propose(Proposal.ProposalDetail memory proposal) internal virtual {
-    _simulateProposeAndRelayProposal(proposal);
-
     vm.broadcast(_specifiedCaller);
     _roninBridgeManager.propose(
       proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
@@ -51,8 +50,6 @@ abstract contract Factory__MapTokensMainchain is Migration {
   }
 
   function _relayProposal(Proposal.ProposalDetail memory proposal) internal {
-    _simulateProposeAndRelayProposal(proposal);
-
     MainchainBridgeAdminUtils mainchainProposalUtils =
       new MainchainBridgeAdminUtils(2021, _governorPKs, MainchainBridgeManager(_mainchainBridgeManager), _governors[0]);
 
@@ -72,65 +69,6 @@ abstract contract Factory__MapTokensMainchain is Migration {
 
     vm.broadcast(_specifiedCaller);
     MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, supports_, signatures);
-  }
-
-  function _simulateProposeAndRelayProposal(Proposal.ProposalDetail memory proposal) internal {
-    uint256 snapshot = vm.snapshot();
-    (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
-
-    Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
-    uint256[] memory cheatingPks = new uint256[](1);
-
-    cheatingSupports[0] = Ballot.VoteType.For;
-    cheatingPks[0] = cheatingGovPk;
-
-    uint256 gasAmounts = 1_000_000;
-    for (uint256 i; i < proposal.gasAmounts.length; ++i) {
-      gasAmounts += proposal.gasAmounts[i];
-    }
-
-    vm.startPrank(cheatingGov);
-    if (block.chainid == 2020 || block.chainid == 2021) {
-      _cheatWeightOperator(address(_roninBridgeManager), cheatingGov);
-
-      SignatureConsumer.Signature[] memory cheatingSignatures = LibProposal.generateSignatures(proposal, cheatingPks, Ballot.VoteType.For);
-
-      _roninBridgeManager.propose(
-        proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
-      );
-      _roninBridgeManager.castProposalBySignatures(proposal, cheatingSupports, cheatingSignatures);
-
-      TNetwork currentNetwork = network();
-      config.createFork(network().companionNetwork());
-      config.switchTo(network().companionNetwork());
-      _cheatWeightOperator(address(_mainchainBridgeManager), cheatingGov);
-
-      // Handle wrong proposal nonce on testnet.
-      proposal.nonce = MainchainBridgeManager(_mainchainBridgeManager).round(block.chainid) + 1;
-      SignatureConsumer.Signature[] memory signatures = LibProposal.generateSignatures(proposal, cheatingPks, Ballot.VoteType.For);
-
-      MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, cheatingSupports, signatures);
-      config.switchTo(currentNetwork);
-    } else {
-      _cheatWeightOperator(address(_mainchainBridgeManager), cheatingGov);
-      SignatureConsumer.Signature[] memory signatures = LibProposal.generateSignatures(proposal, cheatingPks, Ballot.VoteType.For);
-      MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, cheatingSupports, signatures);
-    }
-    vm.stopPrank();
-
-    vm.revertTo(snapshot);
-  }
-
-  function _cheatWeightOperator(address manager, address gov) internal {
-    bytes32 governorsWeightSlot = bytes32(uint256(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300) + uint256(2));
-
-    bytes32 $ = keccak256(abi.encode(gov, governorsWeightSlot));
-    bytes32 opAndWeight = vm.load(manager, $);
-
-    uint256 totalWeight = IBridgeManager(manager).getTotalWeight();
-    bytes32 newOpAndWeight = bytes32((totalWeight << 160) + uint160(uint256(totalWeight)));
-    vm.store(manager, $, newOpAndWeight);
-    IBridgeManager(manager).getGovernorWeight(gov);
   }
 
   function _createAndVerifyProposalOnMainchain(uint256 chainId, uint256 nonce) internal returns (Proposal.ProposalDetail memory proposal) {
