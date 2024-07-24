@@ -39,17 +39,17 @@ abstract contract Factory__MapTokensRoninchain is Migration {
   function _initCaller() internal virtual returns (address);
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
-  function _propose(Proposal.ProposalDetail memory proposal) internal virtual {
-    vm.broadcast(_specifiedCaller);
-    _roninBridgeManager.propose(
-      proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
-    );
-  }
-
   function _proposeAndExecuteProposal(Proposal.ProposalDetail memory proposal) internal {
     proposal.executor = _specifiedCaller;
     _propose(proposal);
     _executeProposal(proposal);
+  }
+
+  function _propose(Proposal.ProposalDetail memory proposal) internal {
+    vm.broadcast(_specifiedCaller);
+    _roninBridgeManager.propose(
+      proposal.chainId, proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts
+    );
   }
 
   function _executeProposal(Proposal.ProposalDetail memory proposal) internal {

@@ -67,7 +67,7 @@ contract Factory__MapTokensSimulation_Mainchain is Factory__MapTokensSimulation_
 
       // Handle wrong nonce on testnet
       if (currentNetwork == DefaultNetwork.RoninTestnet.key()) {
-        uint256 roundSlot = 2;
+        uint256 roundSlot = uint256(0x0000000000000000000000000000000000000000000000000000000000000002);
         bytes32 $ = keccak256(abi.encode(block.chainid, roundSlot));
 
         bytes32 newNonce = bytes32(proposal.nonce - 1);
