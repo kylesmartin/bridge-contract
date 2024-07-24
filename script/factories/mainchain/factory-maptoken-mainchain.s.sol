@@ -102,7 +102,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
     calldatas[0] = proxyData;
     gasAmounts[0] = 1_000_000;
 
-    if (block.chainid == 2020 || block.chainid == 2021) {
+    if (network() == DefaultNetwork.RoninMainnet.key() || network() == DefaultNetwork.RoninMainnet.key()) {
       // Verify gas amount for ronin targets.
       (uint256 companionChainId, TNetwork companionNetwork) = network().companionNetworkData();
       address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
