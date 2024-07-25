@@ -32,7 +32,7 @@ contract Migration__20240716_P1_1_DeployRoninBridgeManager is Migration, Migrati
     super.setUp();
   }
 
-  function run() public onlyOn(DefaultNetwork.RoninTestnet.key()) {
+  function run() public onlyOn(DefaultNetwork.RoninMainnet.key()) {
     _deployRoninBridgeManager();
   }
 }

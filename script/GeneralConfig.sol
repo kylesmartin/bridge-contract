@@ -73,6 +73,7 @@ contract GeneralConfig is BaseGeneralConfig, Utils {
     _mapContractName(Contract.MockERC721);
     _mapContractName(Contract.MockERC1155);
     _mapContractName(Contract.RoninBridgeManagerConstructor);
+    _mapContractName(Contract.WBTC);
     _mapContractName(Contract.PostChecker);
 
     _contractNameMap[Contract.AXS.key()] = "MockERC20";
