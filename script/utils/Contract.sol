@@ -9,6 +9,7 @@ enum Contract {
   AXS,
   SLP,
   USDC,
+  WBTC,
   MockERC721,
   MockERC1155,
   RoninMockERC1155,
@@ -39,6 +40,7 @@ function name(Contract contractEnum) pure returns (string memory) {
   if (contractEnum == Contract.AXS) return "AXS";
   if (contractEnum == Contract.SLP) return "SLP";
   if (contractEnum == Contract.USDC) return "USDC";
+  if (contractEnum == Contract.WBTC) return "WBTC";
   if (contractEnum == Contract.MockERC721) return "MockERC721";
   if (contractEnum == Contract.MockERC1155) return "MockERC1155";
 

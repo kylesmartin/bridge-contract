@@ -41,7 +41,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     super.setUp();
   }
 
-  function run() public virtual onlyOn(Network.Ethereum.key()) {
+  function run() public virtual onlyOn(Network.EthMainnet.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
     _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));

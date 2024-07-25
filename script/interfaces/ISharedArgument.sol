@@ -84,6 +84,11 @@ interface ISharedArgument is IGeneralConfigExtended {
     address[] sentries;
   }
 
+  struct WBTCParam {
+    address gateway;
+    address pauser;
+  }
+
   struct MockWrappedTokenParam {
     string name;
     string symbol;
@@ -105,8 +110,8 @@ interface ISharedArgument is IGeneralConfigExtended {
 
    struct RoninMockERC1155Param {
     address defaultAdmin;
-     string uri; 
-     string  name; 
+     string uri;
+     string  name;
      string  symbol;
   }
 
@@ -137,6 +142,9 @@ interface ISharedArgument is IGeneralConfigExtended {
     BridgeTrackingParam bridgeTracking;
     BridgeRewardParam bridgeReward;
     // tokens
+    WBTCParam wbtc;
+
+    // mock tokens
     MockWrappedTokenParam weth;
     MockWrappedTokenParam wron;
     MockERC20Param axs;
