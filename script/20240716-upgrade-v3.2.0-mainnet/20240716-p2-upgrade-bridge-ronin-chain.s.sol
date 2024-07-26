@@ -35,6 +35,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   Migration__MapToken_WBTC_Threshold
 {
   ISharedArgument.SharedParameter _param;
+  LegacyProposalDetail _proposal;
 
   function setUp() public virtual override {
     super.setUp();
@@ -66,7 +67,6 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
     address bridgeRewardProxy = config.getAddressFromCurrentNetwork(Contract.BridgeReward.key());
     address bridgeSlashProxy = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
     address bridgeTrackingProxy = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
-    // address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
     address roninGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
@@ -162,16 +162,19 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
       gasAmounts[i] = 1_000_000;
     }
 
-    LegacyProposalDetail memory proposal;
-    proposal.nonce = _currRoninBridgeManager.round(block.chainid) + 1;
-    proposal.chainId = block.chainid;
-    proposal.expiryTimestamp = block.timestamp + 14 days;
-    proposal.targets = targets;
-    proposal.values = values;
-    proposal.calldatas = calldatas;
-    proposal.gasAmounts = gasAmounts;
+    _proposal.nonce = _currRoninBridgeManager.round(block.chainid) + 1;
+    _proposal.chainId = block.chainid;
+    _proposal.expiryTimestamp = block.timestamp + 14 days;
+    _proposal.targets = targets;
+    _proposal.values = values;
+    _proposal.calldatas = calldatas;
+    _proposal.gasAmounts = gasAmounts;
 
-    _helperProposeForCurrentNetwork(proposal);
-    _helperVoteForCurrentNetwork(proposal);
+    _helperProposeForCurrentNetwork(_proposal);
+  }
+
+  function _postCheck() internal virtual override {
+    _helperVoteForCurrentNetwork(_proposal);
+    super._postCheck();
   }
 }

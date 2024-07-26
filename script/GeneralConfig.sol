@@ -39,6 +39,8 @@ contract GeneralConfig is BaseGeneralConfig, Utils {
   }
 
   function _setUpContracts() internal virtual override {
+    setContractAbsolutePathMap(Contract.PostChecker.key(), "out/PostChecker.sol/PostChecker.json");
+
     // map contract name
     _mapContractName(Contract.BridgeSlash);
     _mapContractName(Contract.MockERC721);

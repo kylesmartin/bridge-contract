@@ -199,21 +199,6 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     proposal.gasAmounts = gasAmounts;
 
     _simulateProposal(proposal);
-
-    // uint V = _voters.length + 1;
-    // Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](V);
-    // for (uint i; i < V; ++i) {
-    //   supports_[i] = Ballot.VoteType.For;
-    // }
-
-    // SignatureConsumer.Signature[] memory signatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), _loadGovernorPKs(), Ballot.VoteType.For);
-
-    // vm.broadcast(_governor);
-    // address(_currMainchainBridgeManager).call{ gas: (proposal.targets.length + 1) * 1_000_000 }(
-    //   abi.encodeWithSignature(
-    //     "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])", proposal, supports_, signatures
-    //   )
-    // );
   }
 
   function getDomain() public pure returns (bytes32) {
