@@ -24,6 +24,8 @@ import { SLPDeploy } from "@ronin/script/contracts/token/SLPDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
 import "@ronin/script/contracts/MainchainBridgeManagerDeploy.s.sol";
 import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
+import { TNetwork } from "@fdk/types/TNetwork.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 import "./20240716-helper.s.sol";
 import "./20240716-operators-key.s.sol";
@@ -31,7 +33,7 @@ import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
-  RoninBridgeManager _currRoninBridgeManager;
+  RoninBridgeManager _roninBridgeManager;
   MainchainBridgeManager _currMainchainBridgeManager;
   MainchainBridgeManager _newMainchainBridgeManager;
 
@@ -44,8 +46,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     super.setUp();
   }
 
-  function run() public virtual onlyOn(Network.EthMainnet.key()) {
-    _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+  function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
+    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
 
     _currentNetwork = network();
@@ -53,9 +55,10 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     config.createFork(_companionNetwork);
     config.switchTo(_companionNetwork);
     {
-      address companionManager = config.getAddress(_currentNetwork, Contract.MainchainBridgeManager.key());
-      _currMainchainBridgeManager = MainchainBridgeManager(companionManager);
-      // LibProposal.verifyProposalGasAmount(companionManager, targets, values, calldatas, gasAmounts);
+      // address companionManager = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
+
+      _currMainchainBridgeManager = MainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
+      // _currMainchainBridgeManager = MainchainBridgeManager(companionManager); // TODO: resolve later
     }
     config.switchTo(_currentNetwork);
 
@@ -204,7 +207,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     proposal.gasAmounts = gasAmounts;
 
     vm.broadcast(_governor);
-    address(_currRoninBridgeManager).call(
+    address(_roninBridgeManager).call(
       abi.encodeWithSignature(
         "propose(uint256,uint256,address[],uint256,bytes[],uint256[])",
         proposal.chainId,
