@@ -5,6 +5,8 @@ import { console2 } from "forge-std/console2.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
+import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
+import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Contract } from "../utils/Contract.sol";
@@ -24,8 +26,9 @@ import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import "./20240716-deploy-bridge-manager-helper.s.sol";
 import "./20240716-helper.s.sol";
+import "./wbtc-threshold.s.sol";
 
-contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_Helper, Migration__20240716_DeployRoninBridgeManagerHelper {
+contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_Helper, Migration__20240716_DeployRoninBridgeManagerHelper, Migration__MapToken_WBTC_Threshold {
   ISharedArgument.SharedParameter _param;
 
   function setUp() public virtual override {
@@ -34,89 +37,18 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_H
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _newRoninBridgeManager = RoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
+    _newRoninBridgeManager = _deployRoninBridgeManager();
 
-    _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
-    _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
-    _voters.push(0x087D08e3ba42e64E3948962dd1371F906D1278b9);
-    _voters.push(0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F);
+    _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
 
-    _changeAdminOfEnforcer();
+    (address[] memory currGovernors,,) = _currRoninBridgeManager.getFullBridgeOperatorInfos();
+    for (uint i = 0; i < currGovernors.length; i++) {
+      _voters.push(currGovernors[i]);
+    }
+
     _upgradeBridgeRoninchain();
 
     config.setAddress(network(), Contract.RoninBridgeManager.key(), address(_newRoninBridgeManager));
-  }
-
-  function _changeAdminOfEnforcer() private {
-    RoninBridgeManager roninGA = RoninBridgeManager(0x53Ea388CB72081A3a397114a43741e7987815896);
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
-
-    uint256 expiredTime = block.timestamp + 14 days;
-    uint N = 1;
-    address[] memory targets = new address[](N);
-    uint256[] memory values = new uint256[](N);
-    bytes[] memory calldatas = new bytes[](N);
-    uint256[] memory gasAmounts = new uint256[](N);
-
-    targets[0] = pauseEnforcerProxy;
-    calldatas[0] = abi.encodeWithSignature("changeAdmin(address)", address(_currRoninBridgeManager));
-    gasAmounts[0] = 1_000_000;
-
-    // LegacyProposalDetail memory proposal;
-    // proposal.nonce = roninGA.round(block.chainid) + 1;
-    // proposal.chainId = block.chainid;
-    // proposal.expiryTimestamp = expiredTime;
-    // proposal.targets = targets;
-    // proposal.values = values;
-    // proposal.calldatas = calldatas;
-    // proposal.gasAmounts = gasAmounts;
-
-    address gaGovernor = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
-    address[] memory gaVoters = new address[](3);
-    gaVoters[0] = 0x087D08e3ba42e64E3948962dd1371F906D1278b9;
-    gaVoters[1] = 0x06f8Af58F656B507918d91B0B6F8B89bfCC556f9;
-    gaVoters[2] = 0xe1100401454B5f850b09f3b92cE7f071C5F1CEF4;
-
-    // vm.broadcast(gaGovernor);
-    // address(roninGA).call(
-    //   abi.encodeWithSignature(
-    //     "proposeProposalForCurrentNetwork(uint256,address[],uint256[],bytes[],uint256[],uint8)",
-    //     // proposal.chainId,
-    //     proposal.expiryTimestamp,
-    //     proposal.targets,
-    //     proposal.values,
-    //     proposal.calldatas,
-    //     proposal.gasAmounts,
-    //     Ballot.VoteType.For
-    //   )
-    // );
-
-    // for (uint i; i < gaVoters.length; ++i) {
-    //   vm.broadcast(gaVoters[i]);
-    //   address(roninGA).call{gas: 10_000_000}(
-    //     abi.encodeWithSignature(
-    //       "castProposalVoteForCurrentNetwork((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8)", proposal, Ballot.VoteType.For
-    //     )
-    //   );
-    // }
-
-    // ((45, 2021, 1714451658 [1.714e9], [0x1aD54D61F47acBcBA99fb6540A1694EB2F47AB95], [0], [0x8f283970000000000000000000000000b0507f2f22697022ecb25963a00d3d076dac5753], [1000000 [1e6]]), 0)
-
-    LegacyProposalDetail memory proposal;
-    proposal.nonce = 45;
-    proposal.chainId = 2021;
-    proposal.expiryTimestamp = 1714451658;
-    proposal.targets = targets;
-    proposal.values = values;
-    proposal.calldatas = calldatas;
-    proposal.gasAmounts = gasAmounts;
-
-    vm.broadcast(gaVoters[2]);
-    address(roninGA).call{ gas: 10_000_000 }(
-      abi.encodeWithSignature(
-        "castProposalVoteForCurrentNetwork((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8)", proposal, Ballot.VoteType.For
-      )
-    );
   }
 
   function _upgradeBridgeRoninchain() private {
@@ -129,58 +61,93 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_H
     address bridgeRewardProxy = config.getAddressFromCurrentNetwork(Contract.BridgeReward.key());
     address bridgeSlashProxy = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
     address bridgeTrackingProxy = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
+    // address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
     address roninGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
     param.roninBridgeManager.callbackRegisters = new address[](1);
     param.roninBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
 
-    uint N = 17;
+    uint N = 16;
     address[] memory targets = new address[](N);
     uint256[] memory values = new uint256[](N);
     bytes[] memory calldatas = new bytes[](N);
     uint256[] memory gasAmounts = new uint256[](N);
 
-    targets[0] = bridgeRewardProxy;
-    targets[1] = bridgeSlashProxy;
-    targets[2] = bridgeTrackingProxy;
-    targets[3] = roninGatewayV3Proxy;
-    targets[4] = pauseEnforcerProxy;
-    targets[5] = bridgeRewardProxy;
-    targets[6] = bridgeSlashProxy;
-    targets[7] = bridgeTrackingProxy;
-    targets[8] = roninGatewayV3Proxy;
-    targets[9] = bridgeRewardProxy;
-    targets[10] = bridgeSlashProxy;
-    targets[11] = bridgeTrackingProxy;
-    targets[12] = roninGatewayV3Proxy;
-    targets[13] = pauseEnforcerProxy;
-    targets[14] = address(_newRoninBridgeManager);
-    targets[15] = address(_newRoninBridgeManager);
+    uint cCount;
 
-    calldatas[0] = abi.encodeWithSignature("upgradeToAndCall(address,bytes)", bridgeRewardLogic, abi.encodeWithSelector(BridgeReward.initializeV2.selector));
-    calldatas[1] = abi.encodeWithSignature("upgradeTo(address)", bridgeSlashLogic);
-    calldatas[2] = abi.encodeWithSignature("upgradeTo(address)", bridgeTrackingLogic);
-    calldatas[3] = abi.encodeWithSignature("upgradeTo(address)", roninGatewayV3Logic);
-    calldatas[4] = abi.encodeWithSignature("upgradeTo(address)", pauseEnforcerLogic);
-    calldatas[5] =
+    targets[cCount] = bridgeRewardProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("upgradeToAndCall(address,bytes)", bridgeRewardLogic, abi.encodeWithSelector(BridgeReward.initializeV2.selector));
+
+    targets[cCount] = bridgeSlashProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("upgradeTo(address)", bridgeSlashLogic);
+
+    targets[cCount] = bridgeTrackingProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("upgradeTo(address)", bridgeTrackingLogic);
+
+    targets[cCount] = roninGatewayV3Proxy;
+    calldatas[cCount++] = abi.encodeWithSignature("upgradeTo(address)", roninGatewayV3Logic);
+
+    targets[cCount] = bridgeRewardProxy;
+    calldatas[cCount++] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newRoninBridgeManager))));
-    calldatas[6] =
+
+    targets[cCount] = bridgeSlashProxy;
+    calldatas[cCount++] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newRoninBridgeManager))));
-    calldatas[7] =
+
+    targets[cCount] = bridgeTrackingProxy;
+    calldatas[cCount++] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newRoninBridgeManager))));
-    calldatas[8] =
+
+    targets[cCount] = roninGatewayV3Proxy;
+    calldatas[cCount++] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newRoninBridgeManager))));
-    calldatas[9] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
-    calldatas[10] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
-    calldatas[11] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
-    calldatas[12] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
-    calldatas[13] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
-    calldatas[14] = abi.encodeWithSignature(
+
+    {
+      address[] memory roninTokens = new address[](1);
+      address[] memory mainchainTokens = new address[](1);
+      uint256[] memory chainIds = new uint256[](1);
+      TokenStandard[] memory standards = new TokenStandard[](1);
+
+      roninTokens[0] = _wbtcRoninToken;
+      mainchainTokens[0] = _wbtcMainchainToken;
+      chainIds[0] = config.getNetworkData(config.getCompanionNetwork(network())).chainId;
+      standards[0] = TokenStandard.ERC20;
+
+      address[] memory mainchainTokensToSetMinThreshold = new address[](1);
+      uint256[] memory minThresholds = new uint256[](1);
+      mainchainTokensToSetMinThreshold[0] = _wbtcMainchainToken;
+      minThresholds[0] = _wbtcMinThreshold;
+
+      targets[cCount] = roninGatewayV3Proxy;
+      calldatas[cCount++] = abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)));
+
+      targets[cCount] = roninGatewayV3Proxy;
+      calldatas[cCount++] = abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokensToSetMinThreshold, minThresholds)));
+    }
+
+    targets[cCount] = bridgeRewardProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    targets[cCount] = bridgeSlashProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    targets[cCount] = bridgeTrackingProxy;
+    calldatas[cCount++] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    targets[cCount] = roninGatewayV3Proxy;
+    calldatas[cCount++] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    targets[cCount] = address(_newRoninBridgeManager);
+    calldatas[cCount++] = abi.encodeWithSignature(
       "functionDelegateCall(bytes)", (abi.encodeWithSignature("registerCallbacks(address[])", param.roninBridgeManager.callbackRegisters))
     );
-    calldatas[15] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    targets[cCount] = address(_newRoninBridgeManager);
+    calldatas[cCount++] = abi.encodeWithSignature("changeAdmin(address)", address(_newRoninBridgeManager));
+
+    assertEq(cCount, N);
 
     for (uint i; i < N; ++i) {
       gasAmounts[i] = 1_000_000;

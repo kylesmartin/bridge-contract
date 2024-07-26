@@ -99,6 +99,8 @@ contract Migration is BaseMigration, Utils {
       param.mainchainBridgeManager.voteWeights = voteWeights;
       param.mainchainBridgeManager.targetOptions = options;
       param.mainchainBridgeManager.targets = targets;
+    } else if (network() == Network.EthMainnet.key()) {
+      // Undefined
     } else if (network() == DefaultNetwork.RoninTestnet.key()) {
       // Undefined
     } else if (network() == DefaultNetwork.RoninMainnet.key()) {

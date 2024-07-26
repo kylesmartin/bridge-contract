@@ -26,71 +26,63 @@ import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
 
 import "./20240716-helper.s.sol";
 import "./20240716-operators-key.s.sol";
+import "./wbtc-threshold.s.sol";
 import "../Migration.s.sol";
 
-contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey {
+contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
   MainchainBridgeManager _currMainchainBridgeManager;
   MainchainBridgeManager _newMainchainBridgeManager;
 
   address private _governor;
-  address[] private _voters;
-
-  address TESTNET_ADMIN = 0x968D0Cd7343f711216817E617d3f92a23dC91c07;
 
   function setUp() public virtual override {
     super.setUp();
   }
 
   function run() public virtual onlyOn(Network.EthMainnet.key()) {
-    CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
+    // CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
     _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
-    _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
-    _voters.push(0x087D08e3ba42e64E3948962dd1371F906D1278b9);
-    _voters.push(0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F);
 
-    _changeTempAdmin();
+    // _changeTempAdmin();
     _deployMainchainBridgeManager();
     _upgradeBridgeMainchain();
   }
 
-  function _changeTempAdmin() internal {
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+  // function _changeTempAdmin() internal {
+  //   address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
+  //   address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
 
-    vm.startBroadcast(0x968D0Cd7343f711216817E617d3f92a23dC91c07);
-    address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
-    address(mainchainGatewayV3Proxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
-    vm.stopBroadcast();
-  }
+  //   vm.startBroadcast(TESTNET_ADMIN);
+  //   address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
+  //   address(mainchainGatewayV3Proxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
+  //   vm.stopBroadcast();
+  // }
 
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
     ISharedArgument.SharedParameter memory param;
 
+    {
+      (address[] memory currGovernors, address[] memory currOperators, uint96[] memory currWeights) = _currMainchainBridgeManager.getFullBridgeOperatorInfos();
+      uint totalCurrGovernors = currGovernors.length;
+      param.roninBridgeManager.bridgeOperators = new address[](totalCurrGovernors);
+      param.roninBridgeManager.governors = new address[](totalCurrGovernors);
+      param.roninBridgeManager.voteWeights = new uint96[](totalCurrGovernors);
+
+      for (uint i = 0; i < totalCurrGovernors; i++) {
+        param.roninBridgeManager.bridgeOperators[i] = currOperators[i];
+        param.roninBridgeManager.governors[i] = currGovernors[i];
+        param.roninBridgeManager.voteWeights[i] = currWeights[i];
+      }
+    }
+
     param.mainchainBridgeManager.num = 7;
     param.mainchainBridgeManager.denom = 10;
-    param.mainchainBridgeManager.roninChainId = 2021;
+    param.mainchainBridgeManager.roninChainId = 2020;
     param.mainchainBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
     param.mainchainBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
-    param.mainchainBridgeManager.bridgeOperators = new address[](4);
-    param.mainchainBridgeManager.bridgeOperators[0] = 0x2e82D2b56f858f79DeeF11B160bFC4631873da2B;
-    param.mainchainBridgeManager.bridgeOperators[1] = 0xBcb61783dd2403FE8cC9B89B27B1A9Bb03d040Cb;
-    param.mainchainBridgeManager.bridgeOperators[2] = 0xB266Bf53Cf7EAc4E2065A404598DCB0E15E9462c;
-    param.mainchainBridgeManager.bridgeOperators[3] = 0xcc5Fc5B6c8595F56306Da736F6CD02eD9141C84A;
-
-    param.mainchainBridgeManager.governors = new address[](4);
-    param.mainchainBridgeManager.governors[0] = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
-    param.mainchainBridgeManager.governors[1] = 0xb033ba62EC622dC54D0ABFE0254e79692147CA26;
-    param.mainchainBridgeManager.governors[2] = 0x087D08e3ba42e64E3948962dd1371F906D1278b9;
-    param.mainchainBridgeManager.governors[3] = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
-
-    param.mainchainBridgeManager.voteWeights = new uint96[](4);
-    param.mainchainBridgeManager.voteWeights[0] = 100;
-    param.mainchainBridgeManager.voteWeights[1] = 100;
-    param.mainchainBridgeManager.voteWeights[2] = 100;
-    param.mainchainBridgeManager.voteWeights[3] = 100;
 
     param.mainchainBridgeManager.targetOptions = new GlobalProposal.TargetOption[](2);
     param.mainchainBridgeManager.targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
@@ -140,7 +132,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
 
     uint256 expiredTime = block.timestamp + 14 days;
-    uint N = 7;
+    uint N = 6;
     address[] memory targets = new address[](N);
     uint256[] memory values = new uint256[](N);
     bytes[] memory calldatas = new bytes[](N);
@@ -149,23 +141,49 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     targets[0] = mainchainGatewayV3Proxy;
     targets[1] = mainchainGatewayV3Proxy;
     targets[2] = mainchainGatewayV3Proxy;
-    targets[3] = pauseEnforcerProxy;
-    targets[4] = pauseEnforcerProxy;
+    targets[3] = mainchainGatewayV3Proxy;
+    targets[4] = address(_newMainchainBridgeManager);
     targets[5] = address(_newMainchainBridgeManager);
-    targets[6] = address(_newMainchainBridgeManager);
 
-    calldatas[0] = abi.encodeWithSignature(
+
+    // Mapping WBTC calldata
+    {
+      address[] memory mainchainTokens = new address[](1);
+      address[] memory roninTokens = new address[](1);
+      TokenStandard[] memory standards = new TokenStandard[](1);
+      uint256[][4] memory thresholds;
+
+      mainchainTokens[0] = _wbtcMainchainToken;
+      roninTokens[0] = _wbtcRoninToken;
+      standards[0] = TokenStandard.ERC20;
+      // highTierThreshold
+      thresholds[0] = new uint256[](1);
+      thresholds[0][0] = _wbtcHighTierThreshold;
+      // lockedThreshold
+      thresholds[1] = new uint256[](1);
+      thresholds[1][0] = _wbtcLockedThreshold;
+      // unlockFeePercentages
+      thresholds[2] = new uint256[](1);
+      thresholds[2][0] = _wbtcUnlockFeePercentages;
+      // dailyWithdrawalLimit
+      thresholds[3] = new uint256[](1);
+      thresholds[3][0] = _wbtcDailyWithdrawalLimit;
+
+      calldatas[0] =  abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds)));
+    }
+
+    calldatas[1] = abi.encodeWithSignature(
       "upgradeToAndCall(address,bytes)", mainchainGatewayV3Logic, abi.encodeWithSelector(MainchainGatewayV3.initializeV4.selector, wethUnwrapper)
     );
-    calldatas[1] =
+    calldatas[2] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newMainchainBridgeManager))));
-    calldatas[2] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
-    calldatas[3] = abi.encodeWithSignature("upgradeTo(address)", pauseEnforcerLogic);
-    calldatas[4] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
-    calldatas[5] = abi.encodeWithSignature(
+
+    // Do all setting steps before migrating to change admin
+    calldatas[3] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
+    calldatas[4] = abi.encodeWithSignature(
       "functionDelegateCall(bytes)", (abi.encodeWithSignature("registerCallbacks(address[])", param.mainchainBridgeManager.callbackRegisters))
     );
-    calldatas[6] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
+    calldatas[5] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
 
     for (uint i; i < N; ++i) {
       gasAmounts[i] = 1_000_000;
@@ -180,20 +198,22 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     proposal.calldatas = calldatas;
     proposal.gasAmounts = gasAmounts;
 
-    uint V = _voters.length + 1;
-    Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](V);
-    for (uint i; i < V; ++i) {
-      supports_[i] = Ballot.VoteType.For;
-    }
+    _simulateProposal(proposal);
 
-    SignatureConsumer.Signature[] memory signatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), _loadGovernorPKs(), Ballot.VoteType.For);
+    // uint V = _voters.length + 1;
+    // Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](V);
+    // for (uint i; i < V; ++i) {
+    //   supports_[i] = Ballot.VoteType.For;
+    // }
 
-    vm.broadcast(_governor);
-    address(_currMainchainBridgeManager).call{ gas: (proposal.targets.length + 1) * 1_000_000 }(
-      abi.encodeWithSignature(
-        "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])", proposal, supports_, signatures
-      )
-    );
+    // SignatureConsumer.Signature[] memory signatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), _loadGovernorPKs(), Ballot.VoteType.For);
+
+    // vm.broadcast(_governor);
+    // address(_currMainchainBridgeManager).call{ gas: (proposal.targets.length + 1) * 1_000_000 }(
+    //   abi.encodeWithSignature(
+    //     "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])", proposal, supports_, signatures
+    //   )
+    // );
   }
 
   function getDomain() public pure returns (bytes32) {
@@ -202,7 +222,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
         keccak256("EIP712Domain(string name,string version,bytes32 salt)"),
         keccak256("BridgeAdmin"), // name hash
         keccak256("2"), // version hash
-        keccak256(abi.encode("BRIDGE_ADMIN", 2021)) // salt
+        keccak256(abi.encode("BRIDGE_ADMIN", 2020)) // salt
       )
     );
   }
@@ -258,5 +278,40 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       mstore(add(ptr, 0xe0), arrayHashed)
       digest_ := keccak256(ptr, 0x100)
     }
+  }
+
+  function _simulateProposal(LegacyProposalDetail memory proposal) internal {
+    Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
+    uint256[] memory cheatingPks = new uint256[](1);
+    (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
+
+    cheatingSupports[0] = Ballot.VoteType.For;
+    cheatingPks[0] = cheatingGovPk;
+    SignatureConsumer.Signature[] memory cheatingSignatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingPks, Ballot.VoteType.For);
+
+    uint256 totalGas = 1_000_000;
+    for (uint256 i; i < proposal.gasAmounts.length; ++i) {
+      totalGas += proposal.gasAmounts[i];
+    }
+
+    _cheatWeightGovernor(IBridgeManager(_currMainchainBridgeManager), cheatingGov);
+
+    vm.prank(cheatingGov);
+    address(_currMainchainBridgeManager).call{ gas: totalGas }(
+      abi.encodeWithSignature(
+        "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])", proposal, cheatingSupports, cheatingSignatures
+      )
+    );
+  }
+
+  function _cheatWeightGovernor(IBridgeManager manager, address gov) internal {
+    bytes32 $ = keccak256(abi.encode(gov, 0x88547008e60f5748911f2e59feb3093b7e4c2e87b2dd69d61f112fcc932de8e3));
+    bytes32 opAndWeight = vm.load(address(manager), $);
+
+    uint256 totalWeight = manager.getTotalWeight();
+    bytes32 newOpAndWeight = bytes32((totalWeight << 160) + uint160(uint256(opAndWeight)));
+    vm.store(address(manager), $, newOpAndWeight);
+
+    assert(manager.getGovernorWeight(gov) == totalWeight);
   }
 }

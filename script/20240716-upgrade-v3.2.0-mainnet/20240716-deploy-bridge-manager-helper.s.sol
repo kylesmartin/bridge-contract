@@ -25,39 +25,37 @@ import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
 
 import "../Migration.s.sol";
 
-contract Migration__20240716_DeployRoninBridgeManagerHelper is Migration {
+abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migration {
   using LibProxy for *;
 
   RoninBridgeManager _newRoninBridgeManager;
 
   function _deployRoninBridgeManager() internal returns (RoninBridgeManager) {
     address currRoninBridgeManager = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
-    console.log(currRoninBridgeManager);
+    console.log("Current Ronin Bridge Manager:",  currRoninBridgeManager);
 
     ISharedArgument.SharedParameter memory param;
 
-    param.roninBridgeManager.num = 7;
-    param.roninBridgeManager.denom = 10;
-    param.roninBridgeManager.roninChainId = block.chainid;
-    param.roninBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
-    param.roninBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
-    param.roninBridgeManager.bridgeOperators = new address[](4);
-    param.roninBridgeManager.bridgeOperators[0] = 0x2e82D2b56f858f79DeeF11B160bFC4631873da2B;
-    param.roninBridgeManager.bridgeOperators[1] = 0xBcb61783dd2403FE8cC9B89B27B1A9Bb03d040Cb;
-    param.roninBridgeManager.bridgeOperators[2] = 0xB266Bf53Cf7EAc4E2065A404598DCB0E15E9462c;
-    param.roninBridgeManager.bridgeOperators[3] = 0xcc5Fc5B6c8595F56306Da736F6CD02eD9141C84A;
+    {
+      (address[] memory currGovernors, address[] memory currOperators, uint96[] memory currWeights) = RoninBridgeManager(currRoninBridgeManager).getFullBridgeOperatorInfos();
 
-    param.roninBridgeManager.governors = new address[](4);
-    param.roninBridgeManager.governors[0] = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
-    param.roninBridgeManager.governors[1] = 0xb033ba62EC622dC54D0ABFE0254e79692147CA26;
-    param.roninBridgeManager.governors[2] = 0x087D08e3ba42e64E3948962dd1371F906D1278b9;
-    param.roninBridgeManager.governors[3] = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
+      param.roninBridgeManager.num = 7;
+      param.roninBridgeManager.denom = 10;
+      param.roninBridgeManager.roninChainId = block.chainid;
+      param.roninBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
+      param.roninBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
 
-    param.roninBridgeManager.voteWeights = new uint96[](4);
-    param.roninBridgeManager.voteWeights[0] = 100;
-    param.roninBridgeManager.voteWeights[1] = 100;
-    param.roninBridgeManager.voteWeights[2] = 100;
-    param.roninBridgeManager.voteWeights[3] = 100;
+      uint totalCurrGovernors = currGovernors.length;
+      param.roninBridgeManager.bridgeOperators = new address[](totalCurrGovernors);
+      param.roninBridgeManager.governors = new address[](totalCurrGovernors);
+      param.roninBridgeManager.voteWeights = new uint96[](totalCurrGovernors);
+
+      for (uint i = 0; i < totalCurrGovernors; i++) {
+        param.roninBridgeManager.bridgeOperators[i] = currOperators[i];
+        param.roninBridgeManager.governors[i] = currGovernors[i];
+        param.roninBridgeManager.voteWeights[i] = currWeights[i];
+      }
+    }
 
     param.roninBridgeManager.targetOptions = new GlobalProposal.TargetOption[](5);
     param.roninBridgeManager.targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
