@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
@@ -163,7 +163,7 @@ contract Migration__20240206_MapTokenBananaRoninChain is
     }
     config.switchTo(currentNetwork);
 
-    console2.log("Nonce:", vm.getNonce(_governor));
+    console.log("Nonce:", vm.getNonce(_governor));
     vm.broadcast(_governor);
     _roninBridgeManager.propose(block.chainid, expiredTime, address(0), targets, values, calldatas, gasAmounts);
 

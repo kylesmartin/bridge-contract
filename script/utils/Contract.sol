@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { LibString, TContract } from "@fdk/types/Types.sol";
+import { TContract } from "@fdk/types/Types.sol";
+import { LibString } from "solady/utils/LibString.sol";
 
 enum Contract {
   WETH,

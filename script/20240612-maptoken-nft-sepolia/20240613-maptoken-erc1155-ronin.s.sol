@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -19,7 +19,7 @@ import { MockUSDC } from "@ronin/contracts/mocks/token/MockUSDC.sol";
 import { USDCDeploy } from "@ronin/script/contracts/token/USDCDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
 
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
   RoninBridgeManager internal _roninBridgeManager;

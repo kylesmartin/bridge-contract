@@ -2,7 +2,8 @@
 pragma solidity ^0.8.19;
 
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
+import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 
 struct LegacyProposalDetail {
   uint256 nonce;

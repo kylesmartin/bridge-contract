@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { RoninBridgeManagerConstructor } from "@ronin/contracts/ronin/gateway/RoninBridgeManagerConstructor.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
@@ -11,6 +11,7 @@ import { Migration } from "../Migration.s.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { RoninGatewayV3Deploy } from "./RoninGatewayV3Deploy.s.sol";
 import { BridgeSlashDeploy } from "./BridgeSlashDeploy.s.sol";
+import { LibDeploy, DeployInfo, ProxyInterface, UpgradeInfo } from "@fdk/libraries/LibDeploy.sol";
 
 contract RoninBridgeManagerDeploy is Migration {
   using LibProxy for *;
@@ -39,9 +40,19 @@ contract RoninBridgeManagerDeploy is Migration {
     address payable instance = _deployProxy(Contract.RoninBridgeManagerConstructor.key(), sender());
     address logic = _deployLogic(Contract.RoninBridgeManager.key());
     address proxyAdmin = instance.getProxyAdmin();
-    console2.log("Proxy admin ", proxyAdmin);
-    console2.log("Sender: ", sender());
-    _upgradeRaw(proxyAdmin, instance, logic, EMPTY_ARGS);
+    console.log("Proxy admin ", proxyAdmin);
+    console.log("Sender: ", sender());
+
+    UpgradeInfo({
+      proxy: instance,
+      logic: logic,
+      callValue: 0,
+      callData: EMPTY_ARGS,
+      proxyInterface: ProxyInterface.Transparent,
+      shouldPrompt: false,
+      upgradeCallback: this.upgradeCallback,
+      shouldUseCallback: true
+    }).upgrade();
 
     // if (proxyAdmin != instance) {
     //   vm.broadcast(proxyAdmin);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -27,8 +27,13 @@ import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import "./20240716-deploy-bridge-manager-helper.s.sol";
 import "./20240716-helper.s.sol";
 import "./wbtc-threshold.s.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
-contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_Helper, Migration__20240716_DeployRoninBridgeManagerHelper, Migration__MapToken_WBTC_Threshold {
+contract Migration__20240716_P2_UpgradeBridgeRoninchain is
+  Migration__20240716_Helper,
+  Migration__20240716_DeployRoninBridgeManagerHelper,
+  Migration__MapToken_WBTC_Threshold
+{
   ISharedArgument.SharedParameter _param;
 
   function setUp() public virtual override {
@@ -77,7 +82,8 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_H
     uint cCount;
 
     targets[cCount] = bridgeRewardProxy;
-    calldatas[cCount++] = abi.encodeWithSignature("upgradeToAndCall(address,bytes)", bridgeRewardLogic, abi.encodeWithSelector(BridgeReward.initializeV2.selector));
+    calldatas[cCount++] =
+      abi.encodeWithSignature("upgradeToAndCall(address,bytes)", bridgeRewardLogic, abi.encodeWithSelector(BridgeReward.initializeV2.selector));
 
     targets[cCount] = bridgeSlashProxy;
     calldatas[cCount++] = abi.encodeWithSignature("upgradeTo(address)", bridgeSlashLogic);
@@ -121,10 +127,13 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is Migration__20240716_H
       minThresholds[0] = _wbtcMinThreshold;
 
       targets[cCount] = roninGatewayV3Proxy;
-      calldatas[cCount++] = abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)));
+      calldatas[cCount++] =
+        abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)));
 
       targets[cCount] = roninGatewayV3Proxy;
-      calldatas[cCount++] = abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokensToSetMinThreshold, minThresholds)));
+      calldatas[cCount++] = abi.encodeWithSignature(
+        "functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokensToSetMinThreshold, minThresholds))
+      );
     }
 
     targets[cCount] = bridgeRewardProxy;

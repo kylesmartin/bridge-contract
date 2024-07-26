@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -24,6 +24,7 @@ import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import "./20240411-deploy-bridge-manager-helper.s.sol";
 import "./20240411-helper.s.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_Helper, Migration__2024041_DeployRoninBridgeManagerHelper {
   ISharedArgument.SharedParameter _param;

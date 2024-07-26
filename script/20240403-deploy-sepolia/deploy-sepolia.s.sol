@@ -31,7 +31,7 @@ import { Migration } from "../Migration.s.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import "./changeGV-config.s.sol";
 
-import "forge-std/console2.sol";
+import "forge-std/console.sol";
 
 contract DeploySepolia is Migration, DeploySepolia__ChangeGV_Config {
   ISharedArgument.SharedParameter _param;

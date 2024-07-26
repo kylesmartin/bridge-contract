@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -22,7 +22,8 @@ import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtil
 import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
 
 import "./20240411-deploy-bridge-manager-helper.s.sol";
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 // Run this script with `optimizer_runs = 1`.
 contract Migration__20240409_P1_DeployRoninBridgeManager is Migration, Migration__2024041_DeployRoninBridgeManagerHelper {

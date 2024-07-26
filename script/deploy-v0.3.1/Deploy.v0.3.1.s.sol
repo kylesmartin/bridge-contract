@@ -36,7 +36,7 @@ contract Deploy_v0_3_1 is Migration {
       config.switchTo(currentNetwork);
 
       new Migration_02_Deploy_MainchainBridge().run();
-    } else if (currentNetwork == DefaultNetwork.Local.key()) {
+    } else if (currentNetwork == DefaultNetwork.LocalHost.key()) {
       new Migration_01_Deploy_RoninBridge().run();
       new Migration_02_Deploy_MainchainBridge().run();
     } else {

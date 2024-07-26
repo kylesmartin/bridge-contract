@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 
@@ -17,7 +17,7 @@ import { Migration } from "../Migration.s.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
-import "forge-std/console2.sol";
+import "forge-std/console.sol";
 
 import "./maptoken-pixel-configs.s.sol";
 import "./update-axiechat-config.s.sol";

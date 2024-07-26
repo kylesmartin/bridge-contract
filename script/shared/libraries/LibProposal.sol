@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { Vm } from "forge-std/Vm.sol";
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { IGeneralConfigExtended } from "script/interfaces/IGeneralConfigExtended.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
 import { Contract } from "script/utils/Contract.sol";
@@ -19,7 +19,7 @@ import { CoreGovernance } from "@ronin/contracts/extensions/sequential-governanc
 import { LibArray } from "./LibArray.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "./LibCompanionNetwork.sol";
-import { LibErrorHandler } from "lib/foundry-deployment-kit/lib/contract-libs/src/LibErrorHandler.sol";
+import { LibErrorHandler } from "lib/foundry-deployment-kit/script/libraries/LibErrorHandler.sol";
 import { VoteStatusConsumer } from "@ronin/contracts/interfaces/consumers/VoteStatusConsumer.sol";
 
 library LibProposal {

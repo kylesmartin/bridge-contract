@@ -10,6 +10,7 @@ import { PostCheck_BridgeManager } from "./post-check/bridge-manager/PostCheck_B
 import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol";
 import { Migration } from "./Migration.s.sol";
 import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
+import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
 
 contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
   using LibCompanionNetwork for *;
@@ -28,8 +29,14 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     return super._deployLogic(contractType);
   }
 
-  function _upgradeRaw(address proxyAdmin, address payable proxy, address logic, bytes memory args) internal virtual override(BaseMigration, Migration) {
-    super._upgradeRaw(proxyAdmin, proxy, logic, args);
+  function upgradeCallback(
+    address proxy,
+    address logic,
+    uint256 callValue,
+    bytes memory callData,
+    ProxyInterface proxyInterface
+  ) public virtual override(BaseMigration, Migration) {
+    super.upgradeCallback(proxy, logic, callValue, callData, proxyInterface);
   }
 
   function _postCheck() internal virtual override(ScriptExtended, Migration) {
@@ -48,7 +55,7 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     TNetwork currentNetwork = network();
     if (
       currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == Network.RoninDevnet.key()
-        || currentNetwork == DefaultNetwork.Local.key()
+        || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
       bridgeSlash = loadContract(Contract.BridgeSlash.key());
       bridgeReward = loadContract(Contract.BridgeReward.key());
@@ -67,7 +74,7 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       vm.makePersistent(mainchainGateway);
       vm.makePersistent(mainchainBridgeManager);
     } else {
-      revert(string.concat("Unsupported network: ", currentNetwork.networkName()));
+      revert(string.concat("Unsupported network: ", currentNetwork.chainAlias()));
     }
   }
 }

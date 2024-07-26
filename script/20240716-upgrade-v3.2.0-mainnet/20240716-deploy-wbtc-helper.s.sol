@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
 import { Migration } from "../Migration.s.sol";
 import { Contract } from "../utils/Contract.sol";
