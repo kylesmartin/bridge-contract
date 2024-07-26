@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -30,8 +31,12 @@ import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
+  RoninBridgeManager _currRoninBridgeManager;
   MainchainBridgeManager _currMainchainBridgeManager;
   MainchainBridgeManager _newMainchainBridgeManager;
+
+  TNetwork _currentNetwork;
+  TNetwork _companionNetwork;
 
   address private _governor;
 
@@ -40,26 +45,25 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function run() public virtual onlyOn(Network.EthMainnet.key()) {
-    // CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
+    _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
 
-    _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    _currentNetwork = network();
+    _companionNetwork = config.getCompanionNetwork(_currentNetwork);
+    config.createFork(_companionNetwork);
+    config.switchTo(_companionNetwork);
+    {
+      address companionManager = config.getAddress(_currentNetwork, Contract.MainchainBridgeManager.key());
+      _currMainchainBridgeManager = MainchainBridgeManager(companionManager);
+      // LibProposal.verifyProposalGasAmount(companionManager, targets, values, calldatas, gasAmounts);
+    }
+    config.switchTo(_currentNetwork);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
 
-    // _changeTempAdmin();
     _deployMainchainBridgeManager();
     _upgradeBridgeMainchain();
   }
-
-  // function _changeTempAdmin() internal {
-  //   address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-  //   address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
-
-  //   vm.startBroadcast(TESTNET_ADMIN);
-  //   address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
-  //   address(mainchainGatewayV3Proxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
-  //   vm.stopBroadcast();
-  // }
 
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
     ISharedArgument.SharedParameter memory param;
@@ -190,13 +194,27 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     }
 
     LegacyProposalDetail memory proposal;
-    proposal.nonce = _currMainchainBridgeManager.round(block.chainid) + 1;
-    proposal.chainId = block.chainid;
+
+    proposal.nonce = _currMainchainBridgeManager.round(Network.EthMainnet.chainId()) + 1;
+    proposal.chainId = Network.EthMainnet.chainId();
     proposal.expiryTimestamp = expiredTime;
     proposal.targets = targets;
     proposal.values = values;
     proposal.calldatas = calldatas;
     proposal.gasAmounts = gasAmounts;
+
+    vm.broadcast(_governor);
+    address(_currRoninBridgeManager).call(
+      abi.encodeWithSignature(
+        "propose(uint256,uint256,address[],uint256,bytes[],uint256[])",
+        proposal.chainId,
+        proposal.expiryTimestamp,
+        proposal.targets,
+        proposal.values,
+        proposal.calldatas,
+        proposal.gasAmounts
+      )
+    );
 
     _simulateProposal(proposal);
   }
@@ -266,6 +284,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _simulateProposal(LegacyProposalDetail memory proposal) internal {
+    config.switchTo(_companionNetwork);
+
     Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
     uint256[] memory cheatingPks = new uint256[](1);
     (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
