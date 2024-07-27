@@ -34,7 +34,7 @@ function chainId(Network network) pure returns (uint256) {
 }
 
 function key(Network network) pure returns (TNetwork) {
-  return TNetwork.wrap(LibString.packOne(name(network)));
+  return TNetwork.wrap(LibString.packOne(chainAlias(network)));
 }
 
 function blockTime(Network network) pure returns (uint256) {
