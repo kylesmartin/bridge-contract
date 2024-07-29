@@ -35,8 +35,8 @@ contract Migration__MapTokenRoninchain is Migration {
 
   function setUp() public override {
     super.setUp();
-    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninGatewayV3 = loadContract(Contract.RoninGatewayV3.key());
   }
 
   function _mapTokens() internal view returns (bytes memory) {

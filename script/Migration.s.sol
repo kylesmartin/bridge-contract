@@ -224,7 +224,7 @@ contract Migration is BaseMigration, Utils {
 
     if (currentNetwork == DefaultNetwork.LocalHost.key()) {
       if (config.getLocalNetwork() == IGeneralConfigExtended.LocalNetwork.Ronin) {
-        try config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()) returns (address payable res) {
+        try this.loadContract(Contract.RoninBridgeManager.key()) returns (address payable res) {
           proxyAdmin = res;
         } catch {
           console.log("BridgeMigration(_getProxyAdmin): RoninBridgeManager not found".yellow());
@@ -232,7 +232,7 @@ contract Migration is BaseMigration, Utils {
           proxyAdmin = sender();
         }
       } else if (config.getLocalNetwork() == IGeneralConfigExtended.LocalNetwork.Eth) {
-        try config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()) returns (address payable res) {
+        try this.loadContract(Contract.MainchainBridgeManager.key()) returns (address payable res) {
           proxyAdmin = res;
         } catch {
           console.log("BridgeMigration(_getProxyAdmin): MainchainBridgeManager not found".yellow());
@@ -326,7 +326,6 @@ contract Migration is BaseMigration, Utils {
 
     address logic = _deployLogic(contractType);
     string memory proxyAbsolutePath = "TransparentUpgradeableProxyV2.sol:TransparentUpgradeableProxyV2";
-    uint256 proxyNonce;
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
@@ -394,9 +393,9 @@ contract Migration is BaseMigration, Utils {
   function _getProxyAdminFromCurrentNetwork() internal view virtual returns (address proxyAdmin) {
     TNetwork currentNetwork = network();
     if (currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == DefaultNetwork.RoninMainnet.key()) {
-      proxyAdmin = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
+      proxyAdmin = loadContract(Contract.RoninBridgeManager.key());
     } else if (currentNetwork == Network.Goerli.key() || currentNetwork == Network.EthMainnet.key()) {
-      proxyAdmin = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
+      proxyAdmin = loadContract(Contract.MainchainBridgeManager.key());
     } else {
       revert("BridgeMigration(_getProxyAdminFromCurrentNetwork): Unhandled case");
     }

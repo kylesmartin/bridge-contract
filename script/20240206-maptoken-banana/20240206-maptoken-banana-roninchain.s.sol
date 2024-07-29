@@ -47,8 +47,8 @@ contract Migration__20240206_MapTokenBananaRoninChain is
 
   function setUp() public virtual override {
     super.setUp();
-    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninGatewayV3 = loadContract(Contract.RoninGatewayV3.key());
   }
 
   function _cheatWeightOperator(address gov) internal {

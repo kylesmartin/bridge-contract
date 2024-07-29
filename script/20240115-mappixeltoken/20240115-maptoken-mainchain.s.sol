@@ -44,7 +44,7 @@ contract Migration__MapTokenMainchain is Migration {
   function setUp() public override {
     super.setUp();
 
-    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     _mainchainGatewayV3 = config.getAddress(config.getCompanionNetwork(network()), Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddress(config.getCompanionNetwork(network()), Contract.MainchainBridgeManager.key());
   }

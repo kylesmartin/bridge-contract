@@ -34,7 +34,7 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninTestnet.key()) {
-    _currRoninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _currRoninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     _newRoninBridgeManager = IRoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
@@ -50,7 +50,7 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
 
   function _changeAdminOfEnforcer() private {
     IRoninBridgeManager roninGA = IRoninBridgeManager(0x53Ea388CB72081A3a397114a43741e7987815896);
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
+    address pauseEnforcerProxy = loadContract(Contract.RoninPauseEnforcer.key());
 
     uint256 expiredTime = block.timestamp + 14 days;
     uint N = 1;
@@ -127,15 +127,15 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
     address pauseEnforcerLogic = _deployLogic(Contract.RoninPauseEnforcer.key());
     address roninGatewayV3Logic = _deployLogic(Contract.RoninGatewayV3.key());
 
-    address bridgeRewardProxy = config.getAddressFromCurrentNetwork(Contract.BridgeReward.key());
-    address bridgeSlashProxy = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
-    address bridgeTrackingProxy = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
-    address roninGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    address bridgeRewardProxy = loadContract(Contract.BridgeReward.key());
+    address bridgeSlashProxy = loadContract(Contract.BridgeSlash.key());
+    address bridgeTrackingProxy = loadContract(Contract.BridgeTracking.key());
+    address pauseEnforcerProxy = loadContract(Contract.RoninPauseEnforcer.key());
+    address roninGatewayV3Proxy = loadContract(Contract.RoninGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
     param.roninBridgeManager.callbackRegisters = new address[](1);
-    param.roninBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
+    param.roninBridgeManager.callbackRegisters[0] = loadContract(Contract.BridgeSlash.key());
 
     uint N = 17;
     address[] memory targets = new address[](N);

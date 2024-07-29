@@ -44,7 +44,7 @@ contract Migration__20240619_P3_UpgradeBridgeMainchain is Migration, Migration__
   function run() public virtual onlyOn(Network.Sepolia.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
-    _mainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    _mainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -56,11 +56,11 @@ contract Migration__20240619_P3_UpgradeBridgeMainchain is Migration, Migration__
 
   function _upgradeBridgeMainchain() internal {
     address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
     param.mainchainBridgeManager.callbackRegisters = new address[](1);
-    param.mainchainBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.callbackRegisters[0] = loadContract(Contract.MainchainGatewayV3.key());
 
     uint256 expiredTime = block.timestamp + 14 days;
     uint N = 1;

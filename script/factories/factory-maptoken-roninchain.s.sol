@@ -29,8 +29,8 @@ abstract contract Factory__MapTokensRoninchain is Migration {
 
   function setUp() public override {
     super.setUp();
-    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninGatewayV3 = loadContract(Contract.RoninGatewayV3.key());
 
     _governor = _initCaller();
     _cheatWeightOperator(_governor);

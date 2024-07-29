@@ -47,14 +47,14 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
-    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    // _currMainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _currentNetwork = network();
     _companionNetwork = config.getCompanionNetwork(_currentNetwork);
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
     {
-      // address companionManager = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
+      // address companionManager = loadContract(Contract.MainchainBridgeManager.key());
 
       _currMainchainBridgeManager = MainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
       // _currMainchainBridgeManager = MainchainBridgeManager(companionManager); // TODO: resolve later
@@ -91,15 +91,15 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.denom = 10;
     param.mainchainBridgeManager.roninChainId = 2020;
     param.mainchainBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
-    param.mainchainBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.bridgeContract = loadContract(Contract.MainchainGatewayV3.key());
 
     param.mainchainBridgeManager.targetOptions = new GlobalProposal.TargetOption[](2);
     param.mainchainBridgeManager.targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
     param.mainchainBridgeManager.targetOptions[1] = GlobalProposal.TargetOption.PauseEnforcer;
 
     param.mainchainBridgeManager.targets = new address[](2);
-    param.mainchainBridgeManager.targets[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
-    param.mainchainBridgeManager.targets[1] = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
+    param.mainchainBridgeManager.targets[0] = loadContract(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.targets[1] = loadContract(Contract.MainchainPauseEnforcer.key());
 
     _newMainchainBridgeManager = MainchainBridgeManager(
       new MainchainBridgeManagerDeploy().overrideArgs(
@@ -131,15 +131,15 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   function _upgradeBridgeMainchain() internal {
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
-    address weth = config.getAddressFromCurrentNetwork(Contract.WETH.key());
+    address weth = loadContract(Contract.WETH.key());
     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
 
     address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
     param.mainchainBridgeManager.callbackRegisters = new address[](1);
-    param.mainchainBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.callbackRegisters[0] = loadContract(Contract.MainchainGatewayV3.key());
 
     uint256 expiredTime = block.timestamp + 14 days;
     uint N = 6;

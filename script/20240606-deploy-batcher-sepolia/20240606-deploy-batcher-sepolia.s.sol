@@ -45,7 +45,7 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
   function run() public virtual onlyOn(Network.Sepolia.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
-    // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    // _currMainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     // _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     // _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -56,7 +56,7 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
     // _deployMainchainBridgeManager();
     // _upgradeBridgeMainchain();
 
-    _currMainchainBridge = MainchainGatewayV3(config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key()));
+    _currMainchainBridge = MainchainGatewayV3(loadContract(Contract.MainchainGatewayV3.key()));
     // vm.stopBroadcast();
     // vm.startBroadcast(TESTNET_ADMIN);
     _mainchainGatewayBatcher =
@@ -65,8 +65,8 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
   }
 
   function _changeTempAdmin() internal {
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address pauseEnforcerProxy = loadContract(Contract.MainchainPauseEnforcer.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     vm.startBroadcast(0x968D0Cd7343f711216817E617d3f92a23dC91c07);
     address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));

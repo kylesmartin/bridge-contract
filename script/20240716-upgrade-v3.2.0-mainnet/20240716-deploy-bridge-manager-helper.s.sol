@@ -31,7 +31,7 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
   IRoninBridgeManager _newRoninBridgeManager;
 
   function _deployRoninBridgeManager() internal returns (IRoninBridgeManager) {
-    address currRoninBridgeManager = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
+    address currRoninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
     console.log("Current Ronin Bridge Manager:", currRoninBridgeManager);
 
     ISharedArgument.SharedParameter memory param;
@@ -44,7 +44,7 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
       param.roninBridgeManager.denom = 10;
       param.roninBridgeManager.roninChainId = block.chainid;
       param.roninBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
-      param.roninBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+      param.roninBridgeManager.bridgeContract = loadContract(Contract.RoninGatewayV3.key());
 
       uint totalCurrGovernors = currGovernors.length;
       param.roninBridgeManager.bridgeOperators = new address[](totalCurrGovernors);
@@ -66,11 +66,11 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
     param.roninBridgeManager.targetOptions[4] = GlobalProposal.TargetOption.PauseEnforcer;
 
     param.roninBridgeManager.targets = new address[](5);
-    param.roninBridgeManager.targets[0] = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
-    param.roninBridgeManager.targets[1] = config.getAddressFromCurrentNetwork(Contract.BridgeReward.key());
-    param.roninBridgeManager.targets[2] = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
-    param.roninBridgeManager.targets[3] = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
-    param.roninBridgeManager.targets[4] = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
+    param.roninBridgeManager.targets[0] = loadContract(Contract.RoninGatewayV3.key());
+    param.roninBridgeManager.targets[1] = loadContract(Contract.BridgeReward.key());
+    param.roninBridgeManager.targets[2] = loadContract(Contract.BridgeSlash.key());
+    param.roninBridgeManager.targets[3] = loadContract(Contract.BridgeTracking.key());
+    param.roninBridgeManager.targets[4] = loadContract(Contract.RoninPauseEnforcer.key());
 
     _newRoninBridgeManager = IRoninBridgeManager(
       new RoninBridgeManagerDeploy().overrideArgs(
