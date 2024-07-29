@@ -324,7 +324,6 @@ contract Migration is BaseMigration, Utils {
     string memory contractName = config.getContractName(contractType);
     bytes memory callData = arguments();
 
-    address logic = _deployLogic(contractType);
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
@@ -359,7 +358,6 @@ contract Migration is BaseMigration, Utils {
   ) internal virtual override logFn(string.concat("_deployProxy ", TContract.unwrap(contractType).unpackOne())) returns (address payable deployed) {
     string memory contractName = config.getContractName(contractType);
 
-    address logic = _deployLogic(contractType);
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
