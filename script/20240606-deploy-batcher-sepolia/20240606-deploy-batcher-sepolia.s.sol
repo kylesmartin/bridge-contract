@@ -74,7 +74,7 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
     vm.stopBroadcast();
   }
 
-  function _postCheck() internal override {
+  function _postCheck() internal pure override {
     console.log(StdStyle.green("Migration skipped"));
   }
 }

@@ -72,7 +72,7 @@ contract Migration_01_Deploy_RoninBridge is Migration {
     // _initRoninBridgeManager();
   }
 
-  function _initRoninBridgeManager() internal logFn("Init RoninBridgeManager") {
+  function _initRoninBridgeManager() internal view logFn("Init RoninBridgeManager") {
     ISharedArgument.BridgeManagerParam memory param = config.sharedArguments().roninBridgeManager;
     // address[] memory callbackRegisters = new address[](1);
     // callbackRegisters[0] = address(_bridgeSlash);

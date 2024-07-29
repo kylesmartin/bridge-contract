@@ -44,7 +44,7 @@ library LibProposal {
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
   }
 
-  function getBridgeManagerDomain() internal returns (bytes32) {
+  function getBridgeManagerDomain() internal view returns (bytes32) {
     uint256 chainId;
     TNetwork currentNetwork = config.getCurrentNetwork();
     if (currentNetwork == Network.EthMainnet.key() || currentNetwork == Network.Goerli.key() || currentNetwork == Network.Sepolia.key()) {

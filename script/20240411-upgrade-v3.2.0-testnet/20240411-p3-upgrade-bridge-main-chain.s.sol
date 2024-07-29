@@ -212,7 +212,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
     bytes32 proposalHash,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) public view returns (SignatureConsumer.Signature[] memory sigs) {
+  ) public pure returns (SignatureConsumer.Signature[] memory sigs) {
     sigs = new SignatureConsumer.Signature[](signerPKs.length);
 
     for (uint256 i; i < signerPKs.length; i++) {

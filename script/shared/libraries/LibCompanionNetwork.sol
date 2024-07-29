@@ -17,7 +17,7 @@ library LibCompanionNetwork {
     (chainId,) = companionNetworkData(network);
   }
 
-  function companionNetwork() internal returns (TNetwork network) {
+  function companionNetwork() internal view returns (TNetwork network) {
     (, network) = companionNetworkData();
   }
 

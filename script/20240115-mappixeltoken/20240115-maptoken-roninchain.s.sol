@@ -39,7 +39,7 @@ contract Migration__MapTokenRoninchain is Migration {
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
   }
 
-  function _mapTokens() internal returns (bytes memory) {
+  function _mapTokens() internal view returns (bytes memory) {
     address[] memory mainchainTokens = new address[](2);
     address[] memory roninTokens = new address[](2);
     uint256[] memory chainIds = new uint256[](2);
