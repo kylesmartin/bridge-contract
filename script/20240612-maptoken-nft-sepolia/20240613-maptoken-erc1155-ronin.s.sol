@@ -85,16 +85,19 @@ contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
     uint nonce = 1;
     for (uint i = 1; i <= 2; ++i) {
       vm.broadcast(governors[i]);
-      _roninBridgeManager.castProposalVoteForCurrentNetwork(Proposal.ProposalDetail({
-        nonce: nonce,
-        chainId: 2021,
-        expiryTimestamp: expiredTime,
-        executor: address(0),
-        targets: targets,
-        values: values,
-        calldatas: calldatas,
-        gasAmounts: gasAmounts
-      }), Ballot.VoteType.For);
+      _roninBridgeManager.castProposalVoteForCurrentNetwork(
+        Proposal.ProposalDetail({
+          nonce: nonce,
+          chainId: 2021,
+          expiryTimestamp: expiredTime,
+          executor: address(0),
+          targets: targets,
+          values: values,
+          calldatas: calldatas,
+          gasAmounts: gasAmounts
+        }),
+        Ballot.VoteType.For
+      );
     }
   }
 }

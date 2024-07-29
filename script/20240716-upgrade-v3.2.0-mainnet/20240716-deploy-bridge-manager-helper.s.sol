@@ -32,12 +32,13 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
 
   function _deployRoninBridgeManager() internal returns (RoninBridgeManager) {
     address currRoninBridgeManager = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
-    console.log("Current Ronin Bridge Manager:",  currRoninBridgeManager);
+    console.log("Current Ronin Bridge Manager:", currRoninBridgeManager);
 
     ISharedArgument.SharedParameter memory param;
 
     {
-      (address[] memory currGovernors, address[] memory currOperators, uint96[] memory currWeights) = RoninBridgeManager(currRoninBridgeManager).getFullBridgeOperatorInfos();
+      (address[] memory currGovernors, address[] memory currOperators, uint96[] memory currWeights) =
+        RoninBridgeManager(currRoninBridgeManager).getFullBridgeOperatorInfos();
 
       param.roninBridgeManager.num = 7;
       param.roninBridgeManager.denom = 10;

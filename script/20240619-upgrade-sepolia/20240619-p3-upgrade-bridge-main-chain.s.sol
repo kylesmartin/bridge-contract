@@ -104,6 +104,6 @@ contract Migration__20240619_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     vm.broadcast(governors[0]);
     // 2_000_000 to assure tx.gasleft is bigger than the gas of the proposal.
-    MainchainBridgeManager(_mainchainBridgeManager).relayProposal{gas: 2_000_000}(proposal, supports_, signatures);
+    MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: 2_000_000 }(proposal, supports_, signatures);
   }
 }

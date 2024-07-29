@@ -69,6 +69,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
+    config.switchTo(_companionNetwork);
+
     ISharedArgument.SharedParameter memory param;
 
     {
@@ -122,6 +124,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     address proxyAdmin = LibProxy.getProxyAdmin(payable(address(_newMainchainBridgeManager)));
     vm.broadcast(proxyAdmin);
     TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
+
+    config.switchTo(_currentNetwork);
   }
 
   function _upgradeBridgeMainchain() internal {
@@ -152,7 +156,6 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     targets[4] = address(_newMainchainBridgeManager);
     targets[5] = address(_newMainchainBridgeManager);
 
-
     // Mapping WBTC calldata
     {
       address[] memory mainchainTokens = new address[](1);
@@ -176,7 +179,9 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       thresholds[3] = new uint256[](1);
       thresholds[3][0] = _wbtcDailyWithdrawalLimit;
 
-      calldatas[0] =  abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds)));
+      calldatas[0] = abi.encodeWithSignature(
+        "functionDelegateCall(bytes)", abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds))
+      );
     }
 
     calldatas[1] = abi.encodeWithSignature(
@@ -295,7 +300,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     cheatingSupports[0] = Ballot.VoteType.For;
     cheatingPks[0] = cheatingGovPk;
-    SignatureConsumer.Signature[] memory cheatingSignatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingPks, Ballot.VoteType.For);
+    SignatureConsumer.Signature[] memory cheatingSignatures =
+      _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingPks, Ballot.VoteType.For);
 
     uint256 totalGas = 1_000_000;
     for (uint256 i; i < proposal.gasAmounts.length; ++i) {
@@ -307,7 +313,10 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     vm.prank(cheatingGov);
     address(_currMainchainBridgeManager).call{ gas: totalGas }(
       abi.encodeWithSignature(
-        "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])", proposal, cheatingSupports, cheatingSignatures
+        "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])",
+        proposal,
+        cheatingSupports,
+        cheatingSignatures
       )
     );
   }

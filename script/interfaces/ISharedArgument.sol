@@ -108,11 +108,11 @@ interface ISharedArgument is IGeneralConfigExtended {
     string uri;
   }
 
-   struct RoninMockERC1155Param {
+  struct RoninMockERC1155Param {
     address defaultAdmin;
-     string uri;
-     string  name;
-     string  symbol;
+    string uri;
+    string name;
+    string symbol;
   }
 
   struct UnitTestParam {
@@ -143,7 +143,6 @@ interface ISharedArgument is IGeneralConfigExtended {
     BridgeRewardParam bridgeReward;
     // tokens
     WBTCParam wbtc;
-
     // mock tokens
     MockWrappedTokenParam weth;
     MockWrappedTokenParam wron;

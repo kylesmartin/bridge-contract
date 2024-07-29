@@ -59,9 +59,8 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
     _currMainchainBridge = MainchainGatewayV3(config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key()));
     // vm.stopBroadcast();
     // vm.startBroadcast(TESTNET_ADMIN);
-    _mainchainGatewayBatcher = new MainchainGatewayBatcherDeploy().runWithArgs(
-      abi.encodeWithSelector(MainchainGatewayBatcher.initialize.selector, address(_currMainchainBridge))
-    );
+    _mainchainGatewayBatcher =
+      new MainchainGatewayBatcherDeploy().runWithArgs(abi.encodeWithSelector(MainchainGatewayBatcher.initialize.selector, address(_currMainchainBridge)));
     // vm.stopBroadcast();
   }
 

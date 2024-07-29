@@ -113,6 +113,6 @@ contract Migration__20240613_MapERC1155SepoliaMainchain is Migration {
 
     vm.broadcast(governors[0]);
     // 2_000_000 to assure tx.gasleft is bigger than the gas of the proposal.
-    MainchainBridgeManager(_mainchainBridgeManager).relayProposal{gas: 2_000_000}(proposal, supports_, signatures);
+    MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: 2_000_000 }(proposal, supports_, signatures);
   }
 }
