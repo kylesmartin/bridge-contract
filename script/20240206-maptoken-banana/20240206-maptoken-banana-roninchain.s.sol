@@ -155,13 +155,12 @@ contract Migration__20240206_MapTokenBananaRoninChain is
 
     TNetwork currentNetwork = network();
     TNetwork companionNetwork = config.getCompanionNetwork(currentNetwork);
-    config.createFork(companionNetwork);
-    config.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
     {
       address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
       LibProposal.verifyProposalGasAmount(companionManager, targets, values, calldatas, gasAmounts);
     }
-    config.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
 
     console.log("Nonce:", vm.getNonce(_governor));
     vm.broadcast(_governor);

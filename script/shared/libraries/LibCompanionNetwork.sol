@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { LibSharedAddress } from "@fdk/libraries/LibSharedAddress.sol";
 import { IGeneralConfigExtended } from "script/interfaces/IGeneralConfigExtended.sol";
 import { TNetwork } from "@fdk/types/Types.sol";
+import { INetworkConfig } from "@fdk/interfaces/configs/INetworkConfig.sol";
 
 library LibCompanionNetwork {
   IGeneralConfigExtended private constant config = IGeneralConfigExtended(LibSharedAddress.CONFIG);
@@ -28,11 +29,9 @@ library LibCompanionNetwork {
     return companionNetworkData(config.getCurrentNetwork());
   }
 
-  function companionNetworkData(TNetwork network) internal returns (uint256 chainId, TNetwork companionTNetwork) {
+  function companionNetworkData(TNetwork network) internal view returns (uint256 chainId, TNetwork companionTNetwork) {
     companionTNetwork = config.getCompanionNetwork(network);
-    config.createFork(companionTNetwork);
-    config.switchTo(companionTNetwork);
-    chainId = block.chainid;
-    config.switchTo(network);
+    INetworkConfig.NetworkData memory dt = config.getNetworkData(companionTNetwork);
+    chainId = dt.chainId;
   }
 }

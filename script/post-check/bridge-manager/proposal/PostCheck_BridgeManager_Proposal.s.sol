@@ -66,8 +66,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       TNetwork currentNetwork = CONFIG.getCurrentNetwork();
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
-      CONFIG.createFork(companionNetwork);
-      CONFIG.switchTo(companionNetwork);
+      (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
       MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
@@ -104,7 +103,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       bool reverted = vm.revertTo(snapshotId);
       assertTrue(reverted, "Cannot revert to snapshot id");
-      CONFIG.switchTo(currentNetwork);
+      switchBack(prevNetwork, prevForkId);
     }
   }
 
@@ -112,8 +111,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     TNetwork currentNetwork = CONFIG.getCurrentNetwork();
     (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
@@ -173,7 +171,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
     bool reverted = vm.revertTo(snapshotId);
     assertTrue(reverted, "Cannot revert to snapshot id");
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function validate_ProposeGlobalProposalAndRelay_addBridgeOperator()
@@ -219,8 +217,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       TNetwork currentNetwork = CONFIG.getCurrentNetwork();
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
-      CONFIG.createFork(companionNetwork);
-      CONFIG.switchTo(companionNetwork);
+      (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
       MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
@@ -237,7 +234,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       bool reverted = vm.revertTo(snapshotId);
       assertTrue(reverted, "Cannot revert to snapshot id");
-      CONFIG.switchTo(currentNetwork);
+      switchBack(prevNetwork, prevForkId);
     }
   }
 

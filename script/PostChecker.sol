@@ -74,7 +74,8 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       vm.makePersistent(mainchainGateway);
       vm.makePersistent(mainchainBridgeManager);
     } else {
-      revert(string.concat("Unsupported network: ", currentNetwork.chainAlias()));
+      TNetwork companionNetwork = currentNetwork.companionNetwork();
+      switchTo(companionNetwork);
     }
   }
 }

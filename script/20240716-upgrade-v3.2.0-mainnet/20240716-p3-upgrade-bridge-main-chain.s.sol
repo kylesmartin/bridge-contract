@@ -52,15 +52,15 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     _currentNetwork = network();
     _companionNetwork = config.getCompanionNetwork(_currentNetwork);
-    config.createFork(_companionNetwork);
-    config.switchTo(_companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
     {
       // address companionManager = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
 
       _currMainchainBridgeManager = MainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
       // _currMainchainBridgeManager = MainchainBridgeManager(companionManager); // TODO: resolve later
     }
-    config.switchTo(_currentNetwork);
+    console.log("Switch back");
+    switchBack(prevNetwork, prevForkId);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
 
@@ -69,7 +69,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
-    config.switchTo(_companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
     ISharedArgument.SharedParameter memory param;
 
@@ -125,11 +125,11 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     vm.broadcast(proxyAdmin);
     TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
 
-    config.switchTo(_currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function _upgradeBridgeMainchain() internal {
-    config.switchTo(_companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
     address weth = config.getAddressFromCurrentNetwork(Contract.WETH.key());
     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
@@ -210,7 +210,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     proposal.calldatas = calldatas;
     proposal.gasAmounts = gasAmounts;
 
-    config.switchTo(_currentNetwork);
+    switchBack(prevNetwork, prevForkId);
 
     vm.broadcast(_governor);
     address(_roninBridgeManager).call(
@@ -244,7 +244,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     bytes32 proposalHash,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) public view returns (SignatureConsumer.Signature[] memory sigs) {
+  ) public pure returns (SignatureConsumer.Signature[] memory sigs) {
     sigs = new SignatureConsumer.Signature[](signerPKs.length);
 
     for (uint256 i; i < signerPKs.length; i++) {
@@ -293,7 +293,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _simulateProposal(LegacyProposalDetail memory proposal) internal {
-    config.switchTo(_companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
     Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
     uint256[] memory cheatingPks = new uint256[](1);

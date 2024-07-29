@@ -79,8 +79,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
   function _mapTokenMainchain() private {
     (, companionNetwork) = network().companionNetworkData();
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     uint256[][4] memory thresholds;
     thresholds[0] = new uint256[](1);
@@ -101,7 +100,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
       abi.encodeCall(MainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds))
     );
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function _setUpOnRonin() private {
@@ -119,8 +118,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
   function _setUpOnMainchain() private {
     (, companionNetwork) = network().companionNetworkData();
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     mainchainChainId = block.chainid;
     gwDomainSeparator = MainchainGatewayV3(payable(mainchainGateway)).DOMAIN_SEPARATOR();
@@ -134,7 +132,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     vm.deal(user, 10 ether);
     deal(address(mainchainERC20), user, 1000 ether);
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function _validate_Gateway_DepositAndWithdraw() internal onlyOnRoninNetworkOrLocal {
@@ -151,15 +149,14 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     assertEq(HasContracts(bridgeReward).getContract(ContractType.BRIDGE_MANAGER), roninBridgeManager, "Invalid RoninBridgeManager in bridgeReward");
     assertEq(HasContracts(bridgeSlash).getContract(ContractType.BRIDGE_MANAGER), roninBridgeManager, "Invalid RoninBridgeManager in bridgeSlash");
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     assertEq(mainchainBridgeManager.getProxyAdmin(), mainchainBridgeManager, "Invalid ProxyAdmin in MainchainBridgeManager, expected self");
     assertEq(
       HasContracts(mainchainGateway).getContract(ContractType.BRIDGE_MANAGER), mainchainBridgeManager, "Invalid MainchainBridgeManager in mainchainGateway"
     );
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function validate_Gateway_depositERC20() private onPostCheck("validate_Gateway_depositERC20") {
@@ -169,8 +166,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     depositRequest.info.id = 0;
     depositRequest.info.quantity = 100 ether;
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     vm.prank(user);
     mainchainERC20.approve(address(mainchainGateway), 100 ether);
@@ -187,7 +183,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
       }
     }
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
 
     vm.prank(cheatOperator);
     RoninGatewayV3(roninGateway).depositFor(receipt);
@@ -225,14 +221,13 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     Signature[] memory sigs = new Signature[](1);
     sigs[0] = Signature(v, r, s);
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     MainchainGatewayV3(payable(mainchainGateway)).submitWithdrawal(receipt, sigs);
 
     assertEq(mainchainERC20.balanceOf(withdrawRequest.recipientAddr), 100 ether);
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   // Set the balance of an account for any ERC20 token

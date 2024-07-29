@@ -21,19 +21,17 @@ contract Deploy_v0_3_1 is Migration {
     ) {
       new Migration_01_Deploy_RoninBridge().run();
 
-      config.createFork(companionNetwork);
-      config.switchTo(companionNetwork);
+      (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
       new Migration_02_Deploy_MainchainBridge().run();
 
-      config.switchTo(currentNetwork);
+      switchBack(prevNetwork, prevForkId);
     } else if (currentNetwork == Network.EthMainnet.key() || currentNetwork == Network.Goerli.key() || currentNetwork == Network.Sepolia.key()) {
-      config.createFork(companionNetwork);
-      config.switchTo(companionNetwork);
+      (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
       new Migration_01_Deploy_RoninBridge().run();
 
-      config.switchTo(currentNetwork);
+      switchBack(prevNetwork, prevForkId);
 
       new Migration_02_Deploy_MainchainBridge().run();
     } else if (currentNetwork == DefaultNetwork.LocalHost.key()) {

@@ -1,5 +1,4 @@
-ds-test/=lib/forge-std/lib/ds-test/src/
-forge-std/=lib/foundry-deployment-kit/dependencies/forge-std-1.8.2/src/
+forge-std/=dependencies/@fdk-0.3.1-beta/dependencies/@forge-std-1.9.1/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 hardhat/=node_modules/hardhat/
 @ronin/contracts/=src/
@@ -7,5 +6,5 @@ hardhat/=node_modules/hardhat/
 @ronin/script=script/
 @prb/test/=lib/prb-test/src/
 @prb/math/=lib/prb-math/
-solady/=lib/foundry-deployment-kit/dependencies/solady-0.0.206/src/
-@fdk/=lib/foundry-deployment-kit/script/
+solady/=dependencies/@fdk-0.3.1-beta/dependencies/@solady-0.0.228/src/
+@fdk=dependencies/@fdk-0.3.1-beta/script/

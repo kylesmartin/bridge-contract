@@ -19,7 +19,7 @@ import { CoreGovernance } from "@ronin/contracts/extensions/sequential-governanc
 import { LibArray } from "./LibArray.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "./LibCompanionNetwork.sol";
-import { LibErrorHandler } from "lib/foundry-deployment-kit/script/libraries/LibErrorHandler.sol";
+import { LibErrorHandler } from "@fdk/libraries/LibErrorHandler.sol";
 import { VoteStatusConsumer } from "@ronin/contracts/interfaces/consumers/VoteStatusConsumer.sol";
 
 library LibProposal {
@@ -192,8 +192,11 @@ library LibProposal {
     uint256[] memory gasAmounts
   ) internal preserveState {
     TNetwork currentNetwork = config.getCurrentNetwork();
+    uint256 currentForkId = config.getForkId(currentNetwork);
+
     config.createFork(companionNetwork);
     config.switchTo(companionNetwork);
+
     uint256 snapshotId = vm.snapshot();
 
     for (uint256 i; i < mainchainTargets.length; i++) {
@@ -217,7 +220,7 @@ library LibProposal {
 
     bool reverted = vm.revertTo(snapshotId);
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
-    config.switchTo(currentNetwork);
+    config.switchTo(currentForkId);
   }
 
   function verifyProposalGasAmount(

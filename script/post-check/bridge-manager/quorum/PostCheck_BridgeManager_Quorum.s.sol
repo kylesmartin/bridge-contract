@@ -24,11 +24,10 @@ abstract contract PostCheck_BridgeManager_Quorum is BasePostCheck {
     TNetwork currentNetwork = network();
 
     (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     assertTrue(IQuorum(mainchainBridgeManager).minimumVoteWeight() > 0, "Mainchain: Minimum vote weight must be greater than 0");
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 }

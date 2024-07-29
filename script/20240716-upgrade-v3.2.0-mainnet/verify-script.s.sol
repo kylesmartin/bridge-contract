@@ -15,10 +15,9 @@
 //     TNetwork companionNetwork = config.getCompanionNetwork(currentNetwork);
 //     // Migration__20240716_P2_UpgradeBridgeRoninchain.run();
 
-//     CONFIG.createFork(companionNetwork);
-//     CONFIG.switchTo(companionNetwork);
+//     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 //     Migration__20240716_P3_UpgradeBridgeMainchain.run();
 
-//     CONFIG.switchTo(currentNetwork);
+//     switchBack(prevNetwork, prevForkId);
 //   }
 // }
