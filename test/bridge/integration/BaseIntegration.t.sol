@@ -16,7 +16,7 @@ import { BridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
 import { BridgeReward } from "@ronin/contracts/ronin/gateway/BridgeReward.sol";
 import { MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import { MainchainGatewayBatcher } from "@ronin/contracts/mainchain/MainchainGatewayBatcher.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { WethUnwrapper } from "@ronin/contracts/extensions/WethUnwrapper.sol";
 import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
 import { MockUSDC } from "@ronin/contracts/mocks/token/MockUSDC.sol";

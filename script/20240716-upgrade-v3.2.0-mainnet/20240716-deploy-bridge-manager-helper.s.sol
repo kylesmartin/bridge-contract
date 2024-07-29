@@ -13,7 +13,7 @@ import { Contract } from "../utils/Contract.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { IGeneralConfigExtended } from "../interfaces/IGeneralConfigExtended.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";

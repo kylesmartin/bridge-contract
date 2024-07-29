@@ -6,7 +6,7 @@ import { TransparentUpgradeableProxyV2, TransparentUpgradeableProxy } from "@ron
 import { BasePostCheck } from "../../BasePostCheck.s.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { TContract, Contract } from "script/utils/Contract.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
@@ -68,7 +68,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-      MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
+      IMainchainBridgeManager mainchainManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
       uint256 snapshotId = vm.snapshot();
 
@@ -113,7 +113,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-    MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
+    IMainchainBridgeManager mainchainManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     uint256 snapshotId = vm.snapshot();
 
@@ -219,7 +219,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-      MainchainBridgeManager mainchainManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
+      IMainchainBridgeManager mainchainManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
       uint256 snapshotId = vm.snapshot();
 

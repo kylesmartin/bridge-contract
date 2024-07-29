@@ -14,7 +14,7 @@ import { IGeneralConfigExtended } from "../interfaces/IGeneralConfigExtended.sol
 import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
 import { MainchainGatewayV3, MainchainGatewayV3Deploy } from "../contracts/MainchainGatewayV3Deploy.s.sol";
 import { WethUnwrapper, MainchainWethUnwrapperDeploy } from "../contracts/MainchainWethUnwrapperDeploy.s.sol";
-import { MainchainBridgeManager, MainchainBridgeManagerDeploy } from "../contracts/MainchainBridgeManagerDeploy.s.sol";
+import { IMainchainBridgeManager, MainchainBridgeManagerDeploy } from "../contracts/MainchainBridgeManagerDeploy.s.sol";
 
 contract Migration_02_Deploy_MainchainBridge is Migration {
   using StdStyle for *;
@@ -23,7 +23,7 @@ contract Migration_02_Deploy_MainchainBridge is Migration {
   address private _weth;
   WethUnwrapper private _mainchainWethUnwrapper;
   MainchainGatewayV3 private _mainchainGatewayV3;
-  MainchainBridgeManager private _mainchainBridgeManager;
+  IMainchainBridgeManager private _mainchainBridgeManager;
 
   function _injectDependencies() internal virtual override {
     _setDependencyDeployScript(Contract.WETH.key(), new WETHDeploy());

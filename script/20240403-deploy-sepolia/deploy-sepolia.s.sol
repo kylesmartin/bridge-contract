@@ -6,7 +6,9 @@ import { LibSharedAddress } from "@fdk/libraries/LibSharedAddress.sol";
 
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/ronin/gateway/PauseEnforcer.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
+import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { MockUSDC } from "@ronin/contracts/mocks/token/MockUSDC.sol";
 import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
 import { MockERC20 } from "@ronin/contracts/mocks/token/MockERC20.sol";
@@ -38,7 +40,7 @@ contract DeploySepolia is Migration, DeploySepolia__ChangeGV_Config {
 
   PauseEnforcer _mainchainPauseEnforcer;
   MainchainGatewayV3 _mainchainGatewayV3;
-  MainchainBridgeManager _mainchainBridgeManager;
+  IMainchainBridgeManager _mainchainBridgeManager;
 
   MockWrappedToken _mainchainWeth;
   MockERC20 _mainchainAxs;

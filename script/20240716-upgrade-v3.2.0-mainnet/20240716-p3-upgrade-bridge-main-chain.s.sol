@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
@@ -12,7 +12,7 @@ import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -34,8 +34,8 @@ import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
   IRoninBridgeManager _roninBridgeManager;
-  MainchainBridgeManager _currMainchainBridgeManager;
-  MainchainBridgeManager _newMainchainBridgeManager;
+  IMainchainBridgeManager _currMainchainBridgeManager;
+  IMainchainBridgeManager _newMainchainBridgeManager;
 
   TNetwork _currentNetwork;
   TNetwork _companionNetwork;
@@ -48,7 +48,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
-    // _currMainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
+    // _currMainchainBridgeManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _currentNetwork = network();
     _companionNetwork = config.getCompanionNetwork(_currentNetwork);
@@ -56,8 +56,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     {
       // address companionManager = loadContract(Contract.MainchainBridgeManager.key());
 
-      _currMainchainBridgeManager = MainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
-      // _currMainchainBridgeManager = MainchainBridgeManager(companionManager); // TODO: resolve later
+      _currMainchainBridgeManager = IMainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
+      // _currMainchainBridgeManager = IMainchainBridgeManager(companionManager); // TODO: resolve later
     }
     console.log("Switch back");
     switchBack(prevNetwork, prevForkId);
@@ -101,7 +101,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.targets[0] = loadContract(Contract.MainchainGatewayV3.key());
     param.mainchainBridgeManager.targets[1] = loadContract(Contract.MainchainPauseEnforcer.key());
 
-    _newMainchainBridgeManager = MainchainBridgeManager(
+    _newMainchainBridgeManager = IMainchainBridgeManager(
       new MainchainBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           _newMainchainBridgeManager.initialize,
@@ -309,7 +309,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       totalGas += proposal.gasAmounts[i];
     }
 
-    _cheatWeightGovernor(IBridgeManager(_currMainchainBridgeManager), cheatingGov);
+    _cheatWeightGovernor(IBridgeManager(address(_currMainchainBridgeManager)), cheatingGov);
 
     vm.prank(cheatingGov);
     address(_currMainchainBridgeManager).call{ gas: totalGas }(

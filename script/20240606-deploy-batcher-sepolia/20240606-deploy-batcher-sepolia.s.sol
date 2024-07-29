@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -11,7 +11,7 @@ import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -28,8 +28,8 @@ import "@ronin/script/contracts/MainchainGatewayBatcherDeploy.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240606_DeployBatcherSepolia is Migration {
-  MainchainBridgeManager _currMainchainBridgeManager;
-  MainchainBridgeManager _newMainchainBridgeManager;
+  IMainchainBridgeManager _currMainchainBridgeManager;
+  IMainchainBridgeManager _newMainchainBridgeManager;
   MainchainGatewayV3 _currMainchainBridge;
   MainchainGatewayBatcher _mainchainGatewayBatcher;
 

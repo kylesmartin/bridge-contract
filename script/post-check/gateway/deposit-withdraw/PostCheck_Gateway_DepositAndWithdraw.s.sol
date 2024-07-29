@@ -19,7 +19,7 @@ import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
 import { IRoninGatewayV3, RoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3, MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { HasContracts } from "@ronin/contracts/extensions/collections/HasContracts.sol";

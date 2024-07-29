@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -11,7 +11,7 @@ import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -29,8 +29,8 @@ import "./20240411-operators-key.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__20240409_GovernorsKey {
-  MainchainBridgeManager _currMainchainBridgeManager;
-  MainchainBridgeManager _newMainchainBridgeManager;
+  IMainchainBridgeManager _currMainchainBridgeManager;
+  IMainchainBridgeManager _newMainchainBridgeManager;
 
   address private _governor;
   address[] private _voters;
@@ -44,7 +44,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   function run() public virtual onlyOn(Network.Sepolia.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
-    _currMainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
+    _currMainchainBridgeManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -100,7 +100,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.targets[0] = loadContract(Contract.MainchainGatewayV3.key());
     param.mainchainBridgeManager.targets[1] = loadContract(Contract.MainchainPauseEnforcer.key());
 
-    _newMainchainBridgeManager = MainchainBridgeManager(
+    _newMainchainBridgeManager = IMainchainBridgeManager(
       new MainchainBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           _newMainchainBridgeManager.initialize,

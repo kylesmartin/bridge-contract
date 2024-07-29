@@ -9,7 +9,7 @@ import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibToken
 import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -108,10 +108,10 @@ contract Migration__20240405_MapTokenUsdcMainchain is Migration, Migration__MapT
     governors[0] = 0x087D08e3ba42e64E3948962dd1371F906D1278b9;
     governors[1] = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
 
-    _mainchainProposalUtils = new MainchainBridgeAdminUtils(2021, governorPKs, MainchainBridgeManager(_mainchainBridgeManager), governors[0]);
+    _mainchainProposalUtils = new MainchainBridgeAdminUtils(2021, governorPKs, IMainchainBridgeManager(_mainchainBridgeManager), governors[0]);
 
     Proposal.ProposalDetail memory proposal = Proposal.ProposalDetail({
-      nonce: MainchainBridgeManager(_mainchainBridgeManager).round(11155111) + 1,
+      nonce: IMainchainBridgeManager(_mainchainBridgeManager).round(11155111) + 1,
       chainId: block.chainid,
       expiryTimestamp: expiredTime,
       executor: address(0),
@@ -130,6 +130,6 @@ contract Migration__20240405_MapTokenUsdcMainchain is Migration, Migration__MapT
     SignatureConsumer.Signature[] memory signatures = _mainchainProposalUtils.generateSignatures(proposal, governorPKs);
 
     vm.broadcast(governors[0]);
-    MainchainBridgeManager(_mainchainBridgeManager).relayProposal(proposal, supports_, signatures);
+    IMainchainBridgeManager(_mainchainBridgeManager).relayProposal(proposal, supports_, signatures);
   }
 }
