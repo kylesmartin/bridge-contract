@@ -57,25 +57,30 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == Network.RoninDevnet.key()
         || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
-      bridgeSlash = loadContract(Contract.BridgeSlash.key());
-      bridgeReward = loadContract(Contract.BridgeReward.key());
-      roninGateway = loadContract(Contract.RoninGatewayV3.key());
-      bridgeTracking = loadContract(Contract.BridgeTracking.key());
-      roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
-
-      (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
-      mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
-      mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
-
-      vm.makePersistent(bridgeSlash);
-      vm.makePersistent(bridgeReward);
-      vm.makePersistent(roninGateway);
-      vm.makePersistent(roninBridgeManager);
-      vm.makePersistent(mainchainGateway);
-      vm.makePersistent(mainchainBridgeManager);
+      _loadRoninContracts(currentNetwork);
     } else {
       TNetwork companionNetwork = currentNetwork.companionNetwork();
       switchTo(companionNetwork);
+      _loadRoninContracts(companionNetwork);
     }
+  }
+
+  function _loadRoninContracts(TNetwork roninNetwork) private {
+    bridgeSlash = loadContract(Contract.BridgeSlash.key());
+    bridgeReward = loadContract(Contract.BridgeReward.key());
+    roninGateway = loadContract(Contract.RoninGatewayV3.key());
+    bridgeTracking = loadContract(Contract.BridgeTracking.key());
+    roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+
+    (, TNetwork companionNetwork) = roninNetwork.companionNetworkData();
+    mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
+    mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
+
+    vm.makePersistent(bridgeSlash);
+    vm.makePersistent(bridgeReward);
+    vm.makePersistent(roninGateway);
+    vm.makePersistent(roninBridgeManager);
+    vm.makePersistent(mainchainGateway);
+    vm.makePersistent(mainchainBridgeManager);
   }
 }

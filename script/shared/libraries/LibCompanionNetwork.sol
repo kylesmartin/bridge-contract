@@ -9,11 +9,11 @@ import { INetworkConfig } from "@fdk/interfaces/configs/INetworkConfig.sol";
 library LibCompanionNetwork {
   IGeneralConfigExtended private constant config = IGeneralConfigExtended(LibSharedAddress.CONFIG);
 
-  function companionChainId() internal returns (uint256 chainId) {
+  function companionChainId() internal view returns (uint256 chainId) {
     (chainId,) = companionNetworkData();
   }
 
-  function companionChainId(TNetwork network) internal returns (uint256 chainId) {
+  function companionChainId(TNetwork network) internal view returns (uint256 chainId) {
     (chainId,) = companionNetworkData(network);
   }
 
@@ -21,11 +21,11 @@ library LibCompanionNetwork {
     (, network) = companionNetworkData();
   }
 
-  function companionNetwork(TNetwork network) internal returns (TNetwork companionTNetwork) {
+  function companionNetwork(TNetwork network) internal view returns (TNetwork companionTNetwork) {
     (, companionTNetwork) = companionNetworkData(network);
   }
 
-  function companionNetworkData() internal returns (uint256, TNetwork) {
+  function companionNetworkData() internal view returns (uint256, TNetwork) {
     return companionNetworkData(config.getCurrentNetwork());
   }
 

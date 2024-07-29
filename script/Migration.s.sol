@@ -364,7 +364,6 @@ contract Migration is BaseMigration, Utils {
 
     address logic = _deployLogic(contractType);
     string memory proxyAbsolutePath = "TransparentUpgradeableProxyV2.sol:TransparentUpgradeableProxyV2";
-    uint256 proxyNonce;
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
