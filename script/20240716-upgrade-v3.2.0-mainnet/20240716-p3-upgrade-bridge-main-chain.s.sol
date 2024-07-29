@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -33,7 +33,7 @@ import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
-  RoninBridgeManager _roninBridgeManager;
+  IRoninBridgeManager _roninBridgeManager;
   MainchainBridgeManager _currMainchainBridgeManager;
   MainchainBridgeManager _newMainchainBridgeManager;
 
@@ -47,7 +47,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
-    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
 
     _currentNetwork = network();

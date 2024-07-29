@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 import { Migration } from "../Migration.s.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 
 struct LegacyProposalDetail {
   uint256 nonce;
@@ -19,7 +19,7 @@ contract Migration__20240409_Helper is Migration {
   address internal _governor;
   address[] internal _voters;
 
-  RoninBridgeManager internal _currRoninBridgeManager;
+  IRoninBridgeManager internal _currRoninBridgeManager;
 
   function _helperProposeForCurrentNetwork(LegacyProposalDetail memory proposal) internal {
     vm.broadcast(_governor);

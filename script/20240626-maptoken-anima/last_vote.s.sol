@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 
 import { Script } from "forge-std/Script.sol";
@@ -40,6 +40,6 @@ contract Migration__20242606_MapTokenAnimaRoninTestnet_LastVote is Script {
     // gasAmounts: [1000000 , 1000000]
 
     vm.broadcast(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
-    RoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF).castProposalVoteForCurrentNetwork{ gas: 2_000_000 }(proposal, Ballot.VoteType.For);
+    IRoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF).castProposalVoteForCurrentNetwork{ gas: 2_000_000 }(proposal, Ballot.VoteType.For);
   }
 }

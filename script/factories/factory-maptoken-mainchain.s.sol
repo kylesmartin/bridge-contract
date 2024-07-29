@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -19,7 +19,7 @@ import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork
 abstract contract Factory__MapTokensMainchain is Migration {
   using LibCompanionNetwork for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _mainchainGatewayV3;
   address internal _mainchainBridgeManager;
   address private _governor;
@@ -27,7 +27,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
   function setUp() public override {
     super.setUp();
 
-    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _mainchainGatewayV3 = config.getAddress(network().companionNetwork(), Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddress(network().companionNetwork(), Contract.MainchainBridgeManager.key());
 

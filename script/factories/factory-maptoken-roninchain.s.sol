@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -23,13 +23,13 @@ import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork
 abstract contract Factory__MapTokensRoninchain is Migration {
   using LibCompanionNetwork for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _roninGatewayV3;
   address private _governor;
 
   function setUp() public override {
     super.setUp();
-    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
 
     _governor = _initCaller();

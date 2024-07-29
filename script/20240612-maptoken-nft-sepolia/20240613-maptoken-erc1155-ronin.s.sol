@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -22,7 +22,7 @@ import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtil
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   IRoninGatewayV3 internal _roninGatewayV3;
 
   MainchainBridgeAdminUtils _mainchainProposalUtils;
@@ -30,7 +30,7 @@ contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
   function setUp() public override {
     super.setUp();
 
-    _roninBridgeManager = RoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
+    _roninBridgeManager = IRoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
     _roninGatewayV3 = IRoninGatewayV3(0xCee681C9108c42C710c6A8A949307D5F13C9F3ca);
   }
 

@@ -8,7 +8,6 @@ import { console } from "forge-std/console.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
-import { GeneralConfig } from "./GeneralConfig.sol";
 import { ISharedArgument } from "./interfaces/ISharedArgument.sol";
 import { TNetwork, Network } from "./utils/Network.sol";
 import { IGeneralConfigExtended } from "./interfaces/IGeneralConfigExtended.sol";
@@ -16,10 +15,10 @@ import { Utils } from "./utils/Utils.sol";
 import { LibTokenInfo, TokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Contract, TContract } from "./utils/Contract.sol";
 import { GlobalProposal, Proposal, LibProposal } from "script/shared/libraries/LibProposal.sol";
-import { TransparentUpgradeableProxy, TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
+import { TransparentUpgradeableProxy } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { IPostCheck } from "./interfaces/IPostCheck.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { LibDeploy, DeployInfo, ProxyInterface, UpgradeInfo } from "@fdk/libraries/LibDeploy.sol";
 
 contract Migration is BaseMigration, Utils {
@@ -44,7 +43,7 @@ contract Migration is BaseMigration, Utils {
   }
 
   function _configByteCode() internal virtual override returns (bytes memory) {
-    return abi.encodePacked(type(GeneralConfig).creationCode);
+    return vm.getCode("out/GeneralConfig.sol/GeneralConfig.json");
   }
 
   function _sharedArguments() internal virtual override returns (bytes memory rawArgs) {
@@ -273,8 +272,8 @@ contract Migration is BaseMigration, Utils {
       // in case proxyAdmin is an eoa
       console.log(StdStyle.yellow("Upgrading with EOA wallet..."));
       prankOrBroadcast(address(proxyAdmin));
-      if (args.length == 0) TransparentUpgradeableProxyV2(payable(proxy)).upgradeTo(logic);
-      else TransparentUpgradeableProxyV2(payable(proxy)).upgradeToAndCall(logic, args);
+      if (args.length == 0) TransparentUpgradeableProxy(payable(proxy)).upgradeTo(logic);
+      else TransparentUpgradeableProxy(payable(proxy)).upgradeToAndCall(logic, args);
     }
     // in case proxyAdmin is GovernanceAdmin
     else if (
@@ -284,7 +283,7 @@ contract Migration is BaseMigration, Utils {
       // handle for ronin network
       console.log(StdStyle.yellow("Voting on RoninBridgeManager for upgrading..."));
 
-      RoninBridgeManager manager = RoninBridgeManager(proxyAdmin);
+      IRoninBridgeManager manager = IRoninBridgeManager(proxyAdmin);
       bytes[] memory callDatas = new bytes[](1);
       uint256[] memory values = new uint256[](1);
       address[] memory targets = new address[](1);

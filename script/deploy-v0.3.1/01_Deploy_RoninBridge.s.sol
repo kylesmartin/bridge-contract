@@ -17,7 +17,7 @@ import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { HasContracts } from "@ronin/contracts/extensions/collections/HasContracts.sol";
-import { RoninBridgeManagerConstructor, RoninBridgeManager, RoninBridgeManagerDeploy } from "../contracts/RoninBridgeManagerDeploy.s.sol";
+import { RoninBridgeManagerConstructor, IRoninBridgeManager, RoninBridgeManagerDeploy } from "../contracts/RoninBridgeManagerDeploy.s.sol";
 import { MockValidatorContract_OnlyTiming_ForHardhatTest } from "@ronin/contracts/mocks/ronin/MockValidatorContract_OnlyTiming_ForHardhatTest.sol";
 
 contract Migration_01_Deploy_RoninBridge is Migration {
@@ -28,7 +28,7 @@ contract Migration_01_Deploy_RoninBridge is Migration {
   BridgeReward private _bridgeReward;
   RoninGatewayV3 private _roninGatewayV3;
   BridgeTracking private _bridgeTracking;
-  RoninBridgeManager private _roninBridgeManager;
+  IRoninBridgeManager private _roninBridgeManager;
   address private _validatorSet;
 
   function run() external {
@@ -39,7 +39,7 @@ contract Migration_01_Deploy_RoninBridge is Migration {
     // callbackRegisters[0] = address(_bridgeSlash);
     // callbackRegisters[1] = address(_roninGatewayV3);
 
-    _roninBridgeManager = RoninBridgeManager(
+    _roninBridgeManager = IRoninBridgeManager(
       new RoninBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           RoninBridgeManagerConstructor.initialize,
@@ -72,7 +72,7 @@ contract Migration_01_Deploy_RoninBridge is Migration {
     // _initRoninBridgeManager();
   }
 
-  function _initRoninBridgeManager() internal view logFn("Init RoninBridgeManager") {
+  function _initRoninBridgeManager() internal logFn("Init RoninBridgeManager") {
     ISharedArgument.BridgeManagerParam memory param = config.sharedArguments().roninBridgeManager;
     // address[] memory callbackRegisters = new address[](1);
     // callbackRegisters[0] = address(_bridgeSlash);

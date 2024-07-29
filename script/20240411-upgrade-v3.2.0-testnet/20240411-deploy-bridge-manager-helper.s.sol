@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -27,9 +27,9 @@ import { Migration } from "../Migration.s.sol";
 contract Migration__2024041_DeployRoninBridgeManagerHelper is Migration {
   using LibProxy for *;
 
-  RoninBridgeManager _newRoninBridgeManager;
+  IRoninBridgeManager _newRoninBridgeManager;
 
-  function _deployRoninBridgeManager() internal returns (RoninBridgeManager) {
+  function _deployRoninBridgeManager() internal returns (IRoninBridgeManager) {
     address currRoninBridgeManager = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
 
     ISharedArgument.SharedParameter memory param;
@@ -71,7 +71,7 @@ contract Migration__2024041_DeployRoninBridgeManagerHelper is Migration {
     param.roninBridgeManager.targets[3] = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
     param.roninBridgeManager.targets[4] = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
 
-    _newRoninBridgeManager = RoninBridgeManager(
+    _newRoninBridgeManager = IRoninBridgeManager(
       new RoninBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           RoninBridgeManagerConstructor.initialize,

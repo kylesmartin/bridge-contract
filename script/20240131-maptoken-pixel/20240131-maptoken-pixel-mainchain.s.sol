@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -22,14 +22,14 @@ contract Migration__20240131_MapTokenPixelMainchain is Migration, Migration__Map
   using LibProposal for *;
   using LibCompanionNetwork for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _mainchainGatewayV3;
   address internal _mainchainBridgeManager;
 
   function setUp() public override {
     super.setUp();
 
-    _roninBridgeManager = RoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     _mainchainGatewayV3 = config.getAddress(config.getCompanionNetwork(network()), Contract.MainchainGatewayV3.key());
     _mainchainBridgeManager = config.getAddress(config.getCompanionNetwork(network()), Contract.MainchainBridgeManager.key());
   }

@@ -5,7 +5,7 @@ import { console } from "forge-std/console.sol";
 import { TransparentUpgradeableProxyV2, TransparentUpgradeableProxy } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { BasePostCheck } from "../../BasePostCheck.s.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
 import { TContract, Contract } from "script/utils/Contract.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
@@ -34,7 +34,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   }
 
   function validate_proposeAndRelay_addBridgeOperator() private onlyOnRoninNetworkOrLocal onPostCheck("validate_proposeAndRelay_addBridgeOperator") {
-    RoninBridgeManager manager = RoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
 
     // Cheat add governor
     cheatAddOverWeightedGovernor(address(manager));
@@ -179,7 +179,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     onlyOnRoninNetworkOrLocal
     onPostCheck("validate_ProposeGlobalProposalAndRelay_addBridgeOperator")
   {
-    RoninBridgeManager manager = RoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     cheatAddOverWeightedGovernor(address(manager));
 
     GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
@@ -257,7 +257,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   }
 
   function validate_canExcuteUpgradeAllOneProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExcuteUpgradeAllOneProposal") {
-    RoninBridgeManager manager = RoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     TContract[] memory contractTypes = new TContract[](5);
     contractTypes[0] = Contract.BridgeSlash.key();
     contractTypes[1] = Contract.BridgeReward.key();

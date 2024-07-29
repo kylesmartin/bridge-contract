@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { console } from "forge-std/console.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { RoninBridgeManagerConstructor } from "@ronin/contracts/ronin/gateway/RoninBridgeManagerConstructor.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
 import { Migration } from "../Migration.s.sol";
@@ -36,11 +36,11 @@ contract RoninBridgeManagerDeploy is Migration {
     );
   }
 
-  function _getProxyAdmin() internal virtual override returns(address payable) {
+  function _getProxyAdmin() internal virtual override returns (address payable) {
     return sender();
   }
 
-  function run() public virtual returns (RoninBridgeManager) {
+  function run() public virtual returns (IRoninBridgeManager) {
     address payable instance = _deployProxy(Contract.RoninBridgeManagerConstructor.key(), sender());
     address logic = _deployLogic(Contract.RoninBridgeManager.key());
     address proxyAdmin = instance.getProxyAdmin();
@@ -65,6 +65,6 @@ contract RoninBridgeManagerDeploy is Migration {
     // }
     config.setAddress(network(), Contract.RoninBridgeManager.key(), instance);
 
-    return RoninBridgeManager(instance);
+    return IRoninBridgeManager(instance);
   }
 }

@@ -13,7 +13,7 @@ import { LibSharedAddress } from "@fdk/libraries/LibSharedAddress.sol";
 import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
 import { CoreGovernance } from "@ronin/contracts/extensions/sequential-governance/CoreGovernance.sol";
 import { LibArray } from "./LibArray.sol";
@@ -105,7 +105,7 @@ library LibProposal {
     });
   }
 
-  function executeProposal(RoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
+  function executeProposal(IRoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
     Ballot.VoteType support = Ballot.VoteType.For;
     address[] memory governors = manager.getGovernors();
 
@@ -124,7 +124,7 @@ library LibProposal {
     voteFor(manager, proposal);
   }
 
-  function voteFor(RoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
+  function voteFor(IRoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
     Ballot.VoteType support = Ballot.VoteType.For;
     address[] memory governors = manager.getGovernors();
     bool shouldPrankOnly = config.isPostChecking();
@@ -254,7 +254,7 @@ library LibProposal {
     Proposal.ProposalDetail memory proposal,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     return generateSignaturesFor(proposal.hash(), signerPKs, support);
   }
 
@@ -262,7 +262,7 @@ library LibProposal {
     GlobalProposal.GlobalProposalDetail memory proposal,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     return generateSignaturesFor(proposal.hash(), signerPKs, support);
   }
 
@@ -270,7 +270,7 @@ library LibProposal {
     bytes32 proposalHash,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     sigs = new SignatureConsumer.Signature[](signerPKs.length);
     bytes32 domain = getBridgeManagerDomain();
     for (uint256 i; i < signerPKs.length; i++) {

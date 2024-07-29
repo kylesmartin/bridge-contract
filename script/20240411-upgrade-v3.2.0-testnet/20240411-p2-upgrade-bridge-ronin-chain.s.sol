@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -34,8 +34,8 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninTestnet.key()) {
-    _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _newRoninBridgeManager = RoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
+    _currRoninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _newRoninBridgeManager = IRoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -49,7 +49,7 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
   }
 
   function _changeAdminOfEnforcer() private {
-    RoninBridgeManager roninGA = RoninBridgeManager(0x53Ea388CB72081A3a397114a43741e7987815896);
+    IRoninBridgeManager roninGA = IRoninBridgeManager(0x53Ea388CB72081A3a397114a43741e7987815896);
     address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
 
     uint256 expiredTime = block.timestamp + 14 days;

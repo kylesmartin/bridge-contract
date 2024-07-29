@@ -5,7 +5,7 @@ import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -34,7 +34,7 @@ contract Migration__20240206_MapTokenBananaRoninChain is
   using LibProposal for *;
   using LibCompanionNetwork for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _roninGatewayV3;
 
   address pixelRoninToken = 0x7EAe20d11Ef8c779433Eb24503dEf900b9d28ad7;
@@ -47,7 +47,7 @@ contract Migration__20240206_MapTokenBananaRoninChain is
 
   function setUp() public virtual override {
     super.setUp();
-    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
   }
 

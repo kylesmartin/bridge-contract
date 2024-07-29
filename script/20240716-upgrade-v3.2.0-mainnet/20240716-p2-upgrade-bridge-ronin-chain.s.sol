@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
@@ -44,7 +44,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
-    _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
+    _currRoninBridgeManager = IRoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _newRoninBridgeManager = _deployRoninBridgeManager();
 
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
