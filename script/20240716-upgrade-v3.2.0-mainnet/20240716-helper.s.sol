@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import { console } from "forge-std/console.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 import { Migration } from "../Migration.s.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
@@ -22,7 +23,8 @@ contract Migration__20240716_Helper is Migration {
   RoninBridgeManager internal _currRoninBridgeManager;
 
   function _helperProposeForCurrentNetwork(LegacyProposalDetail memory proposal) internal {
-    vm.broadcast(_proposer);
+    console.log("Real start broadcast to propose proposal:", _proposer);
+    vm.startBroadcast(_proposer);
     address(_currRoninBridgeManager).call(
       abi.encodeWithSignature(
         "proposeProposalForCurrentNetwork(uint256,address[],uint256[],bytes[],uint256[],uint8)",
@@ -34,6 +36,7 @@ contract Migration__20240716_Helper is Migration {
         Ballot.VoteType.For
       )
     );
+    vm.stopBroadcast();
   }
 
   function _helperVoteForCurrentNetwork(LegacyProposalDetail memory proposal) internal {

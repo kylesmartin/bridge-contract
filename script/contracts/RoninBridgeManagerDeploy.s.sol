@@ -36,6 +36,10 @@ contract RoninBridgeManagerDeploy is Migration {
     );
   }
 
+  function _getProxyAdmin() internal virtual override returns(address payable) {
+    return sender();
+  }
+
   function run() public virtual returns (RoninBridgeManager) {
     address payable instance = _deployProxy(Contract.RoninBridgeManagerConstructor.key(), sender());
     address logic = _deployLogic(Contract.RoninBridgeManager.key());

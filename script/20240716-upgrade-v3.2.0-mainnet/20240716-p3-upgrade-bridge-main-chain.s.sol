@@ -129,13 +129,12 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _upgradeBridgeMainchain() internal {
+    config.switchTo(_companionNetwork);
+
     address weth = config.getAddressFromCurrentNetwork(Contract.WETH.key());
     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
 
-    address pauseEnforcerLogic = _deployLogic(Contract.MainchainPauseEnforcer.key());
     address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
-
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
     address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
@@ -210,6 +209,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     proposal.values = values;
     proposal.calldatas = calldatas;
     proposal.gasAmounts = gasAmounts;
+
+    config.switchTo(_currentNetwork);
 
     vm.broadcast(_governor);
     address(_roninBridgeManager).call(

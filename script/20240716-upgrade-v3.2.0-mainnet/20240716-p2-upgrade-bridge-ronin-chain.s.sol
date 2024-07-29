@@ -34,6 +34,8 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   Migration__20240716_DeployRoninBridgeManagerHelper,
   Migration__MapToken_WBTC_Threshold
 {
+  using StdStyle for *;
+
   ISharedArgument.SharedParameter _param;
   LegacyProposalDetail _proposal;
 
@@ -45,7 +47,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
     _currRoninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _newRoninBridgeManager = _deployRoninBridgeManager();
 
-    _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
+    _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
     (address[] memory currGovernors,,) = _currRoninBridgeManager.getFullBridgeOperatorInfos();
     for (uint i = 0; i < currGovernors.length; i++) {
@@ -174,6 +176,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   }
 
   function _postCheck() internal virtual override {
+    console.log("Starting post-check".bold().cyan());
     _helperVoteForCurrentNetwork(_proposal);
     super._postCheck();
   }
