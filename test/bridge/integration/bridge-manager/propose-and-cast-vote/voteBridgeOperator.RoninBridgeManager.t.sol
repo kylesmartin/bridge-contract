@@ -102,7 +102,7 @@ contract VoteBridgeOperator_RoninBridgeManager_Test is BaseIntegration_Test {
   function test_RevertWhen_RelayAgain() public {
     test_relayAddBridgeOperator();
 
-    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, MainchainBridgeManager.relayGlobalProposal.selector));
+    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, IMainchainBridgeManager.relayGlobalProposal.selector));
 
     vm.prank(_param.mainchainBridgeManager.governors[0]);
     _mainchainBridgeManager.relayGlobalProposal(_globalProposal, _supports, _signatures);

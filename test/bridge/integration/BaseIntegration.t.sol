@@ -95,7 +95,7 @@ contract BaseIntegration_Test is Base_Test {
   PauseEnforcer _mainchainPauseEnforcer;
   MainchainGatewayV3 _mainchainGatewayV3;
   MainchainGatewayBatcher _mainchainGatewayBatcher;
-  MainchainBridgeManager _mainchainBridgeManager;
+  IMainchainBridgeManager _mainchainBridgeManager;
   WethUnwrapper _mainchainWethUnwrapper;
 
   MockWrappedToken _roninWeth;
