@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import { console } from "forge-std/console.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { TContract, Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
@@ -14,10 +15,6 @@ import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
 
 contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
   using LibCompanionNetwork for *;
-
-  function setUp() public virtual override(BaseMigration, Migration) {
-    super.setUp();
-  }
 
   function run() external {
     _loadSysContract();
@@ -60,7 +57,9 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       _loadRoninContracts(currentNetwork);
     } else {
       TNetwork companionNetwork = currentNetwork.companionNetwork();
-      switchTo(companionNetwork);
+      uint256 originForkBlockNumber = config.getRuntimeConfig().forkBlockNumber;
+      uint256 originForkId = config.getForkId(companionNetwork, originForkBlockNumber);
+      config.switchTo(originForkId);
       _loadRoninContracts(companionNetwork);
     }
   }
