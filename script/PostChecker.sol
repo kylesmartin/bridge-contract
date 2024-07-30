@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { TContract, Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
@@ -55,13 +56,25 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
         || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
       _loadRoninContracts(currentNetwork);
+
+      (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
+      mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
+      mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
     } else {
-      TNetwork companionNetwork = currentNetwork.companionNetwork();
+      mainchainGateway = loadContract(Contract.MainchainGatewayV3.key());
+      mainchainBridgeManager = loadContract(Contract.MainchainBridgeManager.key());
+
+      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(mainchainBridgeManager));
+      (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
+
       uint256 originForkBlockNumber = config.getRuntimeConfig().forkBlockNumber;
       uint256 originForkId = config.getForkId(companionNetwork, originForkBlockNumber);
       config.switchTo(originForkId);
+
       _loadRoninContracts(companionNetwork);
     }
+
+    _markSysContractsAsPersistent();
   }
 
   function _loadRoninContracts(TNetwork roninNetwork) private {
@@ -70,16 +83,8 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     roninGateway = loadContract(Contract.RoninGatewayV3.key());
     bridgeTracking = loadContract(Contract.BridgeTracking.key());
     roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+  }
 
-    (, TNetwork companionNetwork) = roninNetwork.companionNetworkData();
-    mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
-    mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
-
-    vm.makePersistent(bridgeSlash);
-    vm.makePersistent(bridgeReward);
-    vm.makePersistent(roninGateway);
-    vm.makePersistent(roninBridgeManager);
-    vm.makePersistent(mainchainGateway);
-    vm.makePersistent(mainchainBridgeManager);
+  function _markSysContractsAsPersistent() internal {
   }
 }

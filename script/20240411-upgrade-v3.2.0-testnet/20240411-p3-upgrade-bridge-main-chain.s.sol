@@ -126,6 +126,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _upgradeBridgeMainchain() internal {
+    console.log("Upgrading Bridge Mainchain....");
     address weth = loadContract(Contract.WETH.key());
     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
 
