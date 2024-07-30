@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { LibString } from "solady/utils/LibString.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { console } from "forge-std/console.sol";
@@ -30,10 +29,6 @@ contract Migration is BaseMigration, Utils {
 
   uint256 internal constant DEFAULT_PROPOSAL_GAS = 1_000_000;
   ISharedArgument internal constant config = ISharedArgument(address(CONFIG));
-
-  function setUp() public virtual override {
-    super.setUp();
-  }
 
   function _postCheck() internal virtual override {
     address postChecker = _deployImmutable(Contract.PostChecker.key());

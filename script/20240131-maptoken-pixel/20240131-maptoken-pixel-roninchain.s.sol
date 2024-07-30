@@ -17,7 +17,7 @@ import { Migration } from "../Migration.s.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
-import "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
 import "./maptoken-pixel-configs.s.sol";
 import "./update-axiechat-config.s.sol";

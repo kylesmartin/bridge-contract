@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
 import { IQuorum } from "@ronin/contracts/interfaces/IQuorum.sol";
 import { BasePostCheck } from "script/post-check/BasePostCheck.s.sol";
