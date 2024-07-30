@@ -33,12 +33,16 @@ import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
+  using StdStyle for *;
+
   IRoninBridgeManager _roninBridgeManager;
   IMainchainBridgeManager _currMainchainBridgeManager;
   IMainchainBridgeManager _newMainchainBridgeManager;
 
   TNetwork _currentNetwork;
   TNetwork _companionNetwork;
+
+  LegacyProposalDetail _mainchainProposal;
 
   address private _governor;
 
@@ -60,7 +64,10 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       // _currMainchainBridgeManager = IMainchainBridgeManager(companionManager); // TODO: resolve later
     }
     console.log("Switch back");
-    switchBack(prevNetwork, prevForkId);
+    console.log("Current network:", vm.toString(TNetwork.unwrap(_currentNetwork)));
+    console.log("Prev network:", vm.toString(TNetwork.unwrap(prevNetwork)));
+    switchBack(_currentNetwork, prevForkId);
+    // switchBack(prevNetwork, prevForkId);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
 
@@ -69,6 +76,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
+    console.log("Switch to companion");
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
     ISharedArgument.SharedParameter memory param;
@@ -123,7 +131,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     address proxyAdmin = LibProxy.getProxyAdmin(payable(address(_newMainchainBridgeManager)));
     vm.broadcast(proxyAdmin);
-    TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
+    // TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
+    TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_newMainchainBridgeManager));
 
     switchBack(prevNetwork, prevForkId);
   }
@@ -200,15 +209,13 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       gasAmounts[i] = 1_000_000;
     }
 
-    LegacyProposalDetail memory proposal;
-
-    proposal.nonce = _currMainchainBridgeManager.round(Network.EthMainnet.chainId()) + 1;
-    proposal.chainId = Network.EthMainnet.chainId();
-    proposal.expiryTimestamp = expiredTime;
-    proposal.targets = targets;
-    proposal.values = values;
-    proposal.calldatas = calldatas;
-    proposal.gasAmounts = gasAmounts;
+    _mainchainProposal.nonce = _currMainchainBridgeManager.round(Network.EthMainnet.chainId()) + 1;
+    _mainchainProposal.chainId = Network.EthMainnet.chainId();
+    _mainchainProposal.expiryTimestamp = expiredTime;
+    _mainchainProposal.targets = targets;
+    _mainchainProposal.values = values;
+    _mainchainProposal.calldatas = calldatas;
+    _mainchainProposal.gasAmounts = gasAmounts;
 
     switchBack(prevNetwork, prevForkId);
 
@@ -216,16 +223,21 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     address(_roninBridgeManager).call(
       abi.encodeWithSignature(
         "propose(uint256,uint256,address[],uint256,bytes[],uint256[])",
-        proposal.chainId,
-        proposal.expiryTimestamp,
-        proposal.targets,
-        proposal.values,
-        proposal.calldatas,
-        proposal.gasAmounts
+        _mainchainProposal.chainId,
+        _mainchainProposal.expiryTimestamp,
+        _mainchainProposal.targets,
+        _mainchainProposal.values,
+        _mainchainProposal.calldatas,
+        _mainchainProposal.gasAmounts
       )
     );
+  }
 
-    _simulateProposal(proposal);
+  function _postCheck() internal virtual override {
+    console.log("Starting post-check".bold().cyan());
+    _simulateProposal(_mainchainProposal);
+
+    super._postCheck();
   }
 
   function getDomain() public pure returns (bytes32) {

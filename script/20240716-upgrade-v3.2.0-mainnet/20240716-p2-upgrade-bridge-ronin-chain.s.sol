@@ -37,7 +37,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   using StdStyle for *;
 
   ISharedArgument.SharedParameter _param;
-  LegacyProposalDetail _proposal;
+  LegacyProposalDetail _roninProposal;
 
   function setUp() public virtual override {
     super.setUp();
@@ -164,20 +164,20 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
       gasAmounts[i] = 1_000_000;
     }
 
-    _proposal.nonce = _currRoninBridgeManager.round(block.chainid) + 1;
-    _proposal.chainId = block.chainid;
-    _proposal.expiryTimestamp = block.timestamp + 14 days;
-    _proposal.targets = targets;
-    _proposal.values = values;
-    _proposal.calldatas = calldatas;
-    _proposal.gasAmounts = gasAmounts;
+    _roninProposal.nonce = _currRoninBridgeManager.round(block.chainid) + 1;
+    _roninProposal.chainId = block.chainid;
+    _roninProposal.expiryTimestamp = block.timestamp + 14 days;
+    _roninProposal.targets = targets;
+    _roninProposal.values = values;
+    _roninProposal.calldatas = calldatas;
+    _roninProposal.gasAmounts = gasAmounts;
 
-    _helperProposeForCurrentNetwork(_proposal);
+    _helperProposeForCurrentNetwork(_roninProposal);
   }
 
   function _postCheck() internal virtual override {
     console.log("Starting post-check".bold().cyan());
-    _helperVoteForCurrentNetwork(_proposal);
+    _helperVoteForCurrentNetwork(_roninProposal);
     super._postCheck();
   }
 }

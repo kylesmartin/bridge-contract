@@ -94,10 +94,12 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
     );
 
     address proxyAdmin = LibProxy.getProxyAdmin(payable(address(_newRoninBridgeManager)));
-    // vm.broadcast(proxyAdmin);
 
-    // // transfer admin to self
-    // TransparentUpgradeableProxy(payable(address(_newRoninBridgeManager))).changeAdmin(address(_newRoninBridgeManager));
+    console.log("Finish deploy Ronin Bridge Manager");
+
+    // transfer admin to self
+    vm.broadcast(proxyAdmin);
+    TransparentUpgradeableProxy(payable(address(_newRoninBridgeManager))).changeAdmin(address(_newRoninBridgeManager));
 
     return _newRoninBridgeManager;
   }
