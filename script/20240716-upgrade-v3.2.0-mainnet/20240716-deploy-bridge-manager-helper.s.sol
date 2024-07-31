@@ -97,9 +97,9 @@ abstract contract Migration__20240716_DeployRoninBridgeManagerHelper is Migratio
 
     console.log("Finish deploy Ronin Bridge Manager");
 
-    // transfer admin to self
-    vm.broadcast(proxyAdmin);
-    TransparentUpgradeableProxy(payable(address(_newRoninBridgeManager))).changeAdmin(address(_newRoninBridgeManager));
+    // // transfer admin to self
+    // vm.broadcast(proxyAdmin);
+    // TransparentUpgradeableProxy(payable(address(_newRoninBridgeManager))).changeAdmin(address(_newRoninBridgeManager));
 
     return _newRoninBridgeManager;
   }

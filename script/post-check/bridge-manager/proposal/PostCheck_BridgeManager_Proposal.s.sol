@@ -14,6 +14,7 @@ import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork
 import { Ballot, SignatureConsumer, Proposal, GlobalProposal, LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
 abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   using LibArray for *;
@@ -103,7 +104,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       bool reverted = vm.revertTo(snapshotId);
       assertTrue(reverted, "Cannot revert to snapshot id");
-      switchBack(prevNetwork, prevForkId);
+      _switchBackToRoninFork(currentNetwork);
     }
   }
 
@@ -112,7 +113,6 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
     IMainchainBridgeManager mainchainManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     uint256 snapshotId = vm.snapshot();
@@ -121,27 +121,23 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     {
       cheatAddOverWeightedGovernor(address(mainchainManager));
 
-      address[] memory targets = new address[](3);
-      uint256[] memory values = new uint256[](3);
-      uint256[] memory gasAmounts = new uint256[](3);
-      bytes[] memory calldatas = new bytes[](3);
-      address[] memory logics = new address[](3);
+      address[] memory targets = new address[](2);
+      uint256[] memory values = new uint256[](2);
+      uint256[] memory gasAmounts = new uint256[](2);
+      bytes[] memory calldatas = new bytes[](2);
+      address[] memory logics = new address[](2);
 
       targets[0] = address(mainchainManager);
       targets[1] = loadContract(Contract.MainchainGatewayV3.key());
-      targets[2] = loadContract(Contract.MainchainPauseEnforcer.key());
 
       logics[0] = _deployLogic(Contract.MainchainBridgeManager.key());
       logics[1] = _deployLogic(Contract.MainchainGatewayV3.key());
-      logics[2] = _deployLogic(Contract.MainchainPauseEnforcer.key());
 
       calldatas[0] = abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (logics[0]));
       calldatas[1] = abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (logics[1]));
-      calldatas[2] = abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (logics[2]));
 
       gasAmounts[0] = 1_000_000;
       gasAmounts[1] = 1_000_000;
-      gasAmounts[2] = 1_000_000;
 
       Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
         manager: address(mainchainManager),
@@ -166,12 +162,11 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       assertEq(payable(address(mainchainManager)).getProxyImplementation(), logics[0], "MainchainBridgeManager logic is not upgraded");
       assertEq(loadContract(Contract.MainchainGatewayV3.key()).getProxyImplementation(), logics[1], "MainchainGatewayV3 logic is not upgraded");
-      assertEq(loadContract(Contract.MainchainPauseEnforcer.key()).getProxyImplementation(), logics[2], "MainchainPauseEnforcer logic is not upgraded");
     }
 
     bool reverted = vm.revertTo(snapshotId);
     assertTrue(reverted, "Cannot revert to snapshot id");
-    switchBack(prevNetwork, prevForkId);
+    _switchBackToRoninFork(currentNetwork);
   }
 
   function validate_ProposeGlobalProposalAndRelay_addBridgeOperator()
@@ -218,7 +213,6 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
       (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
       IMainchainBridgeManager mainchainManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
       uint256 snapshotId = vm.snapshot();
@@ -234,7 +228,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
 
       bool reverted = vm.revertTo(snapshotId);
       assertTrue(reverted, "Cannot revert to snapshot id");
-      switchBack(prevNetwork, prevForkId);
+      _switchBackToRoninFork(currentNetwork);
     }
   }
 
@@ -256,14 +250,13 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     }
   }
 
-  function validate_canExcuteUpgradeAllOneProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExcuteUpgradeAllOneProposal") {
+  function validate_canExcuteUpgradeAllOneProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExecuteUpgradeAllOneProposal") {
     IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
-    TContract[] memory contractTypes = new TContract[](5);
+    TContract[] memory contractTypes = new TContract[](4);
     contractTypes[0] = Contract.BridgeSlash.key();
     contractTypes[1] = Contract.BridgeReward.key();
     contractTypes[2] = Contract.BridgeTracking.key();
     contractTypes[3] = Contract.RoninGatewayV3.key();
-    contractTypes[4] = Contract.RoninPauseEnforcer.key();
 
     address[] memory targets = new address[](contractTypes.length);
     for (uint256 i; i < contractTypes.length; ++i) {
@@ -293,5 +286,14 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     });
 
     manager.executeProposal(proposal);
+  }
+
+  function _switchBackToRoninFork(TNetwork roninNetwork) internal {
+    IRuntimeConfig.Option memory config;
+    config = CONFIG.getRuntimeConfig();
+
+    uint originForkBlockNumber = config.forkBlockNumber;
+    uint roninForkId = CONFIG.getForkId(roninNetwork, originForkBlockNumber);
+    CONFIG.switchTo(roninForkId);
   }
 }

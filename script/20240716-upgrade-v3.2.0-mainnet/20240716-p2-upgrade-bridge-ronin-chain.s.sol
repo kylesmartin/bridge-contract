@@ -42,17 +42,22 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   function setUp() public virtual override {
     super.setUp();
   }
-
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
+    console.log("=== Starting migration Roninchain".bold().cyan());
     _currRoninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
-    _newRoninBridgeManager = _deployRoninBridgeManager();
+    // _newRoninBridgeManager = _deployRoninBridgeManager();
 
+    _newRoninBridgeManager = IRoninBridgeManager(0x2ae89936FC398AeA23c63dB2404018fE361A8628);
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
     (address[] memory currGovernors,,) = _currRoninBridgeManager.getFullBridgeOperatorInfos();
     for (uint i = 0; i < currGovernors.length; i++) {
       _voters.push(currGovernors[i]);
     }
+
+    vm.startPrank(0x08295771719b138a241F45023B13CC868D72827D);
+    TransparentUpgradeableProxy(payable(address(_newRoninBridgeManager))).changeAdmin(address(_currRoninBridgeManager));
+    vm.stopPrank();
 
     _upgradeBridgeRoninchain();
 

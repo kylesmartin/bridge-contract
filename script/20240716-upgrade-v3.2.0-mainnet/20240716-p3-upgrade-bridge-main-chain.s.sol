@@ -51,6 +51,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
+    console.log("=== Starting migration Mainchain".bold().cyan());
+
     _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     // _currMainchainBridgeManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
@@ -63,11 +65,10 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       _currMainchainBridgeManager = IMainchainBridgeManager(0xa71456fA88a5f6a4696D0446E690Db4a5913fab0);
       // _currMainchainBridgeManager = IMainchainBridgeManager(companionManager); // TODO: resolve later
     }
-    console.log("Switch back");
+    console.log("@@@ Switch to Ronin");
     console.log("Current network:", vm.toString(TNetwork.unwrap(_currentNetwork)));
     console.log("Prev network:", vm.toString(TNetwork.unwrap(prevNetwork)));
     switchBack(_currentNetwork, prevForkId);
-    // switchBack(prevNetwork, prevForkId);
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
 
@@ -75,8 +76,11 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     _upgradeBridgeMainchain();
   }
 
+  /**
+   * @dev Deploy Mainchain Bridge Manager and transfer proxy admin to current BM
+   */
   function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
-    console.log("Switch to companion");
+    console.log("@@@ Switch to companion");
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
     ISharedArgument.SharedParameter memory param;
@@ -84,14 +88,14 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     {
       (address[] memory currGovernors, address[] memory currOperators, uint96[] memory currWeights) = _currMainchainBridgeManager.getFullBridgeOperatorInfos();
       uint totalCurrGovernors = currGovernors.length;
-      param.roninBridgeManager.bridgeOperators = new address[](totalCurrGovernors);
-      param.roninBridgeManager.governors = new address[](totalCurrGovernors);
-      param.roninBridgeManager.voteWeights = new uint96[](totalCurrGovernors);
+      param.mainchainBridgeManager.bridgeOperators = new address[](totalCurrGovernors);
+      param.mainchainBridgeManager.governors = new address[](totalCurrGovernors);
+      param.mainchainBridgeManager.voteWeights = new uint96[](totalCurrGovernors);
 
       for (uint i = 0; i < totalCurrGovernors; i++) {
-        param.roninBridgeManager.bridgeOperators[i] = currOperators[i];
-        param.roninBridgeManager.governors[i] = currGovernors[i];
-        param.roninBridgeManager.voteWeights[i] = currWeights[i];
+        param.mainchainBridgeManager.bridgeOperators[i] = currOperators[i];
+        param.mainchainBridgeManager.governors[i] = currGovernors[i];
+        param.mainchainBridgeManager.voteWeights[i] = currWeights[i];
       }
     }
 
@@ -131,12 +135,16 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     address proxyAdmin = LibProxy.getProxyAdmin(payable(address(_newMainchainBridgeManager)));
     vm.broadcast(proxyAdmin);
-    // TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
-    TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_newMainchainBridgeManager));
+    TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
+    // TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_newMainchainBridgeManager));
 
     switchBack(prevNetwork, prevForkId);
   }
 
+  /**
+   * @dev Create proposal on mainchain
+   *
+   */
   function _upgradeBridgeMainchain() internal {
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
@@ -158,12 +166,6 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     uint256[] memory gasAmounts = new uint256[](N);
 
     targets[0] = mainchainGatewayV3Proxy;
-    targets[1] = mainchainGatewayV3Proxy;
-    targets[2] = mainchainGatewayV3Proxy;
-    targets[3] = mainchainGatewayV3Proxy;
-    targets[4] = address(_newMainchainBridgeManager);
-    targets[5] = address(_newMainchainBridgeManager);
-
     // Mapping WBTC calldata
     {
       address[] memory mainchainTokens = new address[](1);
@@ -192,17 +194,25 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
       );
     }
 
+    targets[1] = mainchainGatewayV3Proxy;
     calldatas[1] = abi.encodeWithSignature(
       "upgradeToAndCall(address,bytes)", mainchainGatewayV3Logic, abi.encodeWithSelector(MainchainGatewayV3.initializeV4.selector, wethUnwrapper)
     );
+
+    targets[2] = mainchainGatewayV3Proxy;
     calldatas[2] =
       abi.encodeWithSignature("functionDelegateCall(bytes)", (abi.encodeWithSignature("setContract(uint8,address)", 11, address(_newMainchainBridgeManager))));
 
     // Do all setting steps before migrating to change admin
+    targets[3] = mainchainGatewayV3Proxy;
     calldatas[3] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
+
+    targets[4] = address(_newMainchainBridgeManager);
     calldatas[4] = abi.encodeWithSignature(
       "functionDelegateCall(bytes)", (abi.encodeWithSignature("registerCallbacks(address[])", param.mainchainBridgeManager.callbackRegisters))
     );
+
+    targets[5] = address(_newMainchainBridgeManager);
     calldatas[5] = abi.encodeWithSignature("changeAdmin(address)", address(_newMainchainBridgeManager));
 
     for (uint i; i < N; ++i) {

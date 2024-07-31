@@ -16,21 +16,20 @@ contract Verify_Script_20240716 is Migration__20240716_P2_UpgradeBridgeRoninchai
     TNetwork currentNetwork = network();
     TNetwork companionNetwork = config.getCompanionNetwork(currentNetwork);
 
-    console.log("*** Verify proposal Ronin chain".bold().cyan());
+    console.log("*** Verify proposal Ronin chain ***".bold().cyan());
     Migration__20240716_P2_UpgradeBridgeRoninchain.run();
 
-    console.log("*** Verify proposal Main chain".bold().cyan());
+    console.log("*** Verify proposal Main chain ***".bold().cyan());
     Migration__20240716_P3_UpgradeBridgeMainchain.run();
     // switchBack(prevNetwork, prevForkId);
   }
 
   function _postCheck() internal virtual override(Migration__20240716_P2_UpgradeBridgeRoninchain, Migration__20240716_P3_UpgradeBridgeMainchain) {
-    console.log("Starting post-check".bold().cyan());
+    console.log("*********** Starting post-check ************".bold().cyan());
 
     _helperVoteForCurrentNetwork(_roninProposal);
     _simulateProposal(_mainchainProposal);
 
     Migration._postCheck();
-    // super._postCheck();
   }
 }

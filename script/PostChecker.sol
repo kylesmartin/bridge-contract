@@ -13,11 +13,16 @@ import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol"
 import { Migration } from "./Migration.s.sol";
 import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
 import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
 contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
   using LibCompanionNetwork for *;
 
   function run() external {
+    IRuntimeConfig.Option memory opt;
+    opt = CONFIG.getRuntimeConfig();
+    _originForkBlockNumber = opt.forkBlockNumber;
+
     _loadSysContract();
     _validate_BridgeManager();
     _validate_Gateway();

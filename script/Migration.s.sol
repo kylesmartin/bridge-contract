@@ -31,7 +31,15 @@ contract Migration is BaseMigration, Utils {
   ISharedArgument internal constant config = ISharedArgument(address(CONFIG));
 
   function _postCheck() internal virtual override {
-    address postChecker = _deployImmutable(Contract.PostChecker.key());
+    address postChecker = _deployImmutable(
+      Contract.PostChecker.key(),
+      "PostChecker.sol:PostChecker",//string memory artifactName,
+      makeAddr("PostCheckerDeployer"),
+      0,
+      EMPTY_ARGS
+    );
+
+    // address postChecker = _deployImmutable(Contract.PostChecker.key());
     vm.allowCheatcodes(postChecker);
     vm.makePersistent(postChecker);
     IPostCheck(postChecker).run();
@@ -246,6 +254,7 @@ contract Migration is BaseMigration, Utils {
     revert("BridgeMigration(_getProxyAdmin): Unhandled case");
   }
 
+  // @dev Called by `Migration._upgradeProxy()`
   function upgradeCallback(
     address proxy,
     address logic,

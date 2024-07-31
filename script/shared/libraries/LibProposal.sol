@@ -19,6 +19,7 @@ import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "./LibCompanionNetwork.sol";
 import { LibErrorHandler } from "@fdk/libraries/LibErrorHandler.sol";
 import { VoteStatusConsumer } from "@ronin/contracts/interfaces/consumers/VoteStatusConsumer.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
 library LibProposal {
   using LibArray for *;
@@ -218,7 +219,13 @@ library LibProposal {
 
     bool reverted = vm.revertTo(snapshotId);
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
-    config.switchTo(currentForkId);
+
+    IRuntimeConfig.Option memory opt;
+    opt = config.getRuntimeConfig();
+
+    uint originForkBlockNumber = opt.forkBlockNumber;
+    uint roninForkId = config.getForkId(currentNetwork, originForkBlockNumber);
+    config.switchTo(roninForkId);
   }
 
   function verifyProposalGasAmount(
