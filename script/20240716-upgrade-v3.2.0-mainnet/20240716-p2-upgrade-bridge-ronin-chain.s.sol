@@ -45,8 +45,6 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     console.log("=== Starting migration Roninchain".bold().cyan());
     _currRoninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
-    // _newRoninBridgeManager = _deployRoninBridgeManager();
-
     _newRoninBridgeManager = IRoninBridgeManager(0x2ae89936FC398AeA23c63dB2404018fE361A8628);
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
@@ -65,11 +63,10 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   }
 
   function _upgradeBridgeRoninchain() private {
-    address bridgeRewardLogic = _deployLogic(Contract.BridgeReward.key());
-    address bridgeSlashLogic = _deployLogic(Contract.BridgeSlash.key());
-    address bridgeTrackingLogic = _deployLogic(Contract.BridgeTracking.key());
-    address pauseEnforcerLogic = _deployLogic(Contract.RoninPauseEnforcer.key());
-    address roninGatewayV3Logic = _deployLogic(Contract.RoninGatewayV3.key());
+    address bridgeRewardLogic = 0x8048b12511d9BE6e4e094089b12f54923C4E2F83;
+    address bridgeSlashLogic = 0xfc274EC92bBb1A1472884558d1B5CaaC6F8220Ee;
+    address bridgeTrackingLogic = 0x9521dBE27803f5d31da86d5846e7fE011d235018;
+    address roninGatewayV3Logic = 0x5C530fe5920A2991eA6e9FB99028E1B09384D7f4;
 
     address bridgeRewardProxy = loadContract(Contract.BridgeReward.key());
     address bridgeSlashProxy = loadContract(Contract.BridgeSlash.key());

@@ -13,9 +13,12 @@ import { MainchainGatewayV3Deploy } from "./MainchainGatewayV3Deploy.s.sol";
 contract MainchainBridgeManagerDeploy is Migration {
   using LibProxy for *;
 
+  function _getProxyAdmin() internal virtual override returns (address payable) {
+    return payable(0xA62DddCC58E769bCFd2f9A7A61CDF331f18c2650);
+  }
+
   function run() public virtual returns (IMainchainBridgeManager instance) {
     instance = IMainchainBridgeManager(_deployProxy(Contract.MainchainBridgeManager.key(), sender()));
-    address proxyAdmin = payable(address(instance)).getProxyAdmin();
 
     // if (proxyAdmin != address(instance)) {
     //   vm.broadcast(proxyAdmin);

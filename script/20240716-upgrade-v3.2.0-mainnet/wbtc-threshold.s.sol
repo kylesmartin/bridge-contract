@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 contract Migration__MapToken_WBTC_Threshold {
-  address _wbtcRoninToken = address(0xdeadbeef); // TODO: replace by real WBTC token address
-  address _wbtcMainchainToken = address(0x3429d03c6F7521AeC737a0BBF2E5ddcef2C3Ae31);
+  address _wbtcRoninToken = address(0x2Cf3CFb17774Ce0CFa34bB3f3761904e7fc3FaDB); // https://app.roninchain.com/address/0x2cf3cfb17774ce0cfa34bb3f3761904e7fc3fadb
+  address _wbtcMainchainToken = address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599); // https://etherscan.io/token/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
 
   // The decimal of WBTC token is 18
   uint256 _wbtcHighTierThreshold = 17 ether;

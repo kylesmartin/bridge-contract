@@ -19,8 +19,6 @@ import "@ronin/contracts/libraries/Ballot.sol";
 
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
-import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
-import { SLPDeploy } from "@ronin/script/contracts/token/SLPDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
 import "@ronin/script/contracts/MainchainBridgeManagerDeploy.s.sol";
 import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
@@ -74,7 +72,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     _oldRoninBridgeManager = IRoninBridgeManager(0x5FA49E6CA54a9daa8eCa4F403ADBDE5ee075D84a);
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
-    _deployMainchainBridgeManager();
+    // _deployMainchainBridgeManager();
+    _newMainchainBridgeManager = IMainchainBridgeManager(0x2387b3383E89c164781d173B7Aa14d9c46eD2642);
     _upgradeBridgeMainchain();
   }
 
@@ -150,10 +149,11 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   function _upgradeBridgeMainchain() internal {
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
-    address weth = loadContract(Contract.WETH.key());
-    address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
+    // address weth = loadContract(Contract.WETH.key());
+    // address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
+    address wethUnwrapper = 0x22bc2df58D96CBc5f2599f2C25D1E565974749EE;
 
-    address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
+    address mainchainGatewayV3Logic = 0x7bBCFa8c109B0a6888d3329a6B762Ad4782e0B26;
     address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
