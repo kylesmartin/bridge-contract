@@ -73,7 +73,12 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
     // _deployMainchainBridgeManager();
-    _newMainchainBridgeManager = IMainchainBridgeManager(0x2387b3383E89c164781d173B7Aa14d9c46eD2642);
+    _newMainchainBridgeManager = IMainchainBridgeManager(0x2Cf3CFb17774Ce0CFa34bB3f3761904e7fc3FaDB);
+
+    address bmProxyAdmin = LibProxy.getProxyAdmin(payable(address(_newMainchainBridgeManager)));
+    vm.prank(bmProxyAdmin);
+    TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
+
     _upgradeBridgeMainchain();
   }
 
