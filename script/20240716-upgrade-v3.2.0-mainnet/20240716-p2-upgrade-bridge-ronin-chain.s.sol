@@ -44,7 +44,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
   }
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     console.log("=== Starting migration Roninchain".bold().cyan());
-    _currRoninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _currRoninBridgeManager = IRoninBridgeManager(0x5FA49E6CA54a9daa8eCa4F403ADBDE5ee075D84a);
     _newRoninBridgeManager = IRoninBridgeManager(0x2ae89936FC398AeA23c63dB2404018fE361A8628);
     _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 

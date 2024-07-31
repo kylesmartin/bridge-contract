@@ -34,7 +34,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   using StdStyle for *;
 
   IRoninBridgeManager _oldRoninBridgeManager;
-  IRoninBridgeManager _roninBridgeManager;
+  IRoninBridgeManager _newwRoninBridgeManager;
   IMainchainBridgeManager _currMainchainBridgeManager;
   IMainchainBridgeManager _newMainchainBridgeManager;
 
@@ -52,7 +52,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     console.log("=== Starting migration Mainchain".bold().cyan());
 
-    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _newwRoninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     // _currMainchainBridgeManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _currentNetwork = network();
@@ -75,11 +75,19 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     // _deployMainchainBridgeManager();
     _newMainchainBridgeManager = IMainchainBridgeManager(0x2Cf3CFb17774Ce0CFa34bB3f3761904e7fc3FaDB);
 
+    _prankChangeAdminMainchainBM();
+    _upgradeBridgeMainchain();
+  }
+
+  function _prankChangeAdminMainchainBM() internal {
+    console.log("@@@ Switch to companion");
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
+
     address bmProxyAdmin = LibProxy.getProxyAdmin(payable(address(_newMainchainBridgeManager)));
     vm.prank(bmProxyAdmin);
     TransparentUpgradeableProxy(payable(address(_newMainchainBridgeManager))).changeAdmin(address(_currMainchainBridgeManager));
 
-    _upgradeBridgeMainchain();
+    switchBack(prevNetwork, prevForkId);
   }
 
   /**
@@ -156,9 +164,9 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     // address weth = loadContract(Contract.WETH.key());
     // address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
-    address wethUnwrapper = 0x22bc2df58D96CBc5f2599f2C25D1E565974749EE;
+    address wethUnwrapper = 0x8048b12511d9BE6e4e094089b12f54923C4E2F83;
 
-    address mainchainGatewayV3Logic = 0x7bBCFa8c109B0a6888d3329a6B762Ad4782e0B26;
+    address mainchainGatewayV3Logic = 0xfc274EC92bBb1A1472884558d1B5CaaC6F8220Ee;
     address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
