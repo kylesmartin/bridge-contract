@@ -35,6 +35,7 @@ import { Migration } from "../Migration.s.sol";
 contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
   using StdStyle for *;
 
+  IRoninBridgeManager _oldRoninBridgeManager;
   IRoninBridgeManager _roninBridgeManager;
   IMainchainBridgeManager _currMainchainBridgeManager;
   IMainchainBridgeManager _newMainchainBridgeManager;
@@ -44,7 +45,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
   LegacyProposalDetail _mainchainProposal;
 
-  address private _governor;
+  address private _proposer;
 
   function setUp() public virtual override {
     super.setUp();
@@ -70,7 +71,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     console.log("Prev network:", vm.toString(TNetwork.unwrap(prevNetwork)));
     switchBack(_currentNetwork, prevForkId);
 
-    _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
+    _oldRoninBridgeManager = IRoninBridgeManager(0x5FA49E6CA54a9daa8eCa4F403ADBDE5ee075D84a);
+    _proposer = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059; // SM Governor
 
     _deployMainchainBridgeManager();
     _upgradeBridgeMainchain();
@@ -229,18 +231,17 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
 
     switchBack(prevNetwork, prevForkId);
 
-    vm.broadcast(_governor);
-    address(_roninBridgeManager).call(
-      abi.encodeWithSignature(
-        "propose(uint256,uint256,address[],uint256,bytes[],uint256[])",
+    vm.startBroadcast(_proposer);
+    address(_oldRoninBridgeManager).call(abi.encodeWithSignature(
+        "propose(uint256,uint256,address[],uint256[],bytes[],uint256[])",
         _mainchainProposal.chainId,
         _mainchainProposal.expiryTimestamp,
         _mainchainProposal.targets,
         _mainchainProposal.values,
         _mainchainProposal.calldatas,
         _mainchainProposal.gasAmounts
-      )
-    );
+    ));
+    vm.stopBroadcast();
   }
 
   function _postCheck() internal virtual override {
