@@ -20,3 +20,5 @@ dry-run/
 **-operators-key.s.sol
 dependencies
 deployments/**/exported_address
+
+run-latest.json
