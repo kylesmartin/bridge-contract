@@ -27,6 +27,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   address[] private _addingOperators = [makeAddr("operator-1"), makeAddr("operator-2")];
 
   function _validate_BridgeManager_Proposal() internal {
+    validate_canExecuteUpgradeItself();
     validate_relayUpgradeProposal();
     validate_ProposeGlobalProposalAndRelay_addBridgeOperator();
     validate_proposeAndRelay_addBridgeOperator();
@@ -257,6 +258,41 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     contractTypes[1] = Contract.BridgeReward.key();
     contractTypes[2] = Contract.BridgeTracking.key();
     contractTypes[3] = Contract.RoninGatewayV3.key();
+
+    address[] memory targets = new address[](contractTypes.length);
+    for (uint256 i; i < contractTypes.length; ++i) {
+      targets[i] = loadContract(contractTypes[i]);
+    }
+
+    address[] memory logics = new address[](targets.length);
+    for (uint256 i; i < targets.length; ++i) {
+      console.log("Deploy contract logic:", vm.getLabel(targets[i]));
+      logics[i] = _deployLogic(contractTypes[i]);
+    }
+
+    // Upgrade all contracts with proposal
+    bytes[] memory calldatas = new bytes[](targets.length);
+    for (uint256 i; i < targets.length; ++i) {
+      calldatas[i] = abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (logics[i]));
+    }
+
+    Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
+      manager: address(manager),
+      expiryTimestamp: block.timestamp + 20 minutes,
+      targets: targets,
+      values: uint256(0).repeat(targets.length),
+      calldatas: calldatas,
+      gasAmounts: uint256(1_000_000).repeat(targets.length),
+      nonce: manager.round(block.chainid) + 1
+    });
+
+    manager.executeProposal(proposal);
+  }
+
+  function validate_canExecuteUpgradeItself() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExecuteUpgradeItself") {
+    IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    TContract[] memory contractTypes = new TContract[](1);
+    contractTypes[0] = Contract.RoninBridgeManager.key();
 
     address[] memory targets = new address[](contractTypes.length);
     for (uint256 i; i < contractTypes.length; ++i) {
