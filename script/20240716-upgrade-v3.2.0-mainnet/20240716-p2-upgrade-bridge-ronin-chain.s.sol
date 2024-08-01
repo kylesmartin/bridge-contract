@@ -168,7 +168,7 @@ contract Migration__20240716_P2_UpgradeBridgeRoninchain is
 
     _roninProposal.nonce = _currRoninBridgeManager.round(block.chainid) + 1;
     _roninProposal.chainId = block.chainid;
-    _roninProposal.expiryTimestamp = block.timestamp + 14 days;
+    _roninProposal.expiryTimestamp = 1723481999; // Wed Aug 12 2024 23:59:59 GMT+0700 (Indochina Time)
     _roninProposal.targets = targets;
     _roninProposal.values = values;
     _roninProposal.calldatas = calldatas;

@@ -173,7 +173,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.callbackRegisters = new address[](1);
     param.mainchainBridgeManager.callbackRegisters[0] = loadContract(Contract.MainchainGatewayV3.key());
 
-    uint256 expiredTime = block.timestamp + 14 days;
+    uint256 expiredTime = 1723481999; // Wed Aug 12 2024 23:59:59 GMT+0700 (Indochina Time)
+    // uint256 expiredTime = block.timestamp + 14 days;
     uint N = 6;
     address[] memory targets = new address[](N);
     uint256[] memory values = new uint256[](N);
