@@ -9,7 +9,7 @@ import { IGeneralConfig } from "@fdk/interfaces/IGeneralConfig.sol";
 import { GeneralConfig } from "@ronin/script/GeneralConfig.sol";
 import { Network } from "@ronin/script/utils/Network.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { RoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
 import { BridgeTracking } from "@ronin/contracts/ronin/gateway/BridgeTracking.sol";
 import { BridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
@@ -86,7 +86,7 @@ contract BaseIntegration_Test is Base_Test {
   ISharedArgument.SharedParameter _param;
 
   PauseEnforcer _roninPauseEnforcer;
-  RoninBridgeManager _roninBridgeManager;
+  IRoninBridgeManager _roninBridgeManager;
   RoninGatewayV3 _roninGatewayV3;
   BridgeTracking _bridgeTracking;
   BridgeSlash _bridgeSlash;
