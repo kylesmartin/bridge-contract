@@ -372,7 +372,8 @@ contract RoninGatewayV3 is
    * Emits the `TokenUnmapped` event.
    */
   function _unmapTokensAndMinWithdrawals(address[] calldata roninTokens_, uint256[] calldata chainIds_) internal {
-    for (uint i; i < roninTokens_.length; ++i) {
+    uint length = roninTokens_.length;
+    for (uint i; i < length; ++i) {
       delete _mainchainToken[roninTokens_[i]][chainIds_[i]];
       delete minimumThreshold[roninTokens_[i]];
     }
