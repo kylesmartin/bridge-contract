@@ -167,17 +167,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     uint256[] calldata values,
     bytes[] calldata calldatas,
     uint256[] calldata gasAmounts
-  ) external onlyGovernor {
-    _proposeGlobal({
-      expiryTimestamp: expiryTimestamp,
-      executor: executor,
-      targetOptions: targetOptions,
-      values: values,
-      calldatas: calldatas,
-      gasAmounts: gasAmounts,
-      creator: msg.sender
-    });
-  }
+  ) external onlyGovernor { }
 
   /**
    * @dev See `GovernanceProposal-_proposeGlobalProposalStructAndCastVotes`.
@@ -190,9 +180,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     GlobalProposal.GlobalProposalDetail calldata globalProposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external onlyGovernor {
-    _proposeGlobalProposalStructAndCastVotes({ globalProposal: globalProposal, supports_: supports_, signatures: signatures, creator: msg.sender });
-  }
+  ) external onlyGovernor { }
 
   /**
    * @dev See `GovernanceProposal-_castGlobalProposalBySignatures`.
@@ -201,9 +189,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     GlobalProposal.GlobalProposalDetail calldata globalProposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external {
-    _castGlobalProposalBySignatures({ globalProposal: globalProposal, supports_: supports_, signatures: signatures });
-  }
+  ) external { }
 
   /**
    * COMMON METHODS
@@ -224,27 +210,6 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
       proposal: globalProposal.intoProposalDetail(_resolveTargets({ targetOptions: globalProposal.targetOptions, strict: true })),
       caller: msg.sender
     });
-  }
-
-  /**
-   * @dev Deletes the expired proposal by its chainId and nonce, without creating a new proposal.
-   *
-   * Requirements:
-   * - The proposal is already created.
-   *
-   */
-  function deleteExpired(uint256 _chainId, uint256 _round) external {
-    ProposalVote storage _vote = vote[_chainId][_round];
-    if (_vote.hash == 0) revert ErrQueryForEmptyVote();
-
-    _tryDeleteExpiredVotingRound(_vote);
-  }
-
-  /**
-   * @dev Returns the expiry duration for a new proposal.
-   */
-  function getProposalExpiryDuration() external view returns (uint256) {
-    return _proposalExpiryDuration;
   }
 
   /**

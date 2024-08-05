@@ -58,9 +58,7 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     thresholds[3] = new uint256[](1);
     thresholds[3][0] = 42 * 10 ** 8;
 
-    GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
-    targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
-    IMainchainGatewayV3 gateway = IMainchainGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
+    IMainchainGatewayV3 gateway = IMainchainGatewayV3(0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08);
 
     gateway.mapTokensAndThresholds({ _mainchainTokens: mainchainTokens, _roninTokens: roninTokens, _standards: standards, _thresholds: thresholds });
     _registerCallbacks(callbacks);
