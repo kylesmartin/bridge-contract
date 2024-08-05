@@ -292,7 +292,7 @@ contract RoninGatewayV3 is
     }
 
     _mapTokens(roninTokens_, mainchainTokens_, chainIds_, standards_);
-    _setMinimumThresholds(roninTokens_, minimumThresholds_);
+    _setMinimumThresholds(mainchainTokens_, minimumThresholds_);
   }
 
   /**
