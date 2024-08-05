@@ -374,8 +374,11 @@ contract RoninGatewayV3 is
   function _unmapTokensAndMinWithdrawals(address[] calldata roninTokens_, uint256[] calldata chainIds_) internal {
     uint length = roninTokens_.length;
     for (uint i; i < length; ++i) {
-      delete _mainchainToken[roninTokens_[i]][chainIds_[i]];
-      delete minimumThreshold[roninTokens_[i]];
+      MappedToken storage $_iToken = _mainchainToken[roninTokens_[i]][chainIds_[i]];
+
+      delete minimumThreshold[$_iToken.tokenAddr];
+      delete $_iToken.erc;
+      delete $_iToken.tokenAddr;
     }
 
     emit TokenUnmapped(roninTokens_, chainIds_);
