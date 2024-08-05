@@ -30,6 +30,8 @@ interface IRoninGatewayV3 is MappedTokenConsumer {
   event WithdrawalSignaturesRequested(bytes32 receiptHash, Transfer.Receipt);
   /// @dev Emitted when the tokens are mapped
   event TokenMapped(address[] roninTokens, address[] mainchainTokens, uint256[] chainIds, TokenStandard[] standards);
+  /// @dev Emitted when the tokens are unmapped
+  event TokenUnmapped(address[] roninTokens, uint256[] chainIds);
   /// @dev Emitted when the threshold is updated
   event TrustedThresholdUpdated(
     uint256 indexed nonce, uint256 indexed numerator, uint256 indexed denominator, uint256 previousNumerator, uint256 previousDenominator
@@ -139,6 +141,22 @@ interface IRoninGatewayV3 is MappedTokenConsumer {
     uint256[] calldata chainIds,
     TokenStandard[] calldata _standards
   ) external;
+
+  /**
+   * @dev Maps Ronin tokens to mainchain networks with minimum withdrawal thresholds.
+   */
+  function mapTokensWithMinThresholds(
+    address[] calldata roninTokens_,
+    address[] calldata mainchainTokens_,
+    uint256[] calldata chainIds_,
+    TokenStandard[] calldata standards_,
+    uint256[] calldata minimumThresholds_
+  ) external;
+
+  /**
+   * @dev Unmaps Ronin tokens and clears the minimum withdrawal thresholds.
+   */
+  function unmapTokens(address[] calldata roninTokens_, uint256[] calldata chainIds_) external;
 
   /**
    * @dev Returns whether the deposit is casted by the voter.
