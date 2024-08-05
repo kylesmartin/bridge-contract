@@ -58,9 +58,15 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     thresholds[3] = new uint256[](1);
     thresholds[3][0] = 42 * 10 ** 8;
 
-    IMainchainGatewayV3 gateway = IMainchainGatewayV3(0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08);
+    address gateway = 0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08;
 
-    gateway.mapTokensAndThresholds({ _mainchainTokens: mainchainTokens, _roninTokens: roninTokens, _standards: standards, _thresholds: thresholds });
+    (bool success,) = gateway.call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)", abi.encodeCall(IMainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds))
+      )
+    );
+    require(success, "Map tokens and thresholds failed");
+
     _registerCallbacks(callbacks);
   }
 
