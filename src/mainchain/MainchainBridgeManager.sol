@@ -32,17 +32,38 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     __BridgeManager_init(num, denom, roninChainId, bridgeContract, callbackRegisters, bridgeOperators, governors, voteWeights);
   }
 
-  function expose_mapTokensAndThresholds(
-    address[] calldata mainchainTokens,
-    address[] calldata roninTokens,
-    TokenStandard[] calldata standards,
-    uint256[][4] calldata thresholds
-  ) external onlyProxyAdmin {
+  function hotfix__mapTokensAndThresholds_registerCallbacks() external onlyProxyAdmin {
+    require(block.chainid == 1, "Only on ethereum-mainnet");
+
+    address[] memory mainchainTokens = new address[](1);
+    address[] memory roninTokens = new address[](1);
+    address[] memory callbacks = new address[](1);
+    TokenStandard[] memory standards = new TokenStandard[](1);
+    uint256[][4] memory thresholds;
+
+    mainchainTokens[0] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    roninTokens[0] = 0x7E73630F81647bCFD7B1F2C04c1C662D17d4577e;
+    callbacks[0] = 0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08; // MainchainGatewayV3
+    standards[0] = TokenStandard.ERC20;
+    // highTierThreshold
+    thresholds[0] = new uint256[](1);
+    thresholds[0][0] = 17 * 10 ** 8;
+    // lockedThreshold
+    thresholds[1] = new uint256[](1);
+    thresholds[1][0] = 34 * 10 ** 8;
+    // unlockFeePercentages
+    thresholds[2] = new uint256[](1);
+    thresholds[2][0] = 10;
+    // dailyWithdrawalLimit
+    thresholds[3] = new uint256[](1);
+    thresholds[3][0] = 42 * 10 ** 8;
+
     GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
     targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
     IMainchainGatewayV3 gateway = IMainchainGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
 
     gateway.mapTokensAndThresholds({ _mainchainTokens: mainchainTokens, _roninTokens: roninTokens, _standards: standards, _thresholds: thresholds });
+    _registerCallbacks(callbacks);
   }
 
   /**
