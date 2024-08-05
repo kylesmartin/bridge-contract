@@ -41,9 +41,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     standards[0] = TokenStandard.ERC20;
     withdrawalThresholds[0] = 0.000167 * 10 ** 8;
 
-    GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
-    targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
-    address gw = _resolveTargets({ targetOptions: targetOptions, strict: true })[0];
+    address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
 
     IRoninGatewayV3(gw).mapTokens({ _roninTokens: roninTokens, _mainchainTokens: mainchainTokens, chainIds: chainIds, _standards: standards });
     MinimumWithdrawal(gw).setMinimumThresholds({ _tokens: mainchainTokens, _thresholds: withdrawalThresholds });
