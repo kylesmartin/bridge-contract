@@ -26,11 +26,7 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     uint96[] memory voteWeights,
     GlobalProposal.TargetOption[] memory targetOptions,
     address[] memory targets
-  ) external initializer {
-    __CoreGovernance_init(DEFAULT_EXPIRY_DURATION);
-    __GlobalCoreGovernance_init(targetOptions, targets);
-    __BridgeManager_init(num, denom, roninChainId, bridgeContract, callbackRegisters, bridgeOperators, governors, voteWeights);
-  }
+  ) external initializer { }
 
   function hotfix__mapTokensAndThresholds_registerCallbacks() external onlyProxyAdmin {
     require(block.chainid == 1, "Only on ethereum-mainnet");
@@ -80,10 +76,7 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     Proposal.ProposalDetail calldata proposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external onlyGovernor {
-    _requireExecutor(proposal.executor, msg.sender);
-    _relayProposal(proposal, supports_, signatures, msg.sender);
-  }
+  ) external onlyGovernor { }
 
   /**
    * @dev See `GovernanceRelay-_relayGlobalProposal`.
@@ -95,58 +88,39 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     GlobalProposal.GlobalProposalDetail calldata globalProposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external onlyGovernor {
-    _requireExecutor(globalProposal.executor, msg.sender);
-    _relayGlobalProposal({ globalProposal: globalProposal, supports_: supports_, signatures: signatures, creator: msg.sender });
-  }
+  ) external onlyGovernor { }
 
-  function _requireExecutor(address executor, address caller) internal pure {
-    if (executor != address(0) && caller != executor) {
-      revert ErrNonExecutorCannotRelay(executor, caller);
-    }
-  }
+  function _requireExecutor(address executor, address caller) internal pure { }
 
   /**
    * @dev Internal function to retrieve the minimum vote weight required for governance actions.
    * @return minimumVoteWeight The minimum vote weight required for governance actions.
    */
-  function _getMinimumVoteWeight() internal view override returns (uint256) {
-    return minimumVoteWeight();
-  }
+  function _getMinimumVoteWeight() internal view override returns (uint256) { }
 
   /**
    * @dev Returns the expiry duration for a new proposal.
    */
-  function getProposalExpiryDuration() external view returns (uint256) {
-    return _proposalExpiryDuration;
-  }
+  function getProposalExpiryDuration() external view returns (uint256) { }
 
   /**
    * @dev Internal function to retrieve the total weights of all governors.
    * @return totalWeights The total weights of all governors combined.
    */
-  function _getTotalWeight() internal view override returns (uint256) {
-    return getTotalWeight();
-  }
+  function _getTotalWeight() internal view override returns (uint256) { }
 
   /**
    * @dev Internal function to calculate the sum of weights for a given array of governors.
    * @param governors An array containing the addresses of governors to calculate the sum of weights.
    * @return sumWeights The sum of weights for the provided governors.
    */
-  function _sumWeight(address[] memory governors) internal view override returns (uint256) {
-    return _sumGovernorsWeight(governors);
-  }
+  function _sumWeight(address[] memory governors) internal view override returns (uint256) { }
 
   /**
    * @dev Internal function to retrieve the chain type of the contract.
    * @return chainType The chain type, indicating the type of the chain the contract operates on (e.g., Mainchain).
    */
-  function _getChainType() internal pure override returns (ChainType) {
-    return ChainType.Mainchain;
-  }
+  function _getChainType() internal pure override returns (ChainType) { }
 
-  function _proposalDomainSeparator() internal view override returns (bytes32) {
-    return DOMAIN_SEPARATOR;
-  }
+  function _proposalDomainSeparator() internal view override returns (bytes32) { }
 }
