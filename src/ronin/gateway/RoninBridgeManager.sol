@@ -43,9 +43,15 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
 
     address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
 
-    IRoninGatewayV3(gw).mapTokens({ _roninTokens: roninTokens, _mainchainTokens: mainchainTokens, chainIds: chainIds, _standards: standards });
-    MinimumWithdrawal(gw).setMinimumThresholds({ _tokens: mainchainTokens, _thresholds: withdrawalThresholds });
-
+    (bool success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)))
+    );
+    require(success, "Map tokens failed");
+    (success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokens, withdrawalThresholds)))
+    );
+    require(success, "Set minimum withdrawal failed");
+    
     _registerCallbacks(callbacks);
   }
 
