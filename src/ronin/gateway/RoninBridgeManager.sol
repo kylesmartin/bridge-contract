@@ -15,6 +15,7 @@ import {
   GlobalGovernanceProposal
 } from "../../extensions/sequential-governance/governance-proposal/GlobalGovernanceProposal.sol";
 import { IRoninGatewayV3 } from "../../interfaces/IRoninGatewayV3.sol";
+import { MinimumWithdrawal } from "../../extensions/MinimumWithdrawal.sol";
 import { TokenStandard } from "../../libraries/LibTokenInfo.sol";
 import { VoteStatusConsumer } from "../../interfaces/consumers/VoteStatusConsumer.sol";
 import "../../utils/CommonErrors.sol";
@@ -23,16 +24,19 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
   using Proposal for Proposal.ProposalDetail;
   using GlobalProposal for GlobalProposal.GlobalProposalDetail;
 
-  function expose_mapToken(
+  function expose_mapTokenAndSetMinimumThresholds(
     address[] calldata mainchainTokens,
     address[] calldata roninTokens,
     uint256[] calldata chainIds,
-    TokenStandard[] calldata standards
+    TokenStandard[] calldata standards,
+    uint256[] calldata withdrawalThresholds
   ) external onlyProxyAdmin {
     GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
     targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
-    IRoninGatewayV3 gateway = IRoninGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
-    gateway.mapTokens({ _roninTokens: roninTokens, _mainchainTokens: mainchainTokens, chainIds: chainIds, _standards: standards });
+    address gw = _resolveTargets({ targetOptions: targetOptions, strict: true })[0];
+    
+    IRoninGatewayV3(gw).mapTokens({ _roninTokens: roninTokens, _mainchainTokens: mainchainTokens, chainIds: chainIds, _standards: standards });
+    MinimumWithdrawal(gw).setMinimumThresholds({ _tokens: mainchainTokens, _thresholds: withdrawalThresholds });
   }
 
   /**

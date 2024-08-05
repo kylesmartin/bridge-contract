@@ -41,6 +41,7 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
     targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
     IMainchainGatewayV3 gateway = IMainchainGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
+
     gateway.mapTokensAndThresholds({ _mainchainTokens: mainchainTokens, _roninTokens: roninTokens, _standards: standards, _thresholds: thresholds });
   }
 
