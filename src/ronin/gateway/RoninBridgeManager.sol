@@ -14,12 +14,26 @@ import {
   GlobalCoreGovernance,
   GlobalGovernanceProposal
 } from "../../extensions/sequential-governance/governance-proposal/GlobalGovernanceProposal.sol";
+import { IRoninGatewayV3 } from "../../interfaces/IRoninGatewayV3.sol";
+import { TokenStandard } from "../../libraries/LibTokenInfo.sol";
 import { VoteStatusConsumer } from "../../interfaces/consumers/VoteStatusConsumer.sol";
 import "../../utils/CommonErrors.sol";
 
 contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernanceProposal {
   using Proposal for Proposal.ProposalDetail;
   using GlobalProposal for GlobalProposal.GlobalProposalDetail;
+
+  function expose_mapToken(
+    address[] calldata mainchainTokens,
+    address[] calldata roninTokens,
+    uint256[] calldata chainIds,
+    TokenStandard[] calldata standards
+  ) external onlyProxyAdmin {
+    GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
+    targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
+    IRoninGatewayV3 gateway = IRoninGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
+    gateway.mapTokens({ _roninTokens: roninTokens, _mainchainTokens: mainchainTokens, chainIds: chainIds, _standards: standards });
+  }
 
   /**
    * CURRENT NETWORK

@@ -5,6 +5,8 @@ import { CoreGovernance } from "../extensions/sequential-governance/CoreGovernan
 import { GlobalCoreGovernance, GlobalGovernanceRelay } from "../extensions/sequential-governance/governance-relay/GlobalGovernanceRelay.sol";
 import { GovernanceRelay } from "../extensions/sequential-governance/governance-relay/GovernanceRelay.sol";
 import { ContractType, BridgeManager } from "../extensions/bridge-operator-governance/BridgeManager.sol";
+import { IMainchainGatewayV3 } from "../interfaces/IMainchainGatewayV3.sol";
+import { TokenStandard } from "../libraries/LibTokenInfo.sol";
 import { Ballot } from "../libraries/Ballot.sol";
 import { Proposal } from "../libraries/Proposal.sol";
 import { GlobalProposal } from "../libraries/GlobalProposal.sol";
@@ -28,6 +30,18 @@ contract MainchainBridgeManager is BridgeManager, GovernanceRelay, GlobalGoverna
     __CoreGovernance_init(DEFAULT_EXPIRY_DURATION);
     __GlobalCoreGovernance_init(targetOptions, targets);
     __BridgeManager_init(num, denom, roninChainId, bridgeContract, callbackRegisters, bridgeOperators, governors, voteWeights);
+  }
+
+  function expose_mapTokensAndThresholds(
+    address[] calldata mainchainTokens,
+    address[] calldata roninTokens,
+    TokenStandard[] calldata standards,
+    uint256[][4] calldata thresholds
+  ) external onlyProxyAdmin {
+    GlobalProposal.TargetOption[] memory targetOptions = new GlobalProposal.TargetOption[](1);
+    targetOptions[0] = GlobalProposal.TargetOption.GatewayContract;
+    IMainchainGatewayV3 gateway = IMainchainGatewayV3(_resolveTargets({ targetOptions: targetOptions, strict: true })[0]);
+    gateway.mapTokensAndThresholds({ _mainchainTokens: mainchainTokens, _roninTokens: roninTokens, _standards: standards, _thresholds: thresholds });
   }
 
   /**
