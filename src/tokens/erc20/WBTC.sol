@@ -18,6 +18,13 @@ contract WBTC is ERC20PresetMinterPauser {
     _revokeRole(PAUSER_ROLE, _msgSender());
   }
 
+  /**
+   * @inheritdoc ERC20
+   */
+  function decimals() public view virtual override returns (uint8) {
+    return 8;
+  }
+
   function _beforeTokenTransfer(address from, address to, uint256 amount) internal override(ERC20PresetMinterPauser) {
     if (to == address(0)) {
       if (_msgSender() != GATEWAY_ADDRESS) {
