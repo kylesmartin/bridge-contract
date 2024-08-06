@@ -27,19 +27,25 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
   function hotfix__mapToken_setMinimumThresholds_registerCallbacks() external onlyProxyAdmin {
     require(block.chainid == 2020, "Only on ronin-mainnet");
 
-    address[] memory roninTokens = new address[](1);
-    address[] memory mainchainTokens = new address[](1);
-    uint256[] memory chainIds = new uint256[](1);
+    address[] memory roninTokens = new address[](2);
+    address[] memory mainchainTokens = new address[](2);
+    uint256[] memory chainIds = new uint256[](2);
+    TokenStandard[] memory standards = new TokenStandard[](2);
+    uint256[] memory withdrawalThresholds = new uint256[](2);
+
     address[] memory callbacks = new address[](1);
-    TokenStandard[] memory standards = new TokenStandard[](1);
-    uint256[] memory withdrawalThresholds = new uint256[](1);
 
     roninTokens[0] = 0x7E73630F81647bCFD7B1F2C04c1C662D17d4577e;
     mainchainTokens[0] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     chainIds[0] = 1;
-    callbacks[0] = 0x273cdA3AFE17eB7BcB028b058382A9010ae82B24; // Bridge Slash contract
     standards[0] = TokenStandard.ERC20;
     withdrawalThresholds[0] = 0.000167 * 10 ** 8;
+
+    roninTokens[1] = 0xC13948b5325c11279F5B6cBA67957581d374E0F0;
+    mainchainTokens[1] = address(0);
+    chainIds[1] = 1;
+    standards[1] = TokenStandard(0);
+    withdrawalThresholds[1] = 0;
 
     address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
 
@@ -51,7 +57,8 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
       abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokens, withdrawalThresholds)))
     );
     require(success, "Set minimum withdrawal failed");
-    
+
+    callbacks[0] = 0x273cdA3AFE17eB7BcB028b058382A9010ae82B24; // Bridge Slash contract
     _registerCallbacks(callbacks);
   }
 

@@ -8,6 +8,8 @@ import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { cheatBroadcast } from "@fdk/utils/Helpers.sol";
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
+import "@ronin/contracts/utils/CommonErrors.sol";
 
 contract Migration__20240805_HotFix_RoninBridgeManager is Migration {
   using LibProxy for *;
@@ -43,5 +45,13 @@ contract Migration__20240805_HotFix_RoninBridgeManager is Migration {
     );
 
     cheatBroadcast(proxyAdmin, roninBM, 0, abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (prevImpl)));
+
+    address finalizedWBTC = 0x7E73630F81647bCFD7B1F2C04c1C662D17d4577e;
+    address mappedWBTC = IRoninGatewayV3(roninGW).getMainchainToken(finalizedWBTC, 1).tokenAddr;
+    assertTrue(mappedWBTC == 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+
+    address deprecatedWBTC = 0xC13948b5325c11279F5B6cBA67957581d374E0F0;
+    vm.expectRevert(abi.encodeWithSelector(ErrUnsupportedToken.selector));
+    mappedWBTC = IRoninGatewayV3(roninGW).getMainchainToken(deprecatedWBTC, 1).tokenAddr;
   }
 }
