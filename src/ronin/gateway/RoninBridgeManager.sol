@@ -24,16 +24,28 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
   using Proposal for Proposal.ProposalDetail;
   using GlobalProposal for GlobalProposal.GlobalProposalDetail;
 
-  function hotfix__mapToken_setMinimumThresholds_registerCallbacks() external onlyProxyAdmin {
+  function hotfix__mapToken_setMinimumThresholds_registerCallbacks(address newGwImpl) external onlyProxyAdmin {
     require(block.chainid == 2020, "Only on ronin-mainnet");
 
-    address[] memory roninTokens = new address[](2);
-    address[] memory mainchainTokens = new address[](2);
-    uint256[] memory chainIds = new uint256[](2);
-    TokenStandard[] memory standards = new TokenStandard[](2);
-    uint256[] memory withdrawalThresholds = new uint256[](2);
+    address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
 
-    address[] memory callbacks = new address[](1);
+    (bool success,) = gw.call(abi.encodeWithSignature("upgradeTo(address)", newGwImpl));
+    require(success, "C0");
+
+    address[] memory unmapRoninTokens = new address[](1);
+    uint256[] memory unmapChainIds = new uint256[](1);
+    unmapRoninTokens[0] = 0xC13948b5325c11279F5B6cBA67957581d374E0F0;
+    unmapChainIds[0] = 1;
+    (success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.unmapTokens, (unmapRoninTokens, unmapChainIds)))
+    );
+    require(success, "C3");
+
+    address[] memory roninTokens = new address[](1);
+    address[] memory mainchainTokens = new address[](1);
+    uint256[] memory chainIds = new uint256[](1);
+    TokenStandard[] memory standards = new TokenStandard[](1);
+    uint256[] memory withdrawalThresholds = new uint256[](1);
 
     roninTokens[0] = 0x7E73630F81647bCFD7B1F2C04c1C662D17d4577e;
     mainchainTokens[0] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
@@ -41,23 +53,17 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     standards[0] = TokenStandard.ERC20;
     withdrawalThresholds[0] = 0.000167 * 10 ** 8;
 
-    roninTokens[1] = 0xC13948b5325c11279F5B6cBA67957581d374E0F0;
-    mainchainTokens[1] = address(0);
-    chainIds[1] = 1;
-    standards[1] = TokenStandard(0);
-    withdrawalThresholds[1] = 0;
-
-    address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
-
-    (bool success,) = gw.call(
+    (success,) = gw.call(
       abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)))
     );
-    require(success, "Map tokens failed");
+    require(success, "C1");
+
     (success,) = gw.call(
       abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokens, withdrawalThresholds)))
     );
-    require(success, "Set minimum withdrawal failed");
+    require(success, "C2");
 
+    address[] memory callbacks = new address[](1);
     callbacks[0] = 0x273cdA3AFE17eB7BcB028b058382A9010ae82B24; // Bridge Slash contract
     _registerCallbacks(callbacks);
   }
