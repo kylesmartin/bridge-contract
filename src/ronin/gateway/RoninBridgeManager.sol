@@ -211,19 +211,12 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
   /**
    * @dev See {CoreGovernance-_executeWithCaller}.
    */
-  function execute(Proposal.ProposalDetail calldata proposal) external {
-    _executeWithCaller(proposal, msg.sender);
-  }
+  function execute(Proposal.ProposalDetail calldata proposal) external { }
 
   /**
    * @dev See {GlobalCoreGovernance-_executeWithCaller}.
    */
-  function executeGlobal(GlobalProposal.GlobalProposalDetail calldata globalProposal) external {
-    _executeWithCaller({
-      proposal: globalProposal.intoProposalDetail(_resolveTargets({ targetOptions: globalProposal.targetOptions, strict: true })),
-      caller: msg.sender
-    });
-  }
+  function executeGlobal(GlobalProposal.GlobalProposalDetail calldata globalProposal) external { }
 
   /**
    * @dev Internal function to get the chain type of the contract.
