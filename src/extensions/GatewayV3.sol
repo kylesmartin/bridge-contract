@@ -6,6 +6,11 @@ import "../interfaces/IQuorum.sol";
 import "./collections/HasProxyAdmin.sol";
 
 abstract contract GatewayV3 is HasProxyAdmin, Pausable, IQuorum {
+  /**
+   * @dev Error indicating that `_minimumVoteWeight` is returning 0.
+   */
+  error ErrNullMinVoteWeightProvided(bytes4 msgSig);
+
   uint256 internal _num;
   uint256 internal _denom;
 
@@ -78,11 +83,14 @@ abstract contract GatewayV3 is HasProxyAdmin, Pausable, IQuorum {
    *
    */
   function _setThreshold(uint256 num, uint256 denom) internal virtual {
-    if (num > denom) revert ErrInvalidThreshold(msg.sig);
+    if (num > denom || denom == 0 || num == 0) revert ErrInvalidThreshold(msg.sig);
+
     uint256 prevNum = _num;
     uint256 prevDenom = _denom;
+
     _num = num;
     _denom = denom;
+
     unchecked {
       emit ThresholdUpdated(nonce++, num, denom, prevNum, prevDenom);
     }
@@ -91,8 +99,9 @@ abstract contract GatewayV3 is HasProxyAdmin, Pausable, IQuorum {
   /**
    * @dev Returns minimum vote weight.
    */
-  function _minimumVoteWeight(uint256 _totalWeight) internal view virtual returns (uint256) {
-    return (_num * _totalWeight + _denom - 1) / _denom;
+  function _minimumVoteWeight(uint256 _totalWeight) internal view virtual returns (uint256 minVoteWeight) {
+    minVoteWeight = (_num * _totalWeight + _denom - 1) / _denom;
+    if (minVoteWeight == 0) revert ErrNullMinVoteWeightProvided(msg.sig);
   }
 
   /**
