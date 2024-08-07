@@ -319,7 +319,7 @@ contract MainchainGatewayV3 is
         lastSigner = signer;
 
         uint256 w = _getWeight(signer);
-        if (w == 0) revert ErrInvalidSignature(signer, w, sig);
+        if (w == 0) revert ErrInvalidSigner(signer, w, sig);
 
         accumWeight += w;
         if (accumWeight >= minimumWeight) {

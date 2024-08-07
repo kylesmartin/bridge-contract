@@ -30,7 +30,7 @@ interface IMainchainGatewayV3 is SignatureConsumer, MappedTokenConsumer {
   /**
    * @dev Error indicating that the recovered signer from the signature has invalid vote weight.
    */
-  error ErrInvalidSignature(address signer, uint256 weight, Signature sig);
+  error ErrInvalidSigner(address signer, uint256 weight, Signature sig);
 
   /**
    * @dev Error indicating that the total weight provided is null.
