@@ -310,7 +310,7 @@ contract MainchainGatewayV3 is
       address signer;
       address lastSigner;
       Signature memory sig;
-      uint256 accWeight;
+      uint256 accumWeight;
       for (uint256 i; i < signatures.length; i++) {
         sig = signatures[i];
         signer = ECDSA.recover({ hash: receiptDigest, v: sig.v, r: sig.r, s: sig.s });
@@ -321,8 +321,8 @@ contract MainchainGatewayV3 is
         uint256 w = _getWeight(signer);
         if (w == 0) revert ErrInvalidSignature(signer, w, sig);
 
-        accWeight += w;
-        if (accWeight >= minimumWeight) {
+        accumWeight += w;
+        if (accumWeight >= minimumWeight) {
           passed = true;
           break;
         }
