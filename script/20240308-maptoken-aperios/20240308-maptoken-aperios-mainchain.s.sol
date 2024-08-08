@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../factories/factory-maptoken-mainchain.s.sol";
+import "../factories/mainchain/factory-maptoken-mainchain-ethereum.s.sol";
 import "./base-maptoken.s.sol";
 
-contract Migration__20240308_MapTokenAperiosMainchain is Base__MapToken, Factory__MapTokensMainchain {
+contract Migration__20240308_MapTokenAperiosMainchain is Base__MapToken, Factory__MapTokensMainchain_Ethereum {
   function _initCaller() internal override(Base__MapToken, Factory__MapTokensMainchain) returns (address) {
     return Base__MapToken._initCaller();
   }
