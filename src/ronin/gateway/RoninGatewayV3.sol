@@ -280,6 +280,34 @@ contract RoninGatewayV3 is
   /**
    * @inheritdoc IRoninGatewayV3
    */
+  function mapTokensWithMinThresholds(
+    address[] calldata roninTokens_,
+    address[] calldata mainchainTokens_,
+    uint256[] calldata chainIds_,
+    TokenStandard[] calldata standards_,
+    uint256[] calldata minimumThresholds_
+  ) external onlyProxyAdmin {
+    if (roninTokens_.length == 0) {
+      revert ErrLengthMismatch(msg.sig);
+    }
+
+    _mapTokens(roninTokens_, mainchainTokens_, chainIds_, standards_);
+    _setMinimumThresholds(mainchainTokens_, minimumThresholds_);
+  }
+
+  /**
+   * @inheritdoc IRoninGatewayV3
+   */
+  function unmapTokens(address[] calldata roninTokens_, uint256[] calldata chainIds_) external onlyProxyAdmin {
+    uint length = roninTokens_.length;
+    if (length == 0 || length != chainIds_.length) revert ErrLengthMismatch(msg.sig);
+
+    _unmapTokensAndMinWithdrawals(roninTokens_, chainIds_);
+  }
+
+  /**
+   * @inheritdoc IRoninGatewayV3
+   */
   function depositVoted(uint256 _chainId, uint256 _depositId, address _voter) external view returns (bool) {
     return depositVote[_chainId][_depositId].voted(_voter);
   }
@@ -321,7 +349,8 @@ contract RoninGatewayV3 is
     uint256[] calldata _chainIds,
     TokenStandard[] calldata _standards
   ) internal {
-    if (!(_roninTokens.length == _mainchainTokens.length && _roninTokens.length == _chainIds.length)) {
+    uint length = _roninTokens.length;
+    if (!(length == _mainchainTokens.length && length == _chainIds.length && length == _standards.length)) {
       revert ErrLengthMismatch(msg.sig);
     }
 
@@ -335,6 +364,24 @@ contract RoninGatewayV3 is
     }
 
     emit TokenMapped(_roninTokens, _mainchainTokens, _chainIds, _standards);
+  }
+
+  /**
+   * @dev Unmaps tokens and minimum withdrawals by removing mapping (roninToken => chainId => mainchainToken) and minimumThreshold.
+   *
+   * Emits the `TokenUnmapped` event.
+   */
+  function _unmapTokensAndMinWithdrawals(address[] calldata roninTokens_, uint256[] calldata chainIds_) internal {
+    uint length = roninTokens_.length;
+    for (uint i; i < length; ++i) {
+      MappedToken storage $_iToken = _mainchainToken[roninTokens_[i]][chainIds_[i]];
+
+      delete minimumThreshold[$_iToken.tokenAddr];
+      delete $_iToken.erc;
+      delete $_iToken.tokenAddr;
+    }
+
+    emit TokenUnmapped(roninTokens_, chainIds_);
   }
 
   /**

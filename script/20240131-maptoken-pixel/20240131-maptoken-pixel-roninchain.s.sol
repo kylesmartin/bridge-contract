@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
 import { LibTokenInfo, TokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -17,7 +17,7 @@ import { Migration } from "../Migration.s.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
-import "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 
 import "./maptoken-pixel-configs.s.sol";
 import "./update-axiechat-config.s.sol";
@@ -25,12 +25,12 @@ import "./update-axiechat-config.s.sol";
 contract Migration__20240131_MapTokenPixelRoninchain is Migration, Migration__MapToken_Pixel_Config, Migration__Update_AxieChat_Config {
   using LibProposal for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _roninGatewayV3;
 
   function setUp() public override {
     super.setUp();
-    _roninBridgeManager = RoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = loadContract(Contract.RoninGatewayV3.key());
 
     _cheatWeightOperator(_governor);

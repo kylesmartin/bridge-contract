@@ -100,7 +100,7 @@ contract ProposalWithExecutor_GlobalProposal_MainchainBridgeManager_Test is Base
   function test_relayGlobal_autoProposal_revertWhen_proposalIsAlreadyExecuted() external {
     test_relayGlobal_autoProposal_strictProposal_WhenAllInternalCallsPass();
 
-    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, MainchainBridgeManager.relayGlobalProposal.selector));
+    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, IMainchainBridgeManager.relayGlobalProposal.selector));
 
     vm.prank(_param.roninBridgeManager.governors[0]);
     _mainchainBridgeManager.relayGlobalProposal(_globalProposal, _supports, _signatures);
@@ -131,7 +131,7 @@ contract ProposalWithExecutor_GlobalProposal_MainchainBridgeManager_Test is Base
   function test_relayGlobal_executorProposal_revertWhen_proposalIsAlreadyExecuted() external {
     test_relayGlobal_executorProposal_strictProposal_WhenAllInternalCallsPass();
 
-    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, MainchainBridgeManager.relayGlobalProposal.selector));
+    vm.expectRevert(abi.encodeWithSelector(ErrInvalidProposalNonce.selector, IMainchainBridgeManager.relayGlobalProposal.selector));
 
     vm.prank(_param.roninBridgeManager.governors[0]);
     _mainchainBridgeManager.relayGlobalProposal(_globalProposal, _supports, _signatures);

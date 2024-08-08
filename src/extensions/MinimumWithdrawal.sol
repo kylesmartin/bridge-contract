@@ -30,9 +30,9 @@ abstract contract MinimumWithdrawal is HasProxyAdmin {
    * Emits the `MinimumThresholdsUpdated` event.
    *
    */
-  function setMinimumThresholds(address[] calldata _tokens, uint256[] calldata _thresholds) external virtual onlyProxyAdmin {
-    if (_tokens.length == 0) revert ErrEmptyArray();
-    _setMinimumThresholds(_tokens, _thresholds);
+  function setMinimumThresholds(address[] calldata mainchainTokens_, uint256[] calldata thresholds_) external virtual onlyProxyAdmin {
+    if (mainchainTokens_.length == 0) revert ErrEmptyArray();
+    _setMinimumThresholds(mainchainTokens_, thresholds_);
   }
 
   /**
@@ -44,17 +44,13 @@ abstract contract MinimumWithdrawal is HasProxyAdmin {
    * Emits the `MinimumThresholdsUpdated` event.
    *
    */
-  function _setMinimumThresholds(address[] calldata _tokens, uint256[] calldata _thresholds) internal virtual {
-    if (_tokens.length != _thresholds.length) revert ErrLengthMismatch(msg.sig);
+  function _setMinimumThresholds(address[] calldata mainchainTokens_, uint256[] calldata thresholds_) internal virtual {
+    if (mainchainTokens_.length != thresholds_.length) revert ErrLengthMismatch(msg.sig);
 
-    for (uint256 _i; _i < _tokens.length;) {
-      minimumThreshold[_tokens[_i]] = _thresholds[_i];
-
-      unchecked {
-        ++_i;
-      }
+    for (uint256 i; i < mainchainTokens_.length; ++i) {
+      minimumThreshold[mainchainTokens_[i]] = thresholds_[i];
     }
-    emit MinimumThresholdsUpdated(_tokens, _thresholds);
+    emit MinimumThresholdsUpdated(mainchainTokens_, thresholds_);
   }
 
   /**

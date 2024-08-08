@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import { Vm } from "forge-std/Vm.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
@@ -43,7 +43,7 @@ abstract contract BasePostCheck is BaseMigration {
   modifier onlyOnRoninNetworkOrLocal() {
     require(
       block.chainid == DefaultNetwork.RoninMainnet.chainId() || block.chainid == DefaultNetwork.RoninTestnet.chainId()
-        || block.chainid == Network.RoninDevnet.chainId() || block.chainid == DefaultNetwork.Local.chainId(),
+        || block.chainid == Network.RoninDevnet.chainId() || block.chainid == DefaultNetwork.LocalHost.chainId(),
       "chainid != RoninMainnet or RoninTestnet"
     );
     _;

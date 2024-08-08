@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -13,7 +12,7 @@ import { Contract } from "../utils/Contract.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { IGeneralConfigExtended } from "../interfaces/IGeneralConfigExtended.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -23,15 +22,15 @@ import { SLPDeploy } from "@ronin/script/contracts/token/SLPDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
 import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
 
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
 
 contract Migration__2024041_DeployRoninBridgeManagerHelper is Migration {
   using LibProxy for *;
 
-  RoninBridgeManager _newRoninBridgeManager;
+  IRoninBridgeManager _newRoninBridgeManager;
 
-  function _deployRoninBridgeManager() internal returns (RoninBridgeManager) {
-    address currRoninBridgeManager = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
+  function _deployRoninBridgeManager() internal returns (IRoninBridgeManager) {
+    address currRoninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
 
     ISharedArgument.SharedParameter memory param;
 
@@ -39,7 +38,7 @@ contract Migration__2024041_DeployRoninBridgeManagerHelper is Migration {
     param.roninBridgeManager.denom = 10;
     param.roninBridgeManager.roninChainId = block.chainid;
     param.roninBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
-    param.roninBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    param.roninBridgeManager.bridgeContract = loadContract(Contract.RoninGatewayV3.key());
     param.roninBridgeManager.bridgeOperators = new address[](4);
     param.roninBridgeManager.bridgeOperators[0] = 0x2e82D2b56f858f79DeeF11B160bFC4631873da2B;
     param.roninBridgeManager.bridgeOperators[1] = 0xBcb61783dd2403FE8cC9B89B27B1A9Bb03d040Cb;
@@ -66,13 +65,13 @@ contract Migration__2024041_DeployRoninBridgeManagerHelper is Migration {
     param.roninBridgeManager.targetOptions[4] = GlobalProposal.TargetOption.PauseEnforcer;
 
     param.roninBridgeManager.targets = new address[](5);
-    param.roninBridgeManager.targets[0] = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
-    param.roninBridgeManager.targets[1] = config.getAddressFromCurrentNetwork(Contract.BridgeReward.key());
-    param.roninBridgeManager.targets[2] = config.getAddressFromCurrentNetwork(Contract.BridgeSlash.key());
-    param.roninBridgeManager.targets[3] = config.getAddressFromCurrentNetwork(Contract.BridgeTracking.key());
-    param.roninBridgeManager.targets[4] = config.getAddressFromCurrentNetwork(Contract.RoninPauseEnforcer.key());
+    param.roninBridgeManager.targets[0] = loadContract(Contract.RoninGatewayV3.key());
+    param.roninBridgeManager.targets[1] = loadContract(Contract.BridgeReward.key());
+    param.roninBridgeManager.targets[2] = loadContract(Contract.BridgeSlash.key());
+    param.roninBridgeManager.targets[3] = loadContract(Contract.BridgeTracking.key());
+    param.roninBridgeManager.targets[4] = loadContract(Contract.RoninPauseEnforcer.key());
 
-    _newRoninBridgeManager = RoninBridgeManager(
+    _newRoninBridgeManager = IRoninBridgeManager(
       new RoninBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           RoninBridgeManagerConstructor.initialize,

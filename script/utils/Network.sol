@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { LibString, TNetwork } from "@fdk/types/Types.sol";
+import { TNetwork } from "@fdk/types/Types.sol";
+import { LibString } from "solady/utils/LibString.sol";
+import { INetworkConfig } from "@fdk/interfaces/configs/INetworkConfig.sol";
 
 enum Network {
   Goerli,
@@ -10,7 +12,17 @@ enum Network {
   RoninDevnet
 }
 
-using { key, name, chainId, chainAlias, envLabel, deploymentDir, explorer } for Network global;
+using { key, chainId, chainAlias, explorer, data } for Network global;
+
+function data(Network network) pure returns (INetworkConfig.NetworkData memory) {
+  return INetworkConfig.NetworkData({
+    network: key(network),
+    chainAlias: chainAlias(network),
+    blockTime: blockTime(network),
+    explorer: explorer(network),
+    chainId: chainId(network)
+  });
+}
 
 function chainId(Network network) pure returns (uint256) {
   if (network == Network.Goerli) return 5;
@@ -22,7 +34,13 @@ function chainId(Network network) pure returns (uint256) {
 }
 
 function key(Network network) pure returns (TNetwork) {
-  return TNetwork.wrap(LibString.packOne(name(network)));
+  return TNetwork.wrap(LibString.packOne(chainAlias(network)));
+}
+
+function blockTime(Network network) pure returns (uint256) {
+  if (network == Network.Goerli) return 15;
+  if (network == Network.Sepolia) return 15;
+  if (network == Network.EthMainnet) return 3;
 }
 
 function explorer(Network network) pure returns (string memory link) {

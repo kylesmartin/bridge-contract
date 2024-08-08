@@ -14,12 +14,59 @@ import {
   GlobalCoreGovernance,
   GlobalGovernanceProposal
 } from "../../extensions/sequential-governance/governance-proposal/GlobalGovernanceProposal.sol";
+import { IRoninGatewayV3 } from "../../interfaces/IRoninGatewayV3.sol";
+import { MinimumWithdrawal } from "../../extensions/MinimumWithdrawal.sol";
+import { TokenStandard } from "../../libraries/LibTokenInfo.sol";
 import { VoteStatusConsumer } from "../../interfaces/consumers/VoteStatusConsumer.sol";
 import "../../utils/CommonErrors.sol";
 
 contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernanceProposal {
   using Proposal for Proposal.ProposalDetail;
   using GlobalProposal for GlobalProposal.GlobalProposalDetail;
+
+  function hotfix__mapToken_setMinimumThresholds_registerCallbacks(address newGwImpl) external onlyProxyAdmin {
+    require(block.chainid == 2020, "Only on ronin-mainnet");
+
+    address gw = 0x0CF8fF40a508bdBc39fBe1Bb679dCBa64E65C7Df;
+
+    (bool success,) = gw.call(abi.encodeWithSignature("upgradeTo(address)", newGwImpl));
+    require(success, "C0");
+
+    address[] memory unmapRoninTokens = new address[](1);
+    uint256[] memory unmapChainIds = new uint256[](1);
+    unmapRoninTokens[0] = 0xC13948b5325c11279F5B6cBA67957581d374E0F0;
+    unmapChainIds[0] = 1;
+    (success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.unmapTokens, (unmapRoninTokens, unmapChainIds)))
+    );
+    require(success, "C3");
+
+    address[] memory roninTokens = new address[](1);
+    address[] memory mainchainTokens = new address[](1);
+    uint256[] memory chainIds = new uint256[](1);
+    TokenStandard[] memory standards = new TokenStandard[](1);
+    uint256[] memory withdrawalThresholds = new uint256[](1);
+
+    roninTokens[0] = 0x7E73630F81647bCFD7B1F2C04c1C662D17d4577e;
+    mainchainTokens[0] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    chainIds[0] = 1;
+    standards[0] = TokenStandard.ERC20;
+    withdrawalThresholds[0] = 0.000167 * 10 ** 8;
+
+    (success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards)))
+    );
+    require(success, "C1");
+
+    (success,) = gw.call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeCall(MinimumWithdrawal.setMinimumThresholds, (mainchainTokens, withdrawalThresholds)))
+    );
+    require(success, "C2");
+
+    address[] memory callbacks = new address[](1);
+    callbacks[0] = 0x273cdA3AFE17eB7BcB028b058382A9010ae82B24; // Bridge Slash contract
+    _registerCallbacks(callbacks);
+  }
 
   /**
    * CURRENT NETWORK
@@ -139,17 +186,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     uint256[] calldata values,
     bytes[] calldata calldatas,
     uint256[] calldata gasAmounts
-  ) external onlyGovernor {
-    _proposeGlobal({
-      expiryTimestamp: expiryTimestamp,
-      executor: executor,
-      targetOptions: targetOptions,
-      values: values,
-      calldatas: calldatas,
-      gasAmounts: gasAmounts,
-      creator: msg.sender
-    });
-  }
+  ) external onlyGovernor { }
 
   /**
    * @dev See `GovernanceProposal-_proposeGlobalProposalStructAndCastVotes`.
@@ -162,9 +199,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     GlobalProposal.GlobalProposalDetail calldata globalProposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external onlyGovernor {
-    _proposeGlobalProposalStructAndCastVotes({ globalProposal: globalProposal, supports_: supports_, signatures: signatures, creator: msg.sender });
-  }
+  ) external onlyGovernor { }
 
   /**
    * @dev See `GovernanceProposal-_castGlobalProposalBySignatures`.
@@ -173,9 +208,7 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
     GlobalProposal.GlobalProposalDetail calldata globalProposal,
     Ballot.VoteType[] calldata supports_,
     Signature[] calldata signatures
-  ) external {
-    _castGlobalProposalBySignatures({ globalProposal: globalProposal, supports_: supports_, signatures: signatures });
-  }
+  ) external { }
 
   /**
    * COMMON METHODS
@@ -184,40 +217,12 @@ contract RoninBridgeManager is BridgeManager, GovernanceProposal, GlobalGovernan
   /**
    * @dev See {CoreGovernance-_executeWithCaller}.
    */
-  function execute(Proposal.ProposalDetail calldata proposal) external {
-    _executeWithCaller(proposal, msg.sender);
-  }
+  function execute(Proposal.ProposalDetail calldata proposal) external { }
 
   /**
    * @dev See {GlobalCoreGovernance-_executeWithCaller}.
    */
-  function executeGlobal(GlobalProposal.GlobalProposalDetail calldata globalProposal) external {
-    _executeWithCaller({
-      proposal: globalProposal.intoProposalDetail(_resolveTargets({ targetOptions: globalProposal.targetOptions, strict: true })),
-      caller: msg.sender
-    });
-  }
-
-  /**
-   * @dev Deletes the expired proposal by its chainId and nonce, without creating a new proposal.
-   *
-   * Requirements:
-   * - The proposal is already created.
-   *
-   */
-  function deleteExpired(uint256 _chainId, uint256 _round) external {
-    ProposalVote storage _vote = vote[_chainId][_round];
-    if (_vote.hash == 0) revert ErrQueryForEmptyVote();
-
-    _tryDeleteExpiredVotingRound(_vote);
-  }
-
-  /**
-   * @dev Returns the expiry duration for a new proposal.
-   */
-  function getProposalExpiryDuration() external view returns (uint256) {
-    return _proposalExpiryDuration;
-  }
+  function executeGlobal(GlobalProposal.GlobalProposalDetail calldata globalProposal) external { }
 
   /**
    * @dev Internal function to get the chain type of the contract.

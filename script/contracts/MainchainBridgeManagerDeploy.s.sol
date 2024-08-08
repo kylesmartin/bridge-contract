@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Contract } from "../utils/Contract.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
@@ -13,9 +13,12 @@ import { MainchainGatewayV3Deploy } from "./MainchainGatewayV3Deploy.s.sol";
 contract MainchainBridgeManagerDeploy is Migration {
   using LibProxy for *;
 
-  function run() public virtual returns (MainchainBridgeManager instance) {
-    instance = MainchainBridgeManager(_deployProxy(Contract.MainchainBridgeManager.key(), sender()));
-    address proxyAdmin = payable(address(instance)).getProxyAdmin();
+  function _getProxyAdmin() internal virtual override returns (address payable) {
+    return payable(0xA62DddCC58E769bCFd2f9A7A61CDF331f18c2650);
+  }
+
+  function run() public virtual returns (IMainchainBridgeManager instance) {
+    instance = IMainchainBridgeManager(_deployProxy(Contract.MainchainBridgeManager.key(), sender()));
 
     // if (proxyAdmin != address(instance)) {
     //   vm.broadcast(proxyAdmin);

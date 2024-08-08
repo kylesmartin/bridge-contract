@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { MinimumWithdrawal } from "@ronin/contracts/extensions/MinimumWithdrawal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -34,7 +34,7 @@ contract Migration__20240206_MapTokenBananaRoninChain is
   using LibProposal for *;
   using LibCompanionNetwork for *;
 
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   address internal _roninGatewayV3;
 
   address pixelRoninToken = 0x7EAe20d11Ef8c779433Eb24503dEf900b9d28ad7;
@@ -47,8 +47,8 @@ contract Migration__20240206_MapTokenBananaRoninChain is
 
   function setUp() public virtual override {
     super.setUp();
-    _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
-    _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
+    _roninBridgeManager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
+    _roninGatewayV3 = loadContract(Contract.RoninGatewayV3.key());
   }
 
   function _cheatWeightOperator(address gov) internal {
@@ -155,15 +155,14 @@ contract Migration__20240206_MapTokenBananaRoninChain is
 
     TNetwork currentNetwork = network();
     TNetwork companionNetwork = config.getCompanionNetwork(currentNetwork);
-    config.createFork(companionNetwork);
-    config.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
     {
       address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
       LibProposal.verifyProposalGasAmount(companionManager, targets, values, calldatas, gasAmounts);
     }
-    config.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
 
-    console2.log("Nonce:", vm.getNonce(_governor));
+    console.log("Nonce:", vm.getNonce(_governor));
     vm.broadcast(_governor);
     _roninBridgeManager.propose(block.chainid, expiredTime, address(0), targets, values, calldatas, gasAmounts);
 

@@ -14,9 +14,9 @@ contract RoninMockERC1155 is ERC1155Burnable, AccessControl {
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
   bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-  constructor(address defaultAdmin, string memory uri, string memory name, string memory symbol) ERC1155(uri) {
-    _name = name;
-    _symbol = symbol;
+  constructor(address defaultAdmin, string memory uri, string memory name_, string memory symbol_) ERC1155(uri) {
+    _name = name_;
+    _symbol = symbol_;
     _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
   }
 

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import { console } from "forge-std/console.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { TContract, Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
@@ -10,15 +12,17 @@ import { PostCheck_BridgeManager } from "./post-check/bridge-manager/PostCheck_B
 import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol";
 import { Migration } from "./Migration.s.sol";
 import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
+import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
 contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
   using LibCompanionNetwork for *;
 
-  function setUp() public virtual override(BaseMigration, Migration) {
-    super.setUp();
-  }
-
   function run() external {
+    IRuntimeConfig.Option memory opt;
+    opt = CONFIG.getRuntimeConfig();
+    _originForkBlockNumber = opt.forkBlockNumber;
+
     _loadSysContract();
     _validate_BridgeManager();
     _validate_Gateway();
@@ -28,8 +32,14 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     return super._deployLogic(contractType);
   }
 
-  function _upgradeRaw(address proxyAdmin, address payable proxy, address logic, bytes memory args) internal virtual override(BaseMigration, Migration) {
-    super._upgradeRaw(proxyAdmin, proxy, logic, args);
+  function upgradeCallback(
+    address proxy,
+    address logic,
+    uint256 callValue,
+    bytes memory callData,
+    ProxyInterface proxyInterface
+  ) public virtual override(BaseMigration, Migration) {
+    super.upgradeCallback(proxy, logic, callValue, callData, proxyInterface);
   }
 
   function _postCheck() internal virtual override(ScriptExtended, Migration) {
@@ -48,26 +58,38 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     TNetwork currentNetwork = network();
     if (
       currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == Network.RoninDevnet.key()
-        || currentNetwork == DefaultNetwork.Local.key()
+        || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
-      bridgeSlash = loadContract(Contract.BridgeSlash.key());
-      bridgeReward = loadContract(Contract.BridgeReward.key());
-      roninGateway = loadContract(Contract.RoninGatewayV3.key());
-      bridgeTracking = loadContract(Contract.BridgeTracking.key());
-      roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+      _loadRoninContracts(currentNetwork);
 
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
       mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
       mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
-
-      vm.makePersistent(bridgeSlash);
-      vm.makePersistent(bridgeReward);
-      vm.makePersistent(roninGateway);
-      vm.makePersistent(roninBridgeManager);
-      vm.makePersistent(mainchainGateway);
-      vm.makePersistent(mainchainBridgeManager);
     } else {
-      revert(string.concat("Unsupported network: ", currentNetwork.networkName()));
+      mainchainGateway = loadContract(Contract.MainchainGatewayV3.key());
+      mainchainBridgeManager = loadContract(Contract.MainchainBridgeManager.key());
+
+      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(mainchainBridgeManager));
+      (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
+
+      uint256 originForkBlockNumber = config.getRuntimeConfig().forkBlockNumber;
+      uint256 originForkId = config.getForkId(companionNetwork, originForkBlockNumber);
+      config.switchTo(originForkId);
+
+      _loadRoninContracts(companionNetwork);
     }
+
+    _markSysContractsAsPersistent();
+  }
+
+  function _loadRoninContracts(TNetwork roninNetwork) private {
+    bridgeSlash = loadContract(Contract.BridgeSlash.key());
+    bridgeReward = loadContract(Contract.BridgeReward.key());
+    roninGateway = loadContract(Contract.RoninGatewayV3.key());
+    bridgeTracking = loadContract(Contract.BridgeTracking.key());
+    roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+  }
+
+  function _markSysContractsAsPersistent() internal {
   }
 }

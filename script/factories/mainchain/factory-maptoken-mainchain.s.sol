@@ -17,7 +17,7 @@ import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/Signatu
 import { MapTokenInfo } from "../../libraries/MapTokenInfo.sol";
 import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { Network, TNetwork } from "../../utils/Network.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
@@ -51,7 +51,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
 
   function _relayProposal(Proposal.ProposalDetail memory proposal) internal {
     MainchainBridgeAdminUtils mainchainProposalUtils =
-      new MainchainBridgeAdminUtils(2021, _governorPKs, MainchainBridgeManager(_mainchainBridgeManager), _governors[0]);
+      new MainchainBridgeAdminUtils(2021, _governorPKs, IMainchainBridgeManager(_mainchainBridgeManager), _governors[0]);
 
     Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](_governors.length);
     require(_governors.length > 0 && _governors.length == _governorPKs.length, "Invalid governors information");
@@ -68,7 +68,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
     }
 
     vm.broadcast(_specifiedCaller);
-    MainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, supports_, signatures);
+    IMainchainBridgeManager(_mainchainBridgeManager).relayProposal{ gas: gasAmounts }(proposal, supports_, signatures);
   }
 
   function _createAndVerifyProposalOnMainchain(uint256 chainId, uint256 nonce) internal returns (Proposal.ProposalDetail memory proposal) {

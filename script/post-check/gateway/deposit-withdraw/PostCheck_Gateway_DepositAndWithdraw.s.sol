@@ -18,8 +18,8 @@ import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManage
 import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
 import { IRoninGatewayV3, RoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3, MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { HasContracts } from "@ronin/contracts/extensions/collections/HasContracts.sol";
@@ -43,8 +43,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
   MockERC20 private roninERC20;
   MockERC20 private mainchainERC20;
 
-  address[] private roninTokens;
-  address[] private mainchainTokens;
+  address[] private roninTokens = new address[](1);
+  address[] private mainchainTokens = new address[](1);
   TokenStandard[] private standards = [TokenStandard.ERC20];
 
   uint256 private roninChainId;
@@ -70,7 +70,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     uint256[] memory chainIds = new uint256[](1);
     chainIds[0] = network().companionChainId();
     address admin = roninGateway.getProxyAdmin();
-    console.log("Admin", admin);
+    console.log("Admin for ronin gateway", admin);
+
     vm.prank(address(admin));
     TransparentUpgradeableProxyV2(payable(address(roninGateway))).functionDelegateCall(
       abi.encodeCall(RoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards))
@@ -79,8 +80,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
   function _mapTokenMainchain() private {
     (, companionNetwork) = network().companionNetworkData();
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     uint256[][4] memory thresholds;
     thresholds[0] = new uint256[](1);
@@ -101,13 +101,13 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
       abi.encodeCall(MainchainGatewayV3.mapTokensAndThresholds, (mainchainTokens, roninTokens, standards, thresholds))
     );
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function _setUpOnRonin() private {
     roninERC20 = new MockERC20("RoninERC20", "RERC20");
     // roninERC20.initialize("RoninERC20", "RERC20", 18);
-    roninTokens.push(address(roninERC20));
+    roninTokens[0] = address(roninERC20);
     roninChainId = block.chainid;
     currentNetwork = network();
 
@@ -119,8 +119,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
   function _setUpOnMainchain() private {
     (, companionNetwork) = network().companionNetworkData();
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     mainchainChainId = block.chainid;
     gwDomainSeparator = MainchainGatewayV3(payable(mainchainGateway)).DOMAIN_SEPARATOR();
@@ -128,13 +127,12 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     cheatAddOverWeightedGovernor(address(mainchainBridgeManager));
 
     mainchainERC20 = new MockERC20("MainchainERC20", "MERC20");
-    // mainchainERC20.initialize("MainchainERC20", "MERC20", 18);
-    mainchainTokens.push(address(mainchainERC20));
+    mainchainTokens[0] = address(mainchainERC20);
 
     vm.deal(user, 10 ether);
     deal(address(mainchainERC20), user, 1000 ether);
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function _validate_Gateway_DepositAndWithdraw() internal onlyOnRoninNetworkOrLocal {
@@ -151,15 +149,14 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     assertEq(HasContracts(bridgeReward).getContract(ContractType.BRIDGE_MANAGER), roninBridgeManager, "Invalid RoninBridgeManager in bridgeReward");
     assertEq(HasContracts(bridgeSlash).getContract(ContractType.BRIDGE_MANAGER), roninBridgeManager, "Invalid RoninBridgeManager in bridgeSlash");
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     assertEq(mainchainBridgeManager.getProxyAdmin(), mainchainBridgeManager, "Invalid ProxyAdmin in MainchainBridgeManager, expected self");
     assertEq(
       HasContracts(mainchainGateway).getContract(ContractType.BRIDGE_MANAGER), mainchainBridgeManager, "Invalid MainchainBridgeManager in mainchainGateway"
     );
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   function validate_Gateway_depositERC20() private onPostCheck("validate_Gateway_depositERC20") {
@@ -169,8 +166,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     depositRequest.info.id = 0;
     depositRequest.info.quantity = 100 ether;
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     vm.prank(user);
     mainchainERC20.approve(address(mainchainGateway), 100 ether);
@@ -178,16 +174,16 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     vm.recordLogs();
     MainchainGatewayV3(mainchainGateway).requestDepositFor(depositRequest);
 
-    VmSafe.Log[] memory logs = vm.getRecordedLogs();
+    VmSafe.Log[] memory logs_ = vm.getRecordedLogs();
     LibTransfer.Receipt memory receipt;
     bytes32 receiptHash;
-    for (uint256 i; i < logs.length; ++i) {
-      if (logs[i].emitter == address(mainchainGateway) && logs[i].topics[0] == IMainchainGatewayV3.DepositRequested.selector) {
-        (receiptHash, receipt) = abi.decode(logs[i].data, (bytes32, LibTransfer.Receipt));
+    for (uint256 i; i < logs_.length; ++i) {
+      if (logs_[i].emitter == address(mainchainGateway) && logs_[i].topics[0] == IMainchainGatewayV3.DepositRequested.selector) {
+        (receiptHash, receipt) = abi.decode(logs_[i].data, (bytes32, LibTransfer.Receipt));
       }
     }
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
 
     vm.prank(cheatOperator);
     RoninGatewayV3(roninGateway).depositFor(receipt);
@@ -209,12 +205,12 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     vm.recordLogs();
     RoninGatewayV3(payable(address(roninGateway))).requestWithdrawalFor(withdrawRequest, mainchainChainId);
 
-    VmSafe.Log[] memory logs = vm.getRecordedLogs();
+    VmSafe.Log[] memory logs_ = vm.getRecordedLogs();
     LibTransfer.Receipt memory receipt;
     bytes32 receiptHash;
-    for (uint256 i; i < logs.length; ++i) {
-      if (logs[i].emitter == address(roninGateway) && logs[i].topics[0] == IRoninGatewayV3.WithdrawalRequested.selector) {
-        (receiptHash, receipt) = abi.decode(logs[i].data, (bytes32, LibTransfer.Receipt));
+    for (uint256 i; i < logs_.length; ++i) {
+      if (logs_[i].emitter == address(roninGateway) && logs_[i].topics[0] == IRoninGatewayV3.WithdrawalRequested.selector) {
+        (receiptHash, receipt) = abi.decode(logs_[i].data, (bytes32, LibTransfer.Receipt));
       }
     }
 
@@ -225,14 +221,13 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     Signature[] memory sigs = new Signature[](1);
     sigs[0] = Signature(v, r, s);
 
-    CONFIG.createFork(companionNetwork);
-    CONFIG.switchTo(companionNetwork);
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
     MainchainGatewayV3(payable(mainchainGateway)).submitWithdrawal(receipt, sigs);
 
     assertEq(mainchainERC20.balanceOf(withdrawRequest.recipientAddr), 100 ether);
 
-    CONFIG.switchTo(currentNetwork);
+    switchBack(prevNetwork, prevForkId);
   }
 
   // Set the balance of an account for any ERC20 token

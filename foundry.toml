@@ -66,3 +66,6 @@ sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY}"
 goerli = "https://ethereum-goerli.publicnode.com"
 ronin-mainnet = "https://api-partner.roninchain.com/rpc"
 ronin-testnet = "https://saigon-archive.roninchain.com/rpc"
+
+[dependencies]
+"@fdk" = { version = "0.3.1-beta", url = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.1-beta.zip" }
