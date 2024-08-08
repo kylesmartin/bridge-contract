@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import "./ProposalUtils.t.sol";
 
 contract RoninBridgeAdminUtils is ProposalUtils {
-  RoninBridgeManager _contract;
+  IRoninBridgeManager _contract;
   address _sender;
 
-  constructor(uint256 roninChainId, uint256[] memory signerPKs, RoninBridgeManager contract_, address sender) ProposalUtils(roninChainId, signerPKs) {
+  constructor(uint256 roninChainId, uint256[] memory signerPKs, IRoninBridgeManager contract_, address sender) ProposalUtils(roninChainId, signerPKs) {
     _contract = contract_;
     _sender = sender;
   }

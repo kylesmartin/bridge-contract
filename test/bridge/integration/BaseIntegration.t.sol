@@ -9,14 +9,14 @@ import { IGeneralConfig } from "@fdk/interfaces/IGeneralConfig.sol";
 import { GeneralConfig } from "@ronin/script/GeneralConfig.sol";
 import { Network } from "@ronin/script/utils/Network.sol";
 
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { RoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
 import { BridgeTracking } from "@ronin/contracts/ronin/gateway/BridgeTracking.sol";
 import { BridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
 import { BridgeReward } from "@ronin/contracts/ronin/gateway/BridgeReward.sol";
 import { MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import { MainchainGatewayBatcher } from "@ronin/contracts/mainchain/MainchainGatewayBatcher.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { WethUnwrapper } from "@ronin/contracts/extensions/WethUnwrapper.sol";
 import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
 import { MockUSDC } from "@ronin/contracts/mocks/token/MockUSDC.sol";
@@ -86,7 +86,7 @@ contract BaseIntegration_Test is Base_Test {
   ISharedArgument.SharedParameter _param;
 
   PauseEnforcer _roninPauseEnforcer;
-  RoninBridgeManager _roninBridgeManager;
+  IRoninBridgeManager _roninBridgeManager;
   RoninGatewayV3 _roninGatewayV3;
   BridgeTracking _bridgeTracking;
   BridgeSlash _bridgeSlash;
@@ -95,7 +95,7 @@ contract BaseIntegration_Test is Base_Test {
   PauseEnforcer _mainchainPauseEnforcer;
   MainchainGatewayV3 _mainchainGatewayV3;
   MainchainGatewayBatcher _mainchainGatewayBatcher;
-  MainchainBridgeManager _mainchainBridgeManager;
+  IMainchainBridgeManager _mainchainBridgeManager;
   WethUnwrapper _mainchainWethUnwrapper;
 
   MockWrappedToken _roninWeth;

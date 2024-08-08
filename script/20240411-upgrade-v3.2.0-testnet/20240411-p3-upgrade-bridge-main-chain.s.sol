@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -11,7 +11,7 @@ import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -26,11 +26,11 @@ import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
 
 import "./20240411-helper.s.sol";
 import "./20240411-operators-key.s.sol";
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__20240409_GovernorsKey {
-  MainchainBridgeManager _currMainchainBridgeManager;
-  MainchainBridgeManager _newMainchainBridgeManager;
+  IMainchainBridgeManager _currMainchainBridgeManager;
+  IMainchainBridgeManager _newMainchainBridgeManager;
 
   address private _governor;
   address[] private _voters;
@@ -44,7 +44,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   function run() public virtual onlyOn(Network.Sepolia.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
-    _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    _currMainchainBridgeManager = IMainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -57,8 +57,8 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _changeTempAdmin() internal {
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address pauseEnforcerProxy = loadContract(Contract.MainchainPauseEnforcer.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     vm.startBroadcast(0x968D0Cd7343f711216817E617d3f92a23dC91c07);
     address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
@@ -73,7 +73,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.denom = 10;
     param.mainchainBridgeManager.roninChainId = 2021;
     param.mainchainBridgeManager.expiryDuration = 60 * 60 * 24 * 14; // 14 days
-    param.mainchainBridgeManager.bridgeContract = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.bridgeContract = loadContract(Contract.MainchainGatewayV3.key());
     param.mainchainBridgeManager.bridgeOperators = new address[](4);
     param.mainchainBridgeManager.bridgeOperators[0] = 0x2e82D2b56f858f79DeeF11B160bFC4631873da2B;
     param.mainchainBridgeManager.bridgeOperators[1] = 0xBcb61783dd2403FE8cC9B89B27B1A9Bb03d040Cb;
@@ -97,10 +97,10 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
     param.mainchainBridgeManager.targetOptions[1] = GlobalProposal.TargetOption.PauseEnforcer;
 
     param.mainchainBridgeManager.targets = new address[](2);
-    param.mainchainBridgeManager.targets[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
-    param.mainchainBridgeManager.targets[1] = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
+    param.mainchainBridgeManager.targets[0] = loadContract(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.targets[1] = loadContract(Contract.MainchainPauseEnforcer.key());
 
-    _newMainchainBridgeManager = MainchainBridgeManager(
+    _newMainchainBridgeManager = IMainchainBridgeManager(
       new MainchainBridgeManagerDeploy().overrideArgs(
         abi.encodeCall(
           _newMainchainBridgeManager.initialize,
@@ -126,18 +126,19 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _upgradeBridgeMainchain() internal {
-    address weth = config.getAddressFromCurrentNetwork(Contract.WETH.key());
+    console.log("Upgrading Bridge Mainchain....");
+    address weth = loadContract(Contract.WETH.key());
     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
 
     address pauseEnforcerLogic = _deployLogic(Contract.MainchainPauseEnforcer.key());
     address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
 
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address pauseEnforcerProxy = loadContract(Contract.MainchainPauseEnforcer.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     ISharedArgument.SharedParameter memory param;
     param.mainchainBridgeManager.callbackRegisters = new address[](1);
-    param.mainchainBridgeManager.callbackRegisters[0] = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    param.mainchainBridgeManager.callbackRegisters[0] = loadContract(Contract.MainchainGatewayV3.key());
 
     uint256 expiredTime = block.timestamp + 14 days;
     uint N = 7;
@@ -212,7 +213,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
     bytes32 proposalHash,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) public view returns (SignatureConsumer.Signature[] memory sigs) {
+  ) public pure returns (SignatureConsumer.Signature[] memory sigs) {
     sigs = new SignatureConsumer.Signature[](signerPKs.length);
 
     for (uint256 i; i < signerPKs.length; i++) {

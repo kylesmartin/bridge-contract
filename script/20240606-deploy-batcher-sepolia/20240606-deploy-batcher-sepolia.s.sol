@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
@@ -11,7 +11,7 @@ import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -25,11 +25,11 @@ import "@ronin/script/contracts/MainchainBridgeManagerDeploy.s.sol";
 import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
 import "@ronin/script/contracts/MainchainGatewayBatcherDeploy.s.sol";
 
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240606_DeployBatcherSepolia is Migration {
-  MainchainBridgeManager _currMainchainBridgeManager;
-  MainchainBridgeManager _newMainchainBridgeManager;
+  IMainchainBridgeManager _currMainchainBridgeManager;
+  IMainchainBridgeManager _newMainchainBridgeManager;
   MainchainGatewayV3 _currMainchainBridge;
   MainchainGatewayBatcher _mainchainGatewayBatcher;
 
@@ -45,7 +45,7 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
   function run() public virtual onlyOn(Network.Sepolia.key()) {
     CONFIG.setAddress(network(), DefaultContract.ProxyAdmin.key(), TESTNET_ADMIN);
 
-    // _currMainchainBridgeManager = MainchainBridgeManager(config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()));
+    // _currMainchainBridgeManager = MainchainBridgeManager(loadContract(Contract.MainchainBridgeManager.key()));
 
     // _governor = 0xd24D87DDc1917165435b306aAC68D99e0F49A3Fa;
     // _voters.push(0xb033ba62EC622dC54D0ABFE0254e79692147CA26);
@@ -56,18 +56,17 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
     // _deployMainchainBridgeManager();
     // _upgradeBridgeMainchain();
 
-    _currMainchainBridge = MainchainGatewayV3(config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key()));
+    _currMainchainBridge = MainchainGatewayV3(loadContract(Contract.MainchainGatewayV3.key()));
     // vm.stopBroadcast();
     // vm.startBroadcast(TESTNET_ADMIN);
-    _mainchainGatewayBatcher = new MainchainGatewayBatcherDeploy().runWithArgs(
-      abi.encodeWithSelector(MainchainGatewayBatcher.initialize.selector, address(_currMainchainBridge))
-    );
+    _mainchainGatewayBatcher =
+      new MainchainGatewayBatcherDeploy().runWithArgs(abi.encodeWithSelector(MainchainGatewayBatcher.initialize.selector, address(_currMainchainBridge)));
     // vm.stopBroadcast();
   }
 
   function _changeTempAdmin() internal {
-    address pauseEnforcerProxy = config.getAddressFromCurrentNetwork(Contract.MainchainPauseEnforcer.key());
-    address mainchainGatewayV3Proxy = config.getAddressFromCurrentNetwork(Contract.MainchainGatewayV3.key());
+    address pauseEnforcerProxy = loadContract(Contract.MainchainPauseEnforcer.key());
+    address mainchainGatewayV3Proxy = loadContract(Contract.MainchainGatewayV3.key());
 
     vm.startBroadcast(0x968D0Cd7343f711216817E617d3f92a23dC91c07);
     address(pauseEnforcerProxy).call(abi.encodeWithSignature("changeAdmin(address)", _currMainchainBridgeManager));
@@ -75,7 +74,7 @@ contract Migration__20240606_DeployBatcherSepolia is Migration {
     vm.stopBroadcast();
   }
 
-  function _postCheck() internal override {
+  function _postCheck() internal pure override {
     console.log(StdStyle.green("Migration skipped"));
   }
 }

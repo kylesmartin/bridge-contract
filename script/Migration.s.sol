@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { LibString } from "solady/utils/LibString.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
-import { GeneralConfig } from "./GeneralConfig.sol";
 import { ISharedArgument } from "./interfaces/ISharedArgument.sol";
 import { TNetwork, Network } from "./utils/Network.sol";
 import { IGeneralConfigExtended } from "./interfaces/IGeneralConfigExtended.sol";
@@ -16,10 +14,11 @@ import { Utils } from "./utils/Utils.sol";
 import { LibTokenInfo, TokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Contract, TContract } from "./utils/Contract.sol";
 import { GlobalProposal, Proposal, LibProposal } from "script/shared/libraries/LibProposal.sol";
-import { TransparentUpgradeableProxy, TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
+import { TransparentUpgradeableProxy } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { IPostCheck } from "./interfaces/IPostCheck.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
+import { LibDeploy, DeployInfo, ProxyInterface, UpgradeInfo } from "@fdk/libraries/LibDeploy.sol";
 
 contract Migration is BaseMigration, Utils {
   using LibProxy for *;
@@ -31,19 +30,23 @@ contract Migration is BaseMigration, Utils {
   uint256 internal constant DEFAULT_PROPOSAL_GAS = 1_000_000;
   ISharedArgument internal constant config = ISharedArgument(address(CONFIG));
 
-  function setUp() public virtual override {
-    super.setUp();
-  }
-
   function _postCheck() internal virtual override {
-    address postChecker = _deployImmutable(Contract.PostChecker.key());
+    address postChecker = _deployImmutable(
+      Contract.PostChecker.key(),
+      "PostChecker.sol:PostChecker",//string memory artifactName,
+      makeAddr("PostCheckerDeployer"),
+      0,
+      EMPTY_ARGS
+    );
+
+    // address postChecker = _deployImmutable(Contract.PostChecker.key());
     vm.allowCheatcodes(postChecker);
     vm.makePersistent(postChecker);
     IPostCheck(postChecker).run();
   }
 
   function _configByteCode() internal virtual override returns (bytes memory) {
-    return abi.encodePacked(type(GeneralConfig).creationCode);
+    return vm.getCode("out/GeneralConfig.sol/GeneralConfig.json");
   }
 
   function _sharedArguments() internal virtual override returns (bytes memory rawArgs) {
@@ -99,11 +102,13 @@ contract Migration is BaseMigration, Utils {
       param.mainchainBridgeManager.voteWeights = voteWeights;
       param.mainchainBridgeManager.targetOptions = options;
       param.mainchainBridgeManager.targets = targets;
+    } else if (network() == Network.EthMainnet.key()) {
+      // Undefined
     } else if (network() == DefaultNetwork.RoninTestnet.key()) {
       // Undefined
     } else if (network() == DefaultNetwork.RoninMainnet.key()) {
       // Undefined
-    } else if (network() == DefaultNetwork.Local.key()) {
+    } else if (network() == DefaultNetwork.LocalHost.key()) {
       // test
       param.test.numberOfBlocksInEpoch = 200;
       param.test.proxyAdmin = makeAddr("proxy-admin");
@@ -208,7 +213,7 @@ contract Migration is BaseMigration, Utils {
 
   function _getProxyAdmin() internal virtual override returns (address payable proxyAdmin) {
     TNetwork currentNetwork = network();
-    console.log("[>] _getProxyAdmin", "Network name:".yellow(), currentNetwork.networkName());
+    console.log("[>] _getProxyAdmin", "Network name:".yellow(), currentNetwork.chainAlias());
 
     if (
       currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == Network.RoninDevnet.key()
@@ -220,9 +225,9 @@ contract Migration is BaseMigration, Utils {
       return loadContract(Contract.MainchainBridgeManager.key());
     }
 
-    if (currentNetwork == DefaultNetwork.Local.key()) {
+    if (currentNetwork == DefaultNetwork.LocalHost.key()) {
       if (config.getLocalNetwork() == IGeneralConfigExtended.LocalNetwork.Ronin) {
-        try config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()) returns (address payable res) {
+        try this.loadContract(Contract.RoninBridgeManager.key()) returns (address payable res) {
           proxyAdmin = res;
         } catch {
           console.log("BridgeMigration(_getProxyAdmin): RoninBridgeManager not found".yellow());
@@ -230,7 +235,7 @@ contract Migration is BaseMigration, Utils {
           proxyAdmin = sender();
         }
       } else if (config.getLocalNetwork() == IGeneralConfigExtended.LocalNetwork.Eth) {
-        try config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key()) returns (address payable res) {
+        try this.loadContract(Contract.MainchainBridgeManager.key()) returns (address payable res) {
           proxyAdmin = res;
         } catch {
           console.log("BridgeMigration(_getProxyAdmin): MainchainBridgeManager not found".yellow());
@@ -244,16 +249,25 @@ contract Migration is BaseMigration, Utils {
       return proxyAdmin;
     }
 
-    console.log("Network not supported".yellow(), currentNetwork.networkName());
+    console.log("Network not supported".yellow(), currentNetwork.chainAlias());
     console.log("Chain Id".yellow(), block.chainid);
     revert("BridgeMigration(_getProxyAdmin): Unhandled case");
   }
 
-  function _upgradeRaw(address proxyAdmin, address payable proxy, address logic, bytes memory args) internal virtual override {
+  // @dev Called by `Migration._upgradeProxy()`
+  function upgradeCallback(
+    address proxy,
+    address logic,
+    uint256, /* callValue */
+    bytes memory args,
+    ProxyInterface /* proxyInterface */
+  ) public virtual override {
     if (!config.isPostChecking() && logic.codehash == payable(proxy).getProxyImplementation({ nullCheck: true }).codehash) {
       console.log("BaseMigration: Logic is already upgraded!".yellow());
       return;
     }
+
+    address proxyAdmin = proxy.getProxyAdmin();
 
     assertTrue(proxyAdmin != address(0x0), "BridgeMigration: Invalid {proxyAdmin} or {proxy} is not a Proxy contract");
     TNetwork currentNetwork = network();
@@ -261,19 +275,19 @@ contract Migration is BaseMigration, Utils {
     if (proxyAdmin.code.length == 0) {
       // in case proxyAdmin is an eoa
       console.log(StdStyle.yellow("Upgrading with EOA wallet..."));
-      _prankOrBroadcast(address(proxyAdmin));
-      if (args.length == 0) TransparentUpgradeableProxyV2(proxy).upgradeTo(logic);
-      else TransparentUpgradeableProxyV2(proxy).upgradeToAndCall(logic, args);
+      prankOrBroadcast(address(proxyAdmin));
+      if (args.length == 0) TransparentUpgradeableProxy(payable(proxy)).upgradeTo(logic);
+      else TransparentUpgradeableProxy(payable(proxy)).upgradeToAndCall(logic, args);
     }
     // in case proxyAdmin is GovernanceAdmin
     else if (
       currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == Network.RoninDevnet.key()
-        || currentNetwork == DefaultNetwork.Local.key()
+        || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
       // handle for ronin network
       console.log(StdStyle.yellow("Voting on RoninBridgeManager for upgrading..."));
 
-      RoninBridgeManager manager = RoninBridgeManager(proxyAdmin);
+      IRoninBridgeManager manager = IRoninBridgeManager(proxyAdmin);
       bytes[] memory callDatas = new bytes[](1);
       uint256[] memory values = new uint256[](1);
       address[] memory targets = new address[](1);
@@ -309,17 +323,27 @@ contract Migration is BaseMigration, Utils {
 
   function _deployProxy(
     TContract contractType,
-    bytes memory args
-  ) internal virtual override logFn(string.concat("_deployProxy ", TContract.unwrap(contractType).unpackOne())) returns (address payable deployed) {
+    address nominatedSender
+  ) internal virtual logFn(string.concat("_deployProxy ", TContract.unwrap(contractType).unpackOne())) returns (address payable deployed) {
     string memory contractName = config.getContractName(contractType);
+    bytes memory callData = arguments();
 
-    address logic = _deployLogic(contractType);
-    string memory proxyAbsolutePath = "TransparentUpgradeableProxyV2.sol:TransparentUpgradeableProxyV2";
-    uint256 proxyNonce;
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
-    (deployed, proxyNonce) = _deployRaw(proxyAbsolutePath, abi.encode(logic, proxyAdmin, args));
+    deployed = LibDeploy.deployTransparentProxyV2({
+      implInfo: DeployInfo({
+        callValue: 0,
+        by: nominatedSender,
+        contractName: contractName,
+        absolutePath: vme.getContractAbsolutePath(contractType),
+        artifactName: contractName,
+        constructorArgs: ""
+      }),
+      callValue: 0,
+      proxyAdmin: _getProxyAdmin(),
+      callData: callData
+    });
 
     // validate proxy admin
     address actualProxyAdmin = deployed.getProxyAdmin();
@@ -330,15 +354,48 @@ contract Migration is BaseMigration, Utils {
     );
 
     config.setAddress(network(), contractType, deployed);
-    ARTIFACT_FACTORY.generateArtifact(sender(), deployed, proxyAbsolutePath, string.concat(contractName, "Proxy"), args, proxyNonce);
+  }
+
+  function _deployProxy(
+    TContract contractType,
+    bytes memory args
+  ) internal virtual override logFn(string.concat("_deployProxy ", TContract.unwrap(contractType).unpackOne())) returns (address payable deployed) {
+    string memory contractName = config.getContractName(contractType);
+
+    address proxyAdmin = _getProxyAdmin();
+    assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
+
+    deployed = LibDeploy.deployTransparentProxyV2({
+      implInfo: DeployInfo({
+        callValue: 0,
+        by: sender(),
+        contractName: contractName,
+        absolutePath: vme.getContractAbsolutePath(contractType),
+        artifactName: contractName,
+        constructorArgs: ""
+      }),
+      callValue: 0,
+      proxyAdmin: _getProxyAdmin(),
+      callData: args
+    });
+
+    // validate proxy admin
+    address actualProxyAdmin = deployed.getProxyAdmin();
+    assertEq(
+      actualProxyAdmin,
+      proxyAdmin,
+      string.concat("BaseMigration: Invalid proxy admin\n", "Actual: ", vm.toString(actualProxyAdmin), "\nExpected: ", vm.toString(proxyAdmin))
+    );
+
+    config.setAddress(network(), contractType, deployed);
   }
 
   function _getProxyAdminFromCurrentNetwork() internal view virtual returns (address proxyAdmin) {
     TNetwork currentNetwork = network();
     if (currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == DefaultNetwork.RoninMainnet.key()) {
-      proxyAdmin = config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key());
+      proxyAdmin = loadContract(Contract.RoninBridgeManager.key());
     } else if (currentNetwork == Network.Goerli.key() || currentNetwork == Network.EthMainnet.key()) {
-      proxyAdmin = config.getAddressFromCurrentNetwork(Contract.MainchainBridgeManager.key());
+      proxyAdmin = loadContract(Contract.MainchainBridgeManager.key());
     } else {
       revert("BridgeMigration(_getProxyAdminFromCurrentNetwork): Unhandled case");
     }

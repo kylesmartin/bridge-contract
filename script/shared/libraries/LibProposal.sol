@@ -2,9 +2,8 @@
 pragma solidity ^0.8.0;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { Vm } from "forge-std/Vm.sol";
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { IGeneralConfigExtended } from "script/interfaces/IGeneralConfigExtended.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
 import { Contract } from "script/utils/Contract.sol";
@@ -13,14 +12,14 @@ import { LibSharedAddress } from "@fdk/libraries/LibSharedAddress.sol";
 import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
-import { CoreGovernance } from "@ronin/contracts/extensions/sequential-governance/CoreGovernance.sol";
 import { LibArray } from "./LibArray.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "./LibCompanionNetwork.sol";
-import { LibErrorHandler } from "lib/foundry-deployment-kit/lib/contract-libs/src/LibErrorHandler.sol";
+import { LibErrorHandler } from "@fdk/libraries/LibErrorHandler.sol";
 import { VoteStatusConsumer } from "@ronin/contracts/interfaces/consumers/VoteStatusConsumer.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
 library LibProposal {
   using LibArray for *;
@@ -44,7 +43,7 @@ library LibProposal {
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
   }
 
-  function getBridgeManagerDomain() internal returns (bytes32) {
+  function getBridgeManagerDomain() internal view returns (bytes32) {
     uint256 chainId;
     TNetwork currentNetwork = config.getCurrentNetwork();
     if (currentNetwork == Network.EthMainnet.key() || currentNetwork == Network.Goerli.key() || currentNetwork == Network.Sepolia.key()) {
@@ -105,7 +104,7 @@ library LibProposal {
     });
   }
 
-  function executeProposal(RoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
+  function executeProposal(IRoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
     Ballot.VoteType support = Ballot.VoteType.For;
     address[] memory governors = manager.getGovernors();
 
@@ -124,7 +123,7 @@ library LibProposal {
     voteFor(manager, proposal);
   }
 
-  function voteFor(RoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
+  function voteFor(IRoninBridgeManager manager, Proposal.ProposalDetail memory proposal) internal {
     Ballot.VoteType support = Ballot.VoteType.For;
     address[] memory governors = manager.getGovernors();
     bool shouldPrankOnly = config.isPostChecking();
@@ -192,8 +191,11 @@ library LibProposal {
     uint256[] memory gasAmounts
   ) internal preserveState {
     TNetwork currentNetwork = config.getCurrentNetwork();
+    uint256 currentForkId = config.getForkId(currentNetwork);
+
     config.createFork(companionNetwork);
     config.switchTo(companionNetwork);
+
     uint256 snapshotId = vm.snapshot();
 
     for (uint256 i; i < mainchainTargets.length; i++) {
@@ -217,7 +219,13 @@ library LibProposal {
 
     bool reverted = vm.revertTo(snapshotId);
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
-    config.switchTo(currentNetwork);
+
+    IRuntimeConfig.Option memory opt;
+    opt = config.getRuntimeConfig();
+
+    uint originForkBlockNumber = opt.forkBlockNumber;
+    uint roninForkId = config.getForkId(currentNetwork, originForkBlockNumber);
+    config.switchTo(roninForkId);
   }
 
   function verifyProposalGasAmount(
@@ -251,7 +259,7 @@ library LibProposal {
     Proposal.ProposalDetail memory proposal,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     return generateSignaturesFor(proposal.hash(), signerPKs, support);
   }
 
@@ -259,7 +267,7 @@ library LibProposal {
     GlobalProposal.GlobalProposalDetail memory proposal,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     return generateSignaturesFor(proposal.hash(), signerPKs, support);
   }
 
@@ -267,7 +275,7 @@ library LibProposal {
     bytes32 proposalHash,
     uint256[] memory signerPKs,
     Ballot.VoteType support
-  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
+  ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
     sigs = new SignatureConsumer.Signature[](signerPKs.length);
     bytes32 domain = getBridgeManagerDomain();
     for (uint256 i; i < signerPKs.length; i++) {

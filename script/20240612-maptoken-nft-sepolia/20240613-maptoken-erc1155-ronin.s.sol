@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
-import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
-import "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
@@ -19,10 +19,10 @@ import { MockUSDC } from "@ronin/contracts/mocks/token/MockUSDC.sol";
 import { USDCDeploy } from "@ronin/script/contracts/token/USDCDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
 
-import "../Migration.s.sol";
+import { Migration } from "../Migration.s.sol";
 
 contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
-  RoninBridgeManager internal _roninBridgeManager;
+  IRoninBridgeManager internal _roninBridgeManager;
   IRoninGatewayV3 internal _roninGatewayV3;
 
   MainchainBridgeAdminUtils _mainchainProposalUtils;
@@ -30,7 +30,7 @@ contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
   function setUp() public override {
     super.setUp();
 
-    _roninBridgeManager = RoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
+    _roninBridgeManager = IRoninBridgeManager(0x8AaAD4782890eb879A0fC132A6AdF9E5eE708faF);
     _roninGatewayV3 = IRoninGatewayV3(0xCee681C9108c42C710c6A8A949307D5F13C9F3ca);
   }
 
@@ -85,16 +85,19 @@ contract Migration__20240613_MapERC1155SepoliaRoninchain is Migration {
     uint nonce = 1;
     for (uint i = 1; i <= 2; ++i) {
       vm.broadcast(governors[i]);
-      _roninBridgeManager.castProposalVoteForCurrentNetwork(Proposal.ProposalDetail({
-        nonce: nonce,
-        chainId: 2021,
-        expiryTimestamp: expiredTime,
-        executor: address(0),
-        targets: targets,
-        values: values,
-        calldatas: calldatas,
-        gasAmounts: gasAmounts
-      }), Ballot.VoteType.For);
+      _roninBridgeManager.castProposalVoteForCurrentNetwork(
+        Proposal.ProposalDetail({
+          nonce: nonce,
+          chainId: 2021,
+          expiryTimestamp: expiredTime,
+          executor: address(0),
+          targets: targets,
+          values: values,
+          calldatas: calldatas,
+          gasAmounts: gasAmounts
+        }),
+        Ballot.VoteType.For
+      );
     }
   }
 }
