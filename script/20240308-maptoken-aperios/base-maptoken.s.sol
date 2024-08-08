@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 
 import "./caller-configs.s.sol";
 import "./maptoken-aperios-configs.s.sol";
 import "./maptoken-ygg-configs.s.sol";
 
-contract Base__MapToken is
-  Migration__Caller_Config,
-  Migration__MapToken_Aperios_Config,
-  Migration__MapToken_Ygg_Config
-{
-  function _initCaller() internal virtual returns(address) {
+contract Base__MapToken is Migration__Caller_Config, Migration__MapToken_Aperios_Config, Migration__MapToken_Ygg_Config {
+  function _initCaller() internal virtual returns (address) {
     return SM_GOVERNOR;
   }
 

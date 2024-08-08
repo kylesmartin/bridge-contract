@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import "./ProposalUtils.t.sol";
 
 contract MainchainBridgeAdminUtils is ProposalUtils {
-  MainchainBridgeManager _contract;
+  IMainchainBridgeManager _contract;
   address _sender;
 
-  constructor(uint256[] memory signerPKs, MainchainBridgeManager contract_, address sender) ProposalUtils(signerPKs) {
+  constructor(uint256 roninChainId, uint256[] memory signerPKs, IMainchainBridgeManager contract_, address sender) ProposalUtils(roninChainId, signerPKs) {
     _contract = contract_;
     _sender = sender;
   }
@@ -20,6 +20,7 @@ contract MainchainBridgeAdminUtils is ProposalUtils {
   function functionDelegateCall(address to, bytes memory data) public {
     Proposal.ProposalDetail memory proposal = this.createProposal({
       expiryTimestamp: this.defaultExpiryTimestamp(),
+      executor: address(0),
       target: to,
       value: 0,
       calldata_: abi.encodeWithSignature("functionDelegateCall(bytes)", data),
@@ -40,6 +41,7 @@ contract MainchainBridgeAdminUtils is ProposalUtils {
   function functionDelegateCallGlobal(GlobalProposal.TargetOption target, bytes memory data) public {
     GlobalProposal.GlobalProposalDetail memory proposal = this.createGlobalProposal({
       expiryTimestamp: this.defaultExpiryTimestamp(),
+      executor: address(0),
       targetOption: target,
       value: 0,
       calldata_: abi.encodeWithSignature("functionDelegateCall(bytes)", data),
@@ -73,6 +75,7 @@ contract MainchainBridgeAdminUtils is ProposalUtils {
     GlobalProposal.GlobalProposalDetail memory proposal = GlobalProposal.GlobalProposalDetail({
       nonce: _contract.round(0) + 1,
       expiryTimestamp: this.defaultExpiryTimestamp(),
+      executor: address(0),
       targetOptions: targetOptions,
       values: values,
       calldatas: calldatas,
@@ -92,6 +95,7 @@ contract MainchainBridgeAdminUtils is ProposalUtils {
   function upgradeGlobal(GlobalProposal.TargetOption targetOption, uint256 nonce, bytes memory data) public {
     GlobalProposal.GlobalProposalDetail memory proposal = this.createGlobalProposal({
       expiryTimestamp: this.defaultExpiryTimestamp(),
+      executor: address(0),
       targetOption: targetOption,
       value: 0,
       calldata_: abi.encodeWithSignature("upgradeTo(bytes)", data),

@@ -1,0 +1,6 @@
+
+[[dependencies]]
+name = "@fdk"
+version = "0.3.1-beta"
+source = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.1-beta.zip"
+checksum = "53cb5bf15abdc909d177c64e78070387af24ef39b2a4b408651836ac9de059c4"

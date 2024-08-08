@@ -1,32 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Contract } from "../utils/Contract.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
 import { Migration } from "../Migration.s.sol";
 
 import { MainchainGatewayV3Deploy } from "./MainchainGatewayV3Deploy.s.sol";
 
 contract MainchainBridgeManagerDeploy is Migration {
-  function _defaultArguments() internal virtual override returns (bytes memory args) {
-    ISharedArgument.BridgeManagerParam memory param = config.sharedArguments().mainchainBridgeManager;
+  using LibProxy for *;
 
-    args = abi.encode(
-      param.num,
-      param.denom,
-      param.roninChainId,
-      param.bridgeContract,
-      param.callbackRegisters,
-      param.bridgeOperators,
-      param.governors,
-      param.voteWeights,
-      param.targetOptions,
-      param.targets
-    );
+  function _getProxyAdmin() internal virtual override returns (address payable) {
+    return payable(0xA62DddCC58E769bCFd2f9A7A61CDF331f18c2650);
   }
 
-  function run() public virtual returns (MainchainBridgeManager) {
-    return MainchainBridgeManager(_deployImmutable(Contract.MainchainBridgeManager.key()));
+  function run() public virtual returns (IMainchainBridgeManager instance) {
+    instance = IMainchainBridgeManager(_deployProxy(Contract.MainchainBridgeManager.key(), sender()));
+
+    // if (proxyAdmin != address(instance)) {
+    //   vm.broadcast(proxyAdmin);
+    //   // change proxy admin to self
+    //   TransparentUpgradeableProxy(payable(address(instance))).changeAdmin(address(instance));
+    // }
   }
 }
