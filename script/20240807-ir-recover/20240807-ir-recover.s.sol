@@ -21,9 +21,13 @@ import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { Transfer } from "@ronin/contracts/libraries/Transfer.sol";
 import { TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 
 contract Migration__20240807_IR_Recover is Migration {
-  address constant private SM_GOVERNOR = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
+  using LibProxy for *;
+
+  address private constant SM_GOVERNOR = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
   address private _multisigEth = 0x51F6696Ae42C6C40CA9F5955EcA2aaaB1Cefb26e;
   IMainchainBridgeManager private _mainchainBM = IMainchainBridgeManager(0x2Cf3CFb17774Ce0CFa34bB3f3761904e7fc3FaDB);
   TransparentUpgradeableProxyV2 private _mainchainBMproxy = TransparentUpgradeableProxyV2(payable(address(_mainchainBM)));
@@ -31,17 +35,31 @@ contract Migration__20240807_IR_Recover is Migration {
 
   address _prevBMLogic;
   address _newBMLogic;
+  address _newGWLogic;
 
   function run() public virtual onlyOn(Network.EthMainnet.key()) {
     _preCheck_Withdrawable();
     _performFix();
     _performCheckAfterFix();
+
+    // Cheat to change admin of MainchainBridgeManager to self to pass post-check.
+    vm.prank(_multisigEth);
+    TransparentUpgradeableProxy(payable(address(_mainchainBM))).changeAdmin(address(_mainchainBM));
+
+    switchTo(DefaultNetwork.RoninMainnet.key());
+
+    // Cheat to change admin of RoninBridgeManager to self to pass post-check.
+    address payable roninBM = loadContract(Contract.RoninBridgeManager.key());
+    address admin = roninBM.getProxyAdmin();
+    vm.prank(admin);
+    TransparentUpgradeableProxy(roninBM).changeAdmin(roninBM);
   }
 
   function _performFix() internal {
     vm.prank(_multisigEth);
     _prevBMLogic = _mainchainBMproxy.implementation();
     _newBMLogic = _deployLogic(Contract.MainchainBridgeManager.key());
+    _newGWLogic = _deployLogic(Contract.MainchainGatewayV3.key());
 
     (bool success, bytes memory ret) = address(_mainchainGW).staticcall(abi.encodeWithSignature("paused()"));
     if (!success) {
@@ -86,14 +104,10 @@ contract Migration__20240807_IR_Recover is Migration {
     LibProposal.verifyProposalGasAmount(address(_mainchainBM), proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts);
 
     // Validate proposal's execution
-    LibProposal.verifyProposalExecutionMainchain({
-      governance: address(_mainchainBM),
-      proposal: proposal,
-      shouldRevertState: false
-    });
+    LibProposal.verifyProposalExecutionMainchain({ governance: address(_mainchainBM), proposal: proposal, shouldRevertState: false });
   }
 
-  function __recover_createProposal() internal view returns(Proposal.ProposalDetail memory proposal) {
+  function __recover_createProposal() internal view returns (Proposal.ProposalDetail memory proposal) {
     // struct ProposalDetail {
     //   // Nonce to make sure proposals are executed in order
     //   uint256 nonce;
@@ -135,24 +149,27 @@ contract Migration__20240807_IR_Recover is Migration {
     // proposal.values[1] = 0;
     // proposal.calldatas[1] = abi.encodeWithSignature("upgradeTo(address)", _prevBMLogic);
     // proposal.gasAmounts[1] = 1000000;
-
     (, address[] memory operators, uint96[] memory weights) = _mainchainBM.getFullBridgeOperatorInfos();
     bool[] memory addeds = new bool[](operators.length);
     for (uint256 i = 0; i < operators.length; i++) {
       addeds[i] = true;
     }
 
-    proposal.targets = new address[](1);
-    proposal.values = new uint256[](1);
-    proposal.calldatas = new bytes[](1);
-    proposal.gasAmounts = new uint256[](1);
+    proposal.targets = new address[](2);
+    proposal.values = new uint256[](2);
+    proposal.calldatas = new bytes[](2);
+    proposal.gasAmounts = new uint256[](2);
 
     proposal.targets[0] = address(_mainchainGW);
+    proposal.targets[1] = address(_mainchainGW);
     proposal.values[0] = 0;
+    proposal.values[1] = 0;
     proposal.calldatas[0] = abi.encodeWithSignature(
       "functionDelegateCall(bytes)", abi.encodeWithSelector(IBridgeManagerCallback.onBridgeOperatorsAdded.selector, operators, weights, addeds)
     );
+    proposal.calldatas[1] = abi.encodeWithSignature("upgradeTo(address)", _newGWLogic);
     proposal.gasAmounts[0] = 2000000;
+    proposal.gasAmounts[1] = 1000000;
   }
 
   function _preCheck_Withdrawable() internal {
@@ -179,7 +196,7 @@ contract Migration__20240807_IR_Recover is Migration {
     address pauseEnforcer = 0xe514d9DEB7966c8BE0ca922de8a064264eA6bcd4;
     console.log("Pranking Pause Enforcer");
     vm.prank(pauseEnforcer);
-    (bool success, ) = address(_mainchainGW).call(abi.encodeWithSignature("unpause()"));
+    (bool success,) = address(_mainchainGW).call(abi.encodeWithSignature("unpause()"));
     require(success, "Cannot unpause mainchain gateway");
     console.log("Stop pranking Pause Enforcer");
   }
@@ -192,7 +209,6 @@ contract Migration__20240807_IR_Recover is Migration {
       require(totalWeightBM == uint256(totalWeightGW), "Mismatched total weight");
     }
 
-
     // - Weight of all operators in `BM` and `GW` the same
     (, address[] memory operatorsBM, uint96[] memory weightsBM) = _mainchainBM.getFullBridgeOperatorInfos();
     for (uint256 i = 0; i < operatorsBM.length; i++) {
@@ -204,7 +220,7 @@ contract Migration__20240807_IR_Recover is Migration {
     }
   }
 
-  function _postCheck_Withdrawable() internal{
+  function _postCheck_Withdrawable() internal {
     uint256 snapshotId = vm.snapshot();
     _fake_unpause();
 
@@ -222,7 +238,7 @@ contract Migration__20240807_IR_Recover is Migration {
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
   }
 
-  function getGWTotalWeight() public view returns(uint96 totalWeight) {
+  function getGWTotalWeight() public view returns (uint96 totalWeight) {
     uint256 $$_operatorWeightSlot = 125;
     bytes32 paddedTotalWeight = vm.load(address(_mainchainGW), bytes32($$_operatorWeightSlot));
     totalWeight = uint96(uint256(paddedTotalWeight));
