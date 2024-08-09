@@ -32,7 +32,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     validate_ProposeGlobalProposalAndRelay_addBridgeOperator();
     validate_proposeAndRelay_addBridgeOperator();
     validate_canExecuteUpgradeSingleProposal();
-    validate_canExcuteUpgradeAllOneProposal();
+    validate_canExecuteUpgradeAllOneProposal();
   }
 
   function validate_proposeAndRelay_addBridgeOperator() private onlyOnRoninNetworkOrLocal onPostCheck("validate_proposeAndRelay_addBridgeOperator") {
@@ -251,7 +251,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     }
   }
 
-  function validate_canExcuteUpgradeAllOneProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExecuteUpgradeAllOneProposal") {
+  function validate_canExecuteUpgradeAllOneProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_canExecuteUpgradeAllOneProposal") {
     IRoninBridgeManager manager = IRoninBridgeManager(loadContract(Contract.RoninBridgeManager.key()));
     TContract[] memory contractTypes = new TContract[](4);
     contractTypes[0] = Contract.BridgeSlash.key();
