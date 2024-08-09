@@ -3,6 +3,9 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { cheatBroadcast } from "@fdk/utils/Helpers.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
+import { TNetwork } from "@fdk/types/Types.sol";
+import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
 
 import { Contract } from "../utils/Contract.sol";
 import { Network } from "../utils/Network.sol";
@@ -12,6 +15,7 @@ import { LibStorage } from "../shared/libraries/LibStorage.sol";
 
 import { TransparentUpgradeableProxyV2, TransparentUpgradeableProxy } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
+import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { MainchainBridgeManager } from "@ronin/contracts/mainchain/MainchainBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
@@ -21,41 +25,46 @@ import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { Transfer } from "@ronin/contracts/libraries/Transfer.sol";
 import { TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
-import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 
 contract Migration__20240807_IR_Recover is Migration {
   using LibProxy for *;
+  using LibCompanionNetwork for TNetwork;
+
+  TNetwork _companionNetwork;
+  TNetwork _prevNetwork;
+  uint256 _prevForkId;
 
   address private constant SM_GOVERNOR = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
   address private _multisigEth = 0x51F6696Ae42C6C40CA9F5955EcA2aaaB1Cefb26e;
   IMainchainBridgeManager private _mainchainBM = IMainchainBridgeManager(0x2Cf3CFb17774Ce0CFa34bB3f3761904e7fc3FaDB);
   TransparentUpgradeableProxyV2 private _mainchainBMproxy = TransparentUpgradeableProxyV2(payable(address(_mainchainBM)));
   IMainchainGatewayV3 private _mainchainGW = IMainchainGatewayV3(0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08);
+  IRoninBridgeManager private _roninBM = IRoninBridgeManager(0x2ae89936FC398AeA23c63dB2404018fE361A8628);
 
   address _prevBMLogic;
   address _newBMLogic;
   address _newGWLogic;
 
-  function run() public virtual onlyOn(Network.EthMainnet.key()) {
-    _preCheck_Withdrawable();
-    _performFix();
-    _performCheckAfterFix();
+  Proposal.ProposalDetail private _proposal;
 
-    // Cheat to change admin of MainchainBridgeManager to self to pass post-check.
-    vm.prank(_multisigEth);
-    TransparentUpgradeableProxy(payable(address(_mainchainBM))).changeAdmin(address(_mainchainBM));
+  function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
+    TNetwork currentNetwork = network();
+    (, _companionNetwork) = currentNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
-    switchTo(DefaultNetwork.RoninMainnet.key());
+    {
+      _preCheck_Withdrawable();
+      _perform_PrankFix();
+      _perform_checkAfterPrankFix();
+    }
 
-    // Cheat to change admin of RoninBridgeManager to self to pass post-check.
-    address payable roninBM = loadContract(Contract.RoninBridgeManager.key());
-    address admin = roninBM.getProxyAdmin();
-    vm.prank(admin);
-    TransparentUpgradeableProxy(roninBM).changeAdmin(roninBM);
+    switchBack(prevNetwork, prevForkId);
+
+    _performCreateProposalOnRonin();
   }
 
-  function _performFix() internal {
+  function _perform_PrankFix() internal {
     vm.prank(_multisigEth);
     _prevBMLogic = _mainchainBMproxy.implementation();
     _newBMLogic = _deployLogic(Contract.MainchainBridgeManager.key());
@@ -96,15 +105,29 @@ contract Migration__20240807_IR_Recover is Migration {
     // });
   }
 
+  function _performCreateProposalOnRonin() internal {
+    vm.startBroadcast(SM_GOVERNOR);
+    _roninBM.propose({
+      chainId: _proposal.chainId,
+      expiryTimestamp: _proposal.expiryTimestamp,
+      executor: _proposal.executor,
+      targets: _proposal.targets,
+      values: _proposal.values,
+      calldatas: _proposal.calldatas,
+      gasAmounts: _proposal.gasAmounts
+    });
+    vm.stopBroadcast();
+  }
+
   function _recover_relayProposalWithCheatGovernors() internal {
     // Create proposal
-    Proposal.ProposalDetail memory proposal = __recover_createProposal();
+    _proposal = __recover_createProposal();
 
     // Validate proposal's gas amount
-    LibProposal.verifyProposalGasAmount(address(_mainchainBM), proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts);
+    LibProposal.verifyProposalGasAmount(address(_mainchainBM), _proposal.targets, _proposal.values, _proposal.calldatas, _proposal.gasAmounts);
 
     // Validate proposal's execution
-    LibProposal.verifyProposalExecutionMainchain({ governance: address(_mainchainBM), proposal: proposal, shouldRevertState: false });
+    LibProposal.verifyProposalExecutionMainchain({ governance: address(_mainchainBM), proposal: _proposal, shouldRevertState: false });
   }
 
   function __recover_createProposal() internal view returns (Proposal.ProposalDetail memory proposal) {
@@ -161,18 +184,20 @@ contract Migration__20240807_IR_Recover is Migration {
     proposal.gasAmounts = new uint256[](2);
 
     proposal.targets[0] = address(_mainchainGW);
-    proposal.targets[1] = address(_mainchainGW);
     proposal.values[0] = 0;
-    proposal.values[1] = 0;
+    proposal.gasAmounts[0] = 2000000;
     proposal.calldatas[0] = abi.encodeWithSignature(
       "functionDelegateCall(bytes)", abi.encodeWithSelector(IBridgeManagerCallback.onBridgeOperatorsAdded.selector, operators, weights, addeds)
     );
+
+    proposal.targets[1] = address(_mainchainGW);
+    proposal.values[1] = 0;
     proposal.calldatas[1] = abi.encodeWithSignature("upgradeTo(address)", _newGWLogic);
-    proposal.gasAmounts[0] = 2000000;
     proposal.gasAmounts[1] = 1000000;
   }
 
   function _preCheck_Withdrawable() internal {
+
     uint256 snapshotId = vm.snapshot();
 
     _fake_unpause();
@@ -201,7 +226,7 @@ contract Migration__20240807_IR_Recover is Migration {
     console.log("Stop pranking Pause Enforcer");
   }
 
-  function _performCheckAfterFix() internal {
+  function _perform_checkAfterPrankFix() internal {
     // - Total weight in `BM` and `GW` the same
     {
       uint256 totalWeightBM = _mainchainBM.getTotalWeight();
@@ -236,6 +261,27 @@ contract Migration__20240807_IR_Recover is Migration {
 
     bool reverted = vm.revertTo(snapshotId);
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
+  }
+
+  function _postCheck() virtual override internal  {
+    switchTo(_companionNetwork);
+
+    // Cheat to unpause of MainchainGatewayV3 to self to pass post-check.
+    _fake_unpause();
+
+    // Cheat to change admin of MainchainBridgeManager to self to pass post-check.
+    vm.prank(_multisigEth);
+    TransparentUpgradeableProxy(payable(address(_mainchainBM))).changeAdmin(address(_mainchainBM));
+
+    switchTo(DefaultNetwork.RoninMainnet.key());
+
+    // Cheat to change admin of RoninBridgeManager to self to pass post-check.
+    address payable roninBM = loadContract(Contract.RoninBridgeManager.key());
+    address admin = roninBM.getProxyAdmin();
+    vm.prank(admin);
+    TransparentUpgradeableProxy(roninBM).changeAdmin(roninBM);
+
+    super._postCheck();
   }
 
   function getGWTotalWeight() public view returns (uint96 totalWeight) {
