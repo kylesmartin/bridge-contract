@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
 import { console } from "forge-std/console.sol";
 import { IGeneralConfigExtended } from "script/interfaces/IGeneralConfigExtended.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
@@ -13,8 +14,10 @@ import { Proposal } from "@ronin/contracts/libraries/Proposal.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
+import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { SignatureConsumer } from "@ronin/contracts/interfaces/consumers/SignatureConsumer.sol";
 import { LibArray } from "./LibArray.sol";
+import { LibStorage } from "./LibStorage.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "./LibCompanionNetwork.sol";
 import { LibErrorHandler } from "@fdk/libraries/LibErrorHandler.sol";
@@ -252,6 +255,56 @@ library LibProposal {
       success.handleRevert(bytes4(calldatas[i]), returnOrRevertData);
 
       if (gasUsed > gasAmounts[i]) revert ErrProposalOutOfGas(block.chainid, bytes4(calldatas[i]), gasUsed);
+    }
+  }
+
+  function verifyProposalExecutionMainchain(
+    address governance,
+    Proposal.ProposalDetail memory proposal
+  ) internal {
+    address cheatPowerGov = 0x19614c50b0d13399A1533Fc1d3c1AD980A249aEa; // cheating pk, do not use in production
+    uint256 cheatingPowerGovPk = 0x677911d1450076499cfe00fa1090c00c6ed7338fb5acfdef663a8fbde551d461; // cheating pk, do not use in production
+    vm.label(cheatPowerGov, "CheatPowerGovernor");
+
+    uint256[] memory cheatingPks = new uint256[](1);
+    cheatingPks[0] = cheatingPowerGovPk;
+
+    uint256 $$_governorWeightMap_Slot = uint256(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300) + 2;
+    bytes32 $$_governorWeight_Slot = LibStorage.getMappingElementSlotIndex(cheatPowerGov, uint256($$_governorWeightMap_Slot));
+
+    vm.store(governance, $$_governorWeight_Slot, bytes32(uint256(uint96(100*1000))));
+
+    {
+      Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](1);
+      SignatureConsumer.Signature[] memory sigs_ = new SignatureConsumer.Signature[](1);
+      supports_[0] = Ballot.VoteType.For;
+
+      sigs_ = generateSignatures(proposal, cheatingPks, supports_[0]);
+
+      if (proposal.executor == address(0)) {
+        vm.prank(cheatPowerGov);
+      } else {
+        vm.prank(proposal.executor);
+      }
+      IMainchainBridgeManager(governance).relayProposal(proposal, supports_, sigs_);
+    }
+  }
+
+  function verifyProposalExecutionMainchain(
+    address governance,
+    Proposal.ProposalDetail memory proposal,
+    bool shouldRevertState
+  ) internal {
+    uint256 snapshotId;
+    if (shouldRevertState) {
+      snapshotId = vm.snapshot();
+    }
+
+    verifyProposalExecutionMainchain(governance, proposal);
+
+    if (shouldRevertState) {
+      bool revertSuccess = vm.revertTo(snapshotId);
+      require(revertSuccess, "Cannot revert to snapshot id");
     }
   }
 

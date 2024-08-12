@@ -111,8 +111,6 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     roninChainId = block.chainid;
     currentNetwork = network();
 
-    cheatAddOverWeightedGovernor(address(roninBridgeManager));
-
     vm.deal(user, 10 ether);
     deal(address(roninERC20), user, 1000 ether);
   }
@@ -123,8 +121,6 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
     mainchainChainId = block.chainid;
     gwDomainSeparator = MainchainGatewayV3(payable(mainchainGateway)).DOMAIN_SEPARATOR();
-
-    cheatAddOverWeightedGovernor(address(mainchainBridgeManager));
 
     mainchainERC20 = new MockERC20("MainchainERC20", "MERC20");
     mainchainTokens[0] = address(mainchainERC20);
@@ -139,6 +135,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     _setUp();
     validate_HasBridgeManager();
     validate_Gateway_depositERC20();
+    validate_Gateway_RevertIf_InvalidSignature_WithdrawERC20();
     validate_Gateway_withdrawERC20();
   }
 
@@ -167,7 +164,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     depositRequest.info.quantity = 100 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
+    _cheatUnpauseIfPaused_Mainchain();
     vm.prank(user);
     mainchainERC20.approve(address(mainchainGateway), 100 ether);
     vm.prank(user);
@@ -185,10 +182,55 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
     switchBack(prevNetwork, prevForkId);
 
+    _cheatUnpauseIfPaused_Ronin();
+    cheatAddOverWeightedGovernor(address(roninBridgeManager));
     vm.prank(cheatOperator);
     RoninGatewayV3(roninGateway).depositFor(receipt);
 
     assertEq(roninERC20.balanceOf(depositRequest.recipientAddr), 100 ether);
+  }
+
+  function validate_Gateway_RevertIf_InvalidSignature_WithdrawERC20() private onPostCheck("validate_Gateway_RevertIf_InvalidSignature_WithdrawERC20") {
+    withdrawRequest.recipientAddr = makeAddr("malicious-recipient");
+    withdrawRequest.tokenAddr = address(roninERC20);
+    withdrawRequest.info.erc = TokenStandard.ERC20;
+    withdrawRequest.info.id = 0;
+    withdrawRequest.info.quantity = 100 ether;
+
+    _cheatUnpauseIfPaused_Ronin();
+    // uint256 _numOperatorsForVoteExecuted = (RoninBridgeManager(_manager[block.chainid]).minimumVoteWeight() - 1) / 100 + 1;
+    vm.prank(user);
+    roninERC20.approve(address(roninGateway), 100 ether);
+    vm.prank(user);
+    vm.recordLogs();
+    RoninGatewayV3(payable(address(roninGateway))).requestWithdrawalFor(withdrawRequest, mainchainChainId);
+
+    VmSafe.Log[] memory logs_ = vm.getRecordedLogs();
+    LibTransfer.Receipt memory receipt;
+    bytes32 receiptHash;
+    for (uint256 i; i < logs_.length; ++i) {
+      if (logs_[i].emitter == address(roninGateway) && logs_[i].topics[0] == IRoninGatewayV3.WithdrawalRequested.selector) {
+        (receiptHash, receipt) = abi.decode(logs_[i].data, (bytes32, LibTransfer.Receipt));
+      }
+    }
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainSeparator, receiptHash);
+    (address invalidSigner, uint256 invalidPK) = makeAddrAndKey("invalid-signer");
+    console.log("Invalid Signer", invalidSigner);
+    console.log("Minimum Vote Weight", MainchainGatewayV3(payable(mainchainGateway)).minimumVoteWeight());
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(invalidPK, receiptDigest);
+
+    Signature[] memory sigs = new Signature[](1);
+    sigs[0] = Signature(v, r, s);
+
+    _cheatUnpauseIfPaused_Mainchain();
+    vm.expectRevert();
+    MainchainGatewayV3(payable(mainchainGateway)).submitWithdrawal(receipt, sigs);
+
+    switchBack(prevNetwork, prevForkId);
   }
 
   function validate_Gateway_withdrawERC20() private onPostCheck("validate_Gateway_withdrawERC20") {
@@ -198,6 +240,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
     withdrawRequest.info.id = 0;
     withdrawRequest.info.quantity = 100 ether;
 
+    _cheatUnpauseIfPaused_Ronin();
     // uint256 _numOperatorsForVoteExecuted = (RoninBridgeManager(_manager[block.chainid]).minimumVoteWeight() - 1) / 100 + 1;
     vm.prank(user);
     roninERC20.approve(address(roninGateway), 100 ether);
@@ -216,18 +259,42 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck, Signatu
 
     bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainSeparator, receiptHash);
 
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    cheatAddOverWeightedGovernor(address(mainchainBridgeManager));
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(cheatOperatorPk, receiptDigest);
 
     Signature[] memory sigs = new Signature[](1);
     sigs[0] = Signature(v, r, s);
 
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
+    _cheatUnpauseIfPaused_Mainchain();
     MainchainGatewayV3(payable(mainchainGateway)).submitWithdrawal(receipt, sigs);
 
     assertEq(mainchainERC20.balanceOf(withdrawRequest.recipientAddr), 100 ether);
 
     switchBack(prevNetwork, prevForkId);
+  }
+
+  function _cheatUnpauseIfPaused_Mainchain() private {
+    bool paused = MainchainGatewayV3(payable(mainchainGateway)).paused();
+    if (paused) {
+      address emergencyPauser = MainchainGatewayV3(payable(mainchainGateway)).emergencyPauser();
+      vm.prank(emergencyPauser);
+      MainchainGatewayV3(payable(mainchainGateway)).unpause();
+
+      assertFalse(MainchainGatewayV3(payable(mainchainGateway)).paused(), "GatewayV3 should not be paused after unpausing");
+    }
+  }
+
+  function _cheatUnpauseIfPaused_Ronin() private {
+    bool paused = RoninGatewayV3(payable(roninGateway)).paused();
+    if (paused) {
+      address emergencyPauser = RoninGatewayV3(payable(roninGateway)).emergencyPauser();
+      vm.prank(emergencyPauser);
+      RoninGatewayV3(payable(roninGateway)).unpause();
+
+      assertFalse(RoninGatewayV3(payable(roninGateway)).paused(), "GatewayV3 should not be paused after unpausing");
+    }
   }
 
   // Set the balance of an account for any ERC20 token
