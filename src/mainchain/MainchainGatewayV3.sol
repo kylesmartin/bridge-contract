@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IBridgeManager } from "../interfaces/bridge/IBridgeManager.sol";
 import { IBridgeManagerCallback } from "../interfaces/bridge/IBridgeManagerCallback.sol";
 import { HasContracts, ContractType } from "../extensions/collections/HasContracts.sol";
@@ -309,16 +310,19 @@ contract MainchainGatewayV3 is
       address signer;
       address lastSigner;
       Signature memory sig;
-      uint256 weight;
+      uint256 accumWeight;
       for (uint256 i; i < signatures.length; i++) {
         sig = signatures[i];
-        signer = ecrecover(receiptDigest, sig.v, sig.r, sig.s);
+        signer = ECDSA.recover({ hash: receiptDigest, v: sig.v, r: sig.r, s: sig.s });
         if (lastSigner >= signer) revert ErrInvalidOrder(msg.sig);
 
         lastSigner = signer;
 
-        weight += _getWeight(signer);
-        if (weight >= minimumWeight) {
+        uint256 w = _getWeight(signer);
+        if (w == 0) revert ErrInvalidSigner(signer, w, sig);
+
+        accumWeight += w;
+        if (accumWeight >= minimumWeight) {
           passed = true;
           break;
         }
@@ -398,7 +402,7 @@ contract MainchainGatewayV3 is
   }
 
   /**
-   * @dev Update domain seperator.
+   * @dev Update domain separator.
    */
   function _updateDomainSeparator() internal {
     /*
@@ -432,9 +436,9 @@ contract MainchainGatewayV3 is
    * Emits the `WrappedNativeTokenContractUpdated` event.
    *
    */
-  function _setWrappedNativeTokenContract(IWETH _wrapedToken) internal {
-    wrappedNativeToken = _wrapedToken;
-    emit WrappedNativeTokenContractUpdated(_wrapedToken);
+  function _setWrappedNativeTokenContract(IWETH _wrappedToken) internal {
+    wrappedNativeToken = _wrappedToken;
+    emit WrappedNativeTokenContractUpdated(_wrappedToken);
   }
 
   /**
@@ -461,8 +465,9 @@ contract MainchainGatewayV3 is
   /**
    * @inheritdoc GatewayV3
    */
-  function _getTotalWeight() internal view override returns (uint256) {
-    return _totalOperatorWeight;
+  function _getTotalWeight() internal view override returns (uint256 totalWeight) {
+    totalWeight = _totalOperatorWeight;
+    if (totalWeight == 0) revert ErrNullTotalWeightProvided(msg.sig);
   }
 
   /**
