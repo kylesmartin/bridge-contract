@@ -64,7 +64,7 @@ localhost = "http://localhost:8545"
 ethereum = "https://eth.llamarpc.com"
 sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY}"
 goerli = "https://ethereum-goerli.publicnode.com"
-ronin-mainnet = "https://api-partner.roninchain.com/rpc"
+ronin-mainnet = "https://api-archived.roninchain.com/rpc"
 ronin-testnet = "https://saigon-archive.roninchain.com/rpc"
 
 [dependencies]

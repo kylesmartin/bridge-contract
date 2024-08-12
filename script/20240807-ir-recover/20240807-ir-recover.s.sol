@@ -150,7 +150,7 @@ contract Migration__20240807_IR_Recover is Migration {
     proposal.nonce = 1;
     proposal.chainId = 1;
     proposal.expiryTimestamp = block.timestamp + 12 days;
-    proposal.executor = address(0);
+    proposal.executor = SM_GOVERNOR;
 
     // proposal.targets = new address[](2);
     // proposal.values = new uint256[](2);
