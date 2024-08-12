@@ -42,8 +42,8 @@ contract Migration__20240807_IR_Recover is Migration {
   IMainchainGatewayV3 private _mainchainGW = IMainchainGatewayV3(0x64192819Ac13Ef72bF6b5AE239AC672B43a9AF08);
   IRoninBridgeManager private _roninBM = IRoninBridgeManager(0x2ae89936FC398AeA23c63dB2404018fE361A8628);
 
-  address _prevBMLogic;
-  address _newBMLogic;
+  // address _prevBMLogic;
+  // address _newBMLogic;
   address _newGWLogic;
 
   Proposal.ProposalDetail private _proposal;
@@ -66,8 +66,8 @@ contract Migration__20240807_IR_Recover is Migration {
 
   function _perform_PrankFix() internal {
     vm.prank(_multisigEth);
-    _prevBMLogic = _mainchainBMproxy.implementation();
-    _newBMLogic = _deployLogic(Contract.MainchainBridgeManager.key());
+    // _prevBMLogic = _mainchainBMproxy.implementation();
+    // _newBMLogic = _deployLogic(Contract.MainchainBridgeManager.key());
     _newGWLogic = _deployLogic(Contract.MainchainGatewayV3.key());
 
     (bool success, bytes memory ret) = address(_mainchainGW).staticcall(abi.encodeWithSignature("paused()"));
