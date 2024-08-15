@@ -187,7 +187,7 @@ contract BridgeSlash is IBridgeSlash, IBridgeManagerCallback, BridgeTrackingHelp
   /**
    * @inheritdoc IBridgeSlash
    */
-  function getSlashUntilPeriodOf(address[] calldata bridgeOperators) external view returns (uint256[] memory untilPeriods) {
+  function getSlashUntilPeriodOf(address[] calldata bridgeOperators) external view virtual returns (uint256[] memory untilPeriods) {
     uint256 length = bridgeOperators.length;
     untilPeriods = new uint256[](length);
     mapping(address => BridgeSlashInfo) storage _bridgeSlashInfos = _getBridgeSlashInfos();

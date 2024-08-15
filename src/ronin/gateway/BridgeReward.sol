@@ -366,7 +366,7 @@ contract BridgeReward is IBridgeReward, BridgeTrackingHelper, HasContracts, RONT
   /**
    * @dev Internal helper for querying slash info of a list of operators.
    */
-  function _getSlashInfo(address[] memory operatorList) internal returns (uint256[] memory _slashedDuration) {
+  function _getSlashInfo(address[] memory operatorList) internal view returns (uint256[] memory _slashedDuration) {
     return IBridgeSlash(getContract(ContractType.BRIDGE_SLASH)).getSlashUntilPeriodOf(operatorList);
   }
 

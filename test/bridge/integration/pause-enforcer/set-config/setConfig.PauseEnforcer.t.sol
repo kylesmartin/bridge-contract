@@ -6,13 +6,9 @@ import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
 import "../../BaseIntegration.t.sol";
 
 contract SetConfig_PauseEnforcer_Test is BaseIntegration_Test {
-  function setUp() public virtual override {
-    super.setUp();
-  }
-
   function test_configPauseEnforcerContract() public {
-    address pauseEnforcer = _roninGatewayV3.emergencyPauser();
-    assertEq(pauseEnforcer, address(_roninPauseEnforcer));
+    (, bytes memory ret) = address(_roninGatewayV3).staticcall(abi.encodeWithSignature("emergencyPauser()"));
+    assertEq(abi.decode(ret, (address)), address(_roninPauseEnforcer));
   }
 
   function test_configBridgeContract() public {

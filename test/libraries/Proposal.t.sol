@@ -12,7 +12,7 @@ contract ProposalTest is Test {
   // keccak256("ProposalDetail(uint256 nonce,uint256 chainId,uint256 expiryTimestamp,address executor,address[] targets,uint256[] values,bytes[] calldatas,uint256[] gasAmounts)");
   bytes32 internal constant TYPE_HASH = 0x1b59eeec7c321899dc1e7a5b3d876c9a445dffc6d2f96ba842d7489908fdee12;
 
-  function testFuzz_hash_Proposal(uint256 nonce, uint256 chainId, uint256 expiryTimestamp, address executor, uint8 count) external returns (bytes32) {
+  function testFuzz_hash_Proposal(uint256 nonce, uint256 chainId, uint256 expiryTimestamp, address executor, uint8 count) external pure {
     vm.assume(count < 100 && count != 0);
 
     address[] memory targets = new address[](count);
@@ -43,7 +43,7 @@ contract ProposalTest is Test {
     assertEq(actual, expected, "hash mismatch");
   }
 
-  function testFuzz_hash_GlobalProposal(uint256 nonce, uint256 expiryTimestamp, address executor, uint8 count) external returns (bytes32) {
+  function testFuzz_hash_GlobalProposal(uint256 nonce, uint256 expiryTimestamp, address executor, uint8 count) external pure {
     vm.assume(count < 100 && count != 0);
 
     uint8[] memory _targetOptions = new uint8[](count);

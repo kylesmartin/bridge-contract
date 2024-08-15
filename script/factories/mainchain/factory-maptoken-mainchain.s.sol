@@ -60,7 +60,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
       supports_[i] = Ballot.VoteType.For;
     }
 
-    SignatureConsumer.Signature[] memory signatures = mainchainProposalUtils.generateSignatures(proposal, _governorPKs);
+    Signature[] memory signatures = mainchainProposalUtils.generateSignatures(proposal, _governorPKs);
 
     uint256 gasAmounts = 1_000_000;
     for (uint256 i; i < proposal.gasAmounts.length; ++i) {
@@ -104,7 +104,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
 
     if (network() == DefaultNetwork.RoninMainnet.key() || network() == DefaultNetwork.RoninMainnet.key()) {
       // Verify gas amount for ronin targets.
-      (uint256 companionChainId, TNetwork companionNetwork) = network().companionNetworkData();
+      (, TNetwork companionNetwork) = network().companionNetworkData();
       address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
       LibProposal.verifyMainchainProposalGasAmount(companionNetwork, companionManager, targets, values, calldatas, gasAmounts);
     } else {
@@ -127,7 +127,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
   function _prepareMapTokensAndThresholds(
     uint256 N,
     MapTokenInfo[] memory tokenInfos
-  ) internal returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds) {
+  ) internal pure returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards, uint256[][4] memory thresholds) {
     // function mapTokensAndThresholds(
     //   address[] calldata _mainchainTokens,
     //   address[] calldata _roninTokens,
@@ -159,7 +159,7 @@ abstract contract Factory__MapTokensMainchain is Migration {
   function _prepareMapTokens(
     uint256 N,
     MapTokenInfo[] memory tokenInfos
-  ) internal returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards) {
+  ) internal pure returns (address[] memory mainchainTokens, address[] memory roninTokens, TokenStandard[] memory standards) {
     //  function mapTokens(
     //    address[] calldata _mainchainTokens,
     //    address[] calldata _roninTokens,

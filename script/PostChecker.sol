@@ -60,7 +60,7 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == Network.RoninDevnet.key()
         || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
-      _loadRoninContracts(currentNetwork);
+      _loadRoninContracts();
 
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
       mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
@@ -76,13 +76,13 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       uint256 originForkId = config.getForkId(companionNetwork, originForkBlockNumber);
       config.switchTo(originForkId);
 
-      _loadRoninContracts(companionNetwork);
+      _loadRoninContracts();
     }
 
     _markSysContractsAsPersistent();
   }
 
-  function _loadRoninContracts(TNetwork roninNetwork) private {
+  function _loadRoninContracts() private {
     bridgeSlash = loadContract(Contract.BridgeSlash.key());
     bridgeReward = loadContract(Contract.BridgeReward.key());
     roninGateway = loadContract(Contract.RoninGatewayV3.key());
@@ -90,6 +90,5 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
   }
 
-  function _markSysContractsAsPersistent() internal {
-  }
+  function _markSysContractsAsPersistent() internal { }
 }
