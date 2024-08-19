@@ -11,7 +11,7 @@ contract LibTokenOwnerTest is Test {
     _typeHash = LibTokenOwner.OWNER_TYPE_HASH;
   }
 
-  function testFuzz_hash(TokenOwner memory self) external {
+  function testFuzz_hash(TokenOwner memory self) external view {
     bytes32 expected = keccak256(abi.encode(_typeHash, self.addr, self.tokenAddr, self.chainId));
     bytes32 actual = LibTokenOwner.hash(self);
     assertEq(actual, expected, "hash mismatch");

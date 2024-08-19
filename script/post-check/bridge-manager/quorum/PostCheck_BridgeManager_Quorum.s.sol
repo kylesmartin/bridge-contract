@@ -15,17 +15,93 @@ abstract contract PostCheck_BridgeManager_Quorum is BasePostCheck {
   using LibCompanionNetwork for *;
 
   function _validate_BridgeManager_Quorum() internal {
-    validate_NonZero_MinimumVoteWeight();
+    // -------------- BridgeManager Quorum --------------
+    validate_NonZero_MinimumVoteWeight_BridgeManager();
+    validate_NonZero_TotalWeight_BridgeManager();
+    validate_Valid_Threshold_BridgeManager();
+
+    // -------------- Gateway Quorum --------------
+    validate_NonZero_MinimumVoteWeight_Gateway();
+    validate_NonZero_TotalWeight_Gateway();
+    validate_Valid_Threshold_Gateway();
   }
 
-  function validate_NonZero_MinimumVoteWeight() private onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_MinimumVoteWeight") {
-    assertTrue(IQuorum(roninBridgeManager).minimumVoteWeight() > 0, "Ronin: Minimum vote weight must be greater than 0");
-    TNetwork currentNetwork = network();
+  function validate_Valid_Threshold_BridgeManager() internal onlyOnRoninNetworkOrLocal onPostCheck("validate_valid_Threshold_BridgeManager") {
+    (uint256 num, uint256 denom) = IQuorum(roninBridgeManager).getThreshold();
+    assertTrue(num > 0 && denom > 0, "Ronin: BridgeManager's Threshold must be greater than 0");
+    assertTrue(num <= denom, "Ronin: BridgeManager's Threshold numerator must be less than or equal to denominator");
+    TNetwork currNetwork = network();
 
-    (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-    assertTrue(IQuorum(mainchainBridgeManager).minimumVoteWeight() > 0, "Mainchain: Minimum vote weight must be greater than 0");
+    (num, denom) = IQuorum(mainchainBridgeManager).getThreshold();
+    assertTrue(num > 0 && denom > 0, "Mainchain: BridgeManager's Threshold must be greater than 0");
+    assertTrue(num <= denom, "Mainchain: BridgeManager's Threshold numerator must be less than or equal to denominator");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_Valid_Threshold_Gateway() internal onlyOnRoninNetworkOrLocal onPostCheck("validate_Valid_Threshold_Gateway") {
+    (uint256 num, uint256 denom) = IQuorum(roninGateway).getThreshold();
+    assertTrue(num > 0 && denom > 0, "Ronin: Gateway's Threshold must be greater than 0");
+    assertTrue(num <= denom, "Ronin: Gateway's Threshold numerator must be less than or equal to denominator");
+    TNetwork currNetwork = network();
+
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    (num, denom) = IQuorum(mainchainGateway).getThreshold();
+    assertTrue(num > 0 && denom > 0, "Mainchain: Gateway's Threshold must be greater than 0");
+    assertTrue(num <= denom, "Mainchain: Gateway's Threshold numerator must be less than or equal to denominator");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_NonZero_TotalWeight_Gateway() internal onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_TotalWeight_Gateway") {
+    assertTrue(IBridgeManager(roninGateway).getTotalWeight() > 0, "Ronin: Gateway's Total weight must be greater than 0");
+    TNetwork currNetwork = network();
+
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertTrue(IBridgeManager(mainchainGateway).getTotalWeight() > 0, "Mainchain: Gateway's Total weight must be greater than 0");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_NonZero_MinimumVoteWeight_Gateway() internal onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_Threshold_Gateway") {
+    assertTrue(IQuorum(roninGateway).minimumVoteWeight() > 0, "Ronin: Gateway's Minimum vote weight must be greater than 0");
+    TNetwork currNetwork = network();
+
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertTrue(IQuorum(mainchainGateway).minimumVoteWeight() > 0, "Mainchain: Gateway's Minimum vote weight must be greater than 0");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_NonZero_MinimumVoteWeight_BridgeManager() private onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_MinimumVoteWeight") {
+    assertTrue(IQuorum(roninBridgeManager).minimumVoteWeight() > 0, "Ronin: BridgeManager's Minimum vote weight must be greater than 0");
+    TNetwork currNetwork = network();
+
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertTrue(IQuorum(mainchainBridgeManager).minimumVoteWeight() > 0, "Mainchain: BridgeManager's Minimum vote weight must be greater than 0");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_NonZero_TotalWeight_BridgeManager() private onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_TotalWeight_BridgeManager") {
+    assertTrue(IBridgeManager(roninBridgeManager).getTotalWeight() > 0, "Ronin: BridgeManager's Total weight must be greater than 0");
+    TNetwork currNetwork = network();
+
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertTrue(IBridgeManager(mainchainBridgeManager).getTotalWeight() > 0, "Mainchain: BridgeManager's Total weight must be greater than 0");
 
     switchBack(prevNetwork, prevForkId);
   }

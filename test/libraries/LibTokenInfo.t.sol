@@ -11,7 +11,7 @@ contract LibTokenInfoTest is Test {
     typeHash = LibTokenInfo.INFO_TYPE_HASH_SINGLE;
   }
 
-  function testFuzz_hash(uint8 _erc, uint256 id, uint256 quantity) external {
+  function testFuzz_hash(uint8 _erc, uint256 id, uint256 quantity) external view {
     _erc = uint8(_bound(_erc, 0, 2));
     TokenStandard erc;
     assembly {
