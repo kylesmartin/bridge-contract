@@ -63,13 +63,13 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       _loadRoninContracts();
 
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
-      mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
-      mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
+      ethGW = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
+      ethBM = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
     } else {
-      mainchainGateway = loadContract(Contract.MainchainGatewayV3.key());
-      mainchainBridgeManager = loadContract(Contract.MainchainBridgeManager.key());
+      ethGW = loadContract(Contract.MainchainGatewayV3.key());
+      ethBM = loadContract(Contract.MainchainBridgeManager.key());
 
-      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(mainchainBridgeManager));
+      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(ethBM));
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
       uint256 originForkBlockNumber = config.getRuntimeConfig().forkBlockNumber;
@@ -83,11 +83,11 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
   }
 
   function _loadRoninContracts() private {
-    bridgeSlash = loadContract(Contract.BridgeSlash.key());
-    bridgeReward = loadContract(Contract.BridgeReward.key());
-    roninGateway = loadContract(Contract.RoninGatewayV3.key());
-    bridgeTracking = loadContract(Contract.BridgeTracking.key());
-    roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+    brSl = loadContract(Contract.BridgeSlash.key());
+    brRw = loadContract(Contract.BridgeReward.key());
+    ronGW = loadContract(Contract.RoninGatewayV3.key());
+    brTk = loadContract(Contract.BridgeTracking.key());
+    ronBM = loadContract(Contract.RoninBridgeManager.key());
   }
 
   function _markSysContractsAsPersistent() internal { }

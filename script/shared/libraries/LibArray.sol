@@ -230,28 +230,38 @@ library LibArray {
   }
 
   /**
-   * @dev Sorts an array of uint256 values based on a corresponding array of values using the specified sorting mode.
-   * @param self The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @notice This function modify `self` and `values`
-   * @return sorted The sorted array.
+   * @notice Sorts an array of uint256 values based on a corresponding array of values using the specified sorting mode.
+   * WARNING: This function modify `self` and `values`
    */
-  function inplaceSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
-    return inplaceQuickSortByValue(self, values);
+  function inplaceAscSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(self, values);
   }
 
   /**
-   * @dev Sorts an array of uint256 based on a corresponding array of values.
-   * @param self The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @notice This function modify `self` and `values`
-   * @return sorted The sorted array.
+   * @notice Sorts an array of address based on a corresponding array of values.
+   * WARNING: This function modify `self` and `values`
    */
-  function inplaceQuickSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+  function inplaceAscSortByValue(address[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(toUint256s(self), values);
+  }
+
+  /**
+   * @notice Sorts an array of uint256 based on a corresponding array of address values.
+   * WARNING: This function modify `self` and `values`
+   */
+  function inplaceAscSortByValue(uint256[] memory self, address[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(self, toUint256s(values));
+  }
+
+  /**
+   * @notice Sorts an array of uint256 based on a corresponding array of values.
+   * WARNING: This function modify `self` and `values`
+   */
+  function inplaceAscQuickSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
     uint256 length = self.length;
     if (length != values.length) revert LengthMismatch();
     unchecked {
-      if (length > 1) inplaceQuickSortByValue(self, values, 0, int256(length - 1));
+      if (length > 1) _inplaceAscQuickSortByValue(self, values, 0, int256(length - 1));
     }
 
     assembly ("memory-safe") {
@@ -260,14 +270,10 @@ library LibArray {
   }
 
   /**
-   * @dev Internal function to perform quicksort on an array of uint256 values based on a corresponding array of values.
-   * @param arr The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @param left The left index of the subarray to be sorted.
-   * @param right The right index of the subarray to be sorted.
-   * @notice This function modify `arr` and `values`
+   * @dev Private function to perform quicksort on an array of uint256 values based on a corresponding array of values.
+   * WARNING: This function modify `arr` and `values`
    */
-  function inplaceQuickSortByValue(uint256[] memory arr, uint256[] memory values, int256 left, int256 right) private pure {
+  function _inplaceAscQuickSortByValue(uint256[] memory arr, uint256[] memory values, int256 left, int256 right) private pure {
     unchecked {
       if (left == right) return;
       int256 i = left;
@@ -286,8 +292,8 @@ library LibArray {
         }
       }
 
-      if (left < j) inplaceQuickSortByValue(arr, values, left, j);
-      if (i < right) inplaceQuickSortByValue(arr, values, i, right);
+      if (left < j) _inplaceAscQuickSortByValue(arr, values, left, j);
+      if (i < right) _inplaceAscQuickSortByValue(arr, values, i, right);
     }
   }
 }

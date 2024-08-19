@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
+import { ITransparentUpgradeableProxyV2 } from "script/interfaces/ITransparentUpgradeableProxyV2.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
 import { BasePostCheck } from "script/post-check/BasePostCheck.s.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
-import { Contract } from "script/utils/Contract.sol";
 
 /**
  * @title PostCheck_BridgeManager_CRUD_AddBridgeOperators
@@ -14,11 +13,16 @@ import { Contract } from "script/utils/Contract.sol";
 abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostCheck {
   using LibArray for *;
 
-  uint256 private voteWeight = 100;
+  /// @dev The vote weight of the operator.
+  uint256 private vw = 100;
+  /// @dev The seed for generating random values.
   string private seedStr = vm.toString(seed);
+  /// @dev The operator to be added.
   address private any = makeAddr(string.concat("any", seedStr));
-  address private operator = makeAddr(string.concat("operator-", seedStr));
-  address private governor = makeAddr(string.concat("governor-", seedStr));
+  /// @dev The operator to be added.
+  address private op = makeAddr(string.concat("op-", seedStr));
+  /// @dev The governor of the operator.
+  address private gv = makeAddr(string.concat("gv-", seedStr));
 
   function _validate_BridgeManager_CRUD_addBridgeOperators() internal {
     validate_RevertWhen_NotSelfCalled_addBridgeOperators();
@@ -34,9 +38,7 @@ abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostChe
   function validate_RevertWhen_NotSelfCalled_addBridgeOperators() private onPostCheck("validate_RevertWhen_NotSelfCalled_addBridgeOperators") {
     vm.expectRevert();
     vm.prank(any);
-    IBridgeManager(roninBridgeManager).addBridgeOperators(
-      voteWeight.toSingletonArray().toUint96sUnsafe(), operator.toSingletonArray(), governor.toSingletonArray()
-    );
+    IBridgeManager(ronBM).addBridgeOperators(vw.toSingletonArray().toUint96sUnsafe(), op.toSingletonArray(), gv.toSingletonArray());
   }
 
   /**
@@ -47,31 +49,23 @@ abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostChe
     onPostCheck("validate_RevertWhen_SelfCalled_TheListHasDuplicate_addBridgeOperators")
   {
     vm.expectRevert();
-    vm.prank(roninBridgeManager);
-    TransparentUpgradeableProxyV2(payable(roninBridgeManager)).functionDelegateCall(
-      abi.encodeCall(
-        IBridgeManager.addBridgeOperators, (voteWeight.toSingletonArray().toUint96sUnsafe(), operator.toSingletonArray(), operator.toSingletonArray())
-      )
+    vm.prank(ronBM);
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
+      abi.encodeCall(IBridgeManager.addBridgeOperators, (vw.toSingletonArray().toUint96sUnsafe(), op.toSingletonArray(), op.toSingletonArray()))
     );
 
     vm.expectRevert();
-    vm.prank(roninBridgeManager);
-    TransparentUpgradeableProxyV2(payable(roninBridgeManager)).functionDelegateCall(
-      abi.encodeCall(
-        IBridgeManager.addBridgeOperators, (voteWeight.toSingletonArray().toUint96sUnsafe(), governor.toSingletonArray(), governor.toSingletonArray())
-      )
+    vm.prank(ronBM);
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
+      abi.encodeCall(IBridgeManager.addBridgeOperators, (vw.toSingletonArray().toUint96sUnsafe(), gv.toSingletonArray(), gv.toSingletonArray()))
     );
 
     vm.expectRevert();
-    vm.prank(roninBridgeManager);
-    TransparentUpgradeableProxyV2(payable(roninBridgeManager)).functionDelegateCall(
+    vm.prank(ronBM);
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
       abi.encodeCall(
         IBridgeManager.addBridgeOperators,
-        (
-          voteWeight.toSingletonArray().toUint96sUnsafe(),
-          governor.toSingletonArray().extend(operator.toSingletonArray()),
-          operator.toSingletonArray().extend(governor.toSingletonArray())
-        )
+        (vw.toSingletonArray().toUint96sUnsafe(), gv.toSingletonArray().extend(op.toSingletonArray()), op.toSingletonArray().extend(gv.toSingletonArray()))
       )
     );
   }
@@ -83,12 +77,11 @@ abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostChe
     private
     onPostCheck("validate_RevertWhen_SelfCalled_InputArrayLengthMismatch_addBridgeOperators")
   {
-    vm.prank(roninBridgeManager);
+    vm.prank(ronBM);
     vm.expectRevert();
-    TransparentUpgradeableProxyV2(payable(roninBridgeManager)).functionDelegateCall(
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
       abi.encodeCall(
-        IBridgeManager.addBridgeOperators,
-        (voteWeight.toSingletonArray().toUint96sUnsafe(), governor.toSingletonArray(), operator.toSingletonArray().extend(governor.toSingletonArray()))
+        IBridgeManager.addBridgeOperators, (vw.toSingletonArray().toUint96sUnsafe(), gv.toSingletonArray(), op.toSingletonArray().extend(gv.toSingletonArray()))
       )
     );
   }
@@ -100,12 +93,12 @@ abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostChe
     private
     onPostCheck("validate_RevertWhen_SelfCalled_ContainsNullVoteWeight_addBridgeOperators")
   {
-    vm.prank(roninBridgeManager);
+    vm.prank(ronBM);
     vm.expectRevert();
-    TransparentUpgradeableProxyV2(payable(roninBridgeManager)).functionDelegateCall(
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
       abi.encodeCall(
         IBridgeManager.addBridgeOperators,
-        (uint256(0).toSingletonArray().toUint96sUnsafe(), governor.toSingletonArray(), operator.toSingletonArray().extend(governor.toSingletonArray()))
+        (uint256(0).toSingletonArray().toUint96sUnsafe(), gv.toSingletonArray(), op.toSingletonArray().extend(gv.toSingletonArray()))
       )
     );
   }
@@ -114,25 +107,21 @@ abstract contract PostCheck_BridgeManager_CRUD_AddBridgeOperators is BasePostChe
    * @dev Validates that the function `addBridgeOperators`.
    */
   function validate_addBridgeOperators() private onPostCheck("validate_addBridgeOperators") {
-    address manager = roninBridgeManager;
-    uint256 totalWeightBefore = IBridgeManager(manager).getTotalWeight();
-    uint256 totalBridgeOperatorsBefore = IBridgeManager(manager).getBridgeOperators().length;
+    uint256 prvTotalWeight = IBridgeManager(ronBM).getTotalWeight();
+    uint256 prvOpCount = IBridgeManager(ronBM).getBridgeOperators().length;
 
-    vm.prank(manager);
-    TransparentUpgradeableProxyV2(payable(manager)).functionDelegateCall(
-      abi.encodeCall(
-        IBridgeManager.addBridgeOperators, (voteWeight.toSingletonArray().toUint96sUnsafe(), governor.toSingletonArray(), operator.toSingletonArray())
-      )
+    vm.prank(ronBM);
+    ITransparentUpgradeableProxyV2(ronBM).functionDelegateCall(
+      abi.encodeCall(IBridgeManager.addBridgeOperators, (vw.toSingletonArray().toUint96sUnsafe(), gv.toSingletonArray(), op.toSingletonArray()))
     );
 
-    assertTrue(IBridgeManager(manager).isBridgeOperator(operator), "isBridgeOperator(operator) == false");
-    assertEq(IBridgeManager(manager).getTotalWeight(), totalWeightBefore + voteWeight, "getTotalWeight() != totalWeightBefore + voteWeight");
-    assertEq(
-      IBridgeManager(manager).getBridgeOperators().length, totalBridgeOperatorsBefore + 1, "getBridgeOperators().length != totalBridgeOperatorsBefore + 1"
-    );
+    assertTrue(IBridgeManager(ronBM).isBridgeOperator(op), "isBridgeOperator(op) == false");
+    assertEq(IBridgeManager(ronBM).getTotalWeight(), prvTotalWeight + vw, "getTotalWeight() != prvTotalWeight + vw");
+    assertEq(IBridgeManager(ronBM).getBridgeOperators().length, prvOpCount + 1, "getBridgeOperators().length != prvOpCount + 1");
+
     // Deprecated
-    // assertEq(IBridgeManager(manager).getGovernorsOf(operator.toSingletonArray())[0], governor, "getGovernorsOf(operator)[0] != governor");
+    // assertEq(IBridgeManager(ronBM).getGovernorsOf(op.toSingletonArray())[0], gv, "getGovernorsOf(op)[0] != gv");
     // Deprecated
-    // assertEq(IBridgeManager(manager).getBridgeOperatorOf(governor.toSingletonArray())[0], operator, "getBridgeOperatorOf(governor)[0] != operator");
+    // assertEq(IBridgeManager(ronBM).getBridgeOperatorOf(gv.toSingletonArray())[0], op, "getBridgeOperatorOf(gv)[0] != op");
   }
 }

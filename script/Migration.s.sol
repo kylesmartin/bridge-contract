@@ -150,8 +150,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
         voteWeights[i] = 100;
       }
 
-      operatorPKs.inplaceSortByValue(operatorAddrs.toUint256s());
-      governorPKs.inplaceSortByValue(governorAddrs.toUint256s());
+      operatorPKs.inplaceAscSortByValue(operatorAddrs.toUint256s());
+      governorPKs.inplaceAscSortByValue(governorAddrs.toUint256s());
 
       param.test.operatorPKs = operatorPKs;
       param.test.governorPKs = governorPKs;
