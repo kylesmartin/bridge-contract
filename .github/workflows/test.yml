@@ -17,6 +17,7 @@ on:
       - 'features/*'
       - 'feat/*'
       - 'feats/*'
+      - 'release/*'
 
 env:
   FOUNDRY_PROFILE: ci
