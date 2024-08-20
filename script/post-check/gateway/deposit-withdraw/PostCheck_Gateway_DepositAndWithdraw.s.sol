@@ -6,11 +6,10 @@ import { Vm } from "forge-std/Vm.sol";
 import { BasePostCheck } from "script/post-check/BasePostCheck.s.sol";
 import { MockERC20 } from "@ronin/contracts/mocks/token/MockERC20.sol";
 import { Contract } from "script/utils/Contract.sol";
-import { LibTokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
+import { TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Transfer as LibTransfer } from "@ronin/contracts/libraries/Transfer.sol";
-import { TNetwork, Network } from "script/utils/Network.sol";
+import { TNetwork } from "@fdk/types/TNetwork.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
-import { LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
@@ -27,7 +26,6 @@ import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
 abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
   using LibProxy for *;
   using LibArray for *;
-  using LibProposal for *;
   using LibCompanionNetwork for *;
   using LibTransfer for LibTransfer.Request;
   using LibTransfer for LibTransfer.Receipt;
@@ -128,12 +126,95 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
   function _validate_Gateway_DepositAndWithdraw() internal onlyOnRoninNetworkOrLocal {
     _setUp();
+
+    validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20();
+    validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20();
     validate_HasBridgeManager();
     validate_Gateway_Deposit_ERC20();
     validate_Gateway_RevertIf_InsufficientThreshold_Deposit_ERC20();
     validate_Gateway_Withdraw_ERC20();
     validate_Gateway_RevertIf_InvalidSignature_Withdraw_ERC20();
     validate_Gateway_RevertIf_InsufficientThreshold_Withdraw_ERC20();
+  }
+
+  function validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20() private onPostCheck("validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20") {
+    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
+    withdrawReq.tokenAddr = address(ronERC20);
+    withdrawReq.info.erc = TokenStandard.ERC20;
+    withdrawReq.info.id = 0;
+    withdrawReq.info.quantity = 100 ether;
+
+    cheatUnpauseIfPaused(ronGW);
+
+    vm.prank(user);
+    ronERC20.approve(ronGW, withdrawReq.info.quantity);
+
+    vm.prank(user);
+    vm.recordLogs();
+    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
+
+    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
+
+    cheatUnpauseIfPaused(ethGW);
+    overrideMockBOs(ethBM);
+
+    uint256[] memory pks = new uint256[](2);
+    address[] memory bos = new address[](2);
+
+    pks[0] = mockOpPKs[0];
+    bos[0] = mockOps[0];
+
+    pks[1] = mockOpPKs[0];
+    bos[1] = mockOps[1];
+
+    Signature[] memory sigs = _bulkSignReceipt(pks, bos, receiptDigest);
+
+    vm.expectRevert();
+    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20() private onPostCheck("validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20") {
+    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
+    withdrawReq.tokenAddr = address(ronERC20);
+    withdrawReq.info.erc = TokenStandard.ERC20;
+    withdrawReq.info.id = 0;
+    withdrawReq.info.quantity = 100 ether;
+
+    cheatUnpauseIfPaused(ronGW);
+
+    vm.prank(user);
+    ronERC20.approve(ronGW, withdrawReq.info.quantity);
+
+    vm.prank(user);
+    vm.recordLogs();
+    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
+
+    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
+
+    cheatUnpauseIfPaused(ethGW);
+    overrideMockBOs(ethBM);
+
+    Signature[] memory sigs = new Signature[](mockOpPKs.length);
+
+    for (uint256 i; i < mockOpPKs.length; ++i) {
+      (uint8 v, bytes32 r, bytes32 s) = vm.sign(mockOpPKs[i], receiptDigest);
+      sigs[i] = Signature(v, r, s);
+    }
+
+    vm.expectRevert();
+    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
+
+    switchBack(prevNetwork, prevForkId);
   }
 
   function validate_HasBridgeManager() private onPostCheck("validate_HasBridgeManager") {
@@ -250,7 +331,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
 
-    (, uint256 invalidPK) = makeAddrAndKey("invalid-signer");
+    (, uint256 invalidPK) = makeAddrAndKey(string.concat("invalid-signer-", vm.toString(vm.unixTime())));
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(invalidPK, receiptDigest);
     Signature[] memory sigs = new Signature[](1);
     sigs[0] = Signature(v, r, s);
@@ -343,13 +424,13 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     switchBack(prevNetwork, prevForkId);
   }
 
-  function _bulkSignReceipt(uint256[] memory pks, address[] memory signers, bytes32 receiptHash) private pure returns (Signature[] memory sigs) {
+  function _bulkSignReceipt(uint256[] memory pks, address[] memory signers, bytes32 receiptDigest) private pure returns (Signature[] memory sigs) {
     LibArray.inplaceAscSortByValue(pks, signers);
 
     sigs = new Signature[](pks.length);
 
     for (uint256 i; i < pks.length; ++i) {
-      (uint8 v, bytes32 r, bytes32 s) = vm.sign(pks[i], receiptHash);
+      (uint8 v, bytes32 r, bytes32 s) = vm.sign(pks[i], receiptDigest);
       sigs[i] = Signature(v, r, s);
     }
   }
