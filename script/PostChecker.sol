@@ -25,7 +25,7 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
 
     _loadSysContract();
     _validate_BridgeManager();
-    //  _validate_Gateway();
+    _validate_Gateway();
   }
 
   function _deployLogic(TContract contractType) internal virtual override(BaseMigration, Migration) returns (address payable logic) {
