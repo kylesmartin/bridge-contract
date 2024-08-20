@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
@@ -62,13 +62,23 @@ contract LooseProposal_GlobalProposal_MainchainBridgeManager_Test is BaseIntegra
 
     _globalProposal.targetOptions.push(GlobalProposal.TargetOption.BridgeManager);
     _globalProposal.values.push(0);
-    _globalProposal.calldatas.push(abi.encodeCall(IBridgeManager.addBridgeOperators, (_voteWeights, _addingGovernors, _addingOperators)));
+    _globalProposal.calldatas.push(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", _voteWeights, _addingGovernors, _addingOperators)
+      )
+    );
     _globalProposal.gasAmounts.push(1_000_000);
 
     // Duplicate the internal call
     _globalProposal.targetOptions.push(GlobalProposal.TargetOption.BridgeManager);
     _globalProposal.values.push(0);
-    _globalProposal.calldatas.push(abi.encodeCall(IBridgeManager.addBridgeOperators, (_voteWeights, _addingGovernors, _addingOperators)));
+    _globalProposal.calldatas.push(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", _voteWeights, _addingGovernors, _addingOperators)
+      )
+    );
     _globalProposal.gasAmounts.push(1_000_000);
   }
 

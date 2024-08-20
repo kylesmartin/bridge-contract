@@ -17,6 +17,7 @@ on:
       - 'features/*'
       - 'feat/*'
       - 'feats/*'
+      - 'release/*'
 
 env:
   FOUNDRY_PROFILE: ci
@@ -37,6 +38,14 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Update package with soldeer
+        run: forge soldeer update
+
+      - name: Recursively update dependencies
+        run: |
+          chmod +x ./update-deps.sh
+          ./update-deps.sh
 
       - name: Run Forge build
         run: |

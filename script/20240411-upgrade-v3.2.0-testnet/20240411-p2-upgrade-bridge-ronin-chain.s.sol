@@ -13,14 +13,14 @@ import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
 import "@ronin/contracts/ronin/gateway/BridgeReward.sol";
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
-import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
+import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
 
 import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
-import { SLPDeploy } from "@ronin/script/contracts/token/SLPDeploy.s.sol";
+import { SLPDeploy } from "script/contracts/token/SLPDeploy.s.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
-import "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
+import "script/contracts/RoninBridgeManagerDeploy.s.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import "./20240411-deploy-bridge-manager-helper.s.sol";
 import "./20240411-helper.s.sol";
@@ -52,7 +52,7 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
     IRoninBridgeManager roninGA = IRoninBridgeManager(0x53Ea388CB72081A3a397114a43741e7987815896);
     address pauseEnforcerProxy = loadContract(Contract.RoninPauseEnforcer.key());
 
-    uint256 expiredTime = block.timestamp + 14 days;
+    // uint256 expiredTime = block.timestamp + 14 days;
     uint N = 1;
     address[] memory targets = new address[](N);
     uint256[] memory values = new uint256[](N);
@@ -72,7 +72,7 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
     // proposal.calldatas = calldatas;
     // proposal.gasAmounts = gasAmounts;
 
-    address gaGovernor = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
+    // address gaGovernor = 0x52ec2e6BBcE45AfFF8955Da6410bb13812F4289F;
     address[] memory gaVoters = new address[](3);
     gaVoters[0] = 0x087D08e3ba42e64E3948962dd1371F906D1278b9;
     gaVoters[1] = 0x06f8Af58F656B507918d91B0B6F8B89bfCC556f9;
@@ -113,11 +113,12 @@ contract Migration__20240409_P2_UpgradeBridgeRoninchain is Migration__20240409_H
     proposal.gasAmounts = gasAmounts;
 
     vm.broadcast(gaVoters[2]);
-    address(roninGA).call{ gas: 10_000_000 }(
+    (bool success,) = address(roninGA).call{ gas: 10_000_000 }(
       abi.encodeWithSignature(
         "castProposalVoteForCurrentNetwork((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8)", proposal, Ballot.VoteType.For
       )
     );
+    require(success, "castProposalVoteForCurrentNetwork failed");
   }
 
   function _upgradeBridgeRoninchain() private {

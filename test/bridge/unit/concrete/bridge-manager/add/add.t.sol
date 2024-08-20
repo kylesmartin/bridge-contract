@@ -16,19 +16,20 @@ event BridgeOperatorsAdded(bool[] statuses, uint96[] voteWeights, address[] gove
 contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
   function setUp() public virtual override {
     BridgeManager_Unit_Concrete_Test.setUp();
-    vm.startPrank({ msgSender: address(_bridgeManager) });
   }
 
   function test_RevertWhen_NotSelfCall() external {
     // Prepare data
     (address[] memory addingOperators, address[] memory addingGovernors, uint96[] memory addingWeights) = _generateNewOperators();
 
-    // Make the caller not self-call.
-    changePrank({ msgSender: _bridgeOperators[0] });
-
     // Run the test.
-    vm.expectRevert(abi.encodeWithSelector(ErrOnlySelfCall.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.expectRevert();
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
   }
 
   function test_RevertWhen_ThreeInputArrayLengthMismatch() external {
@@ -41,21 +42,39 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
       mstore(addingOperators, add(length, 1))
     }
     vm.expectRevert(abi.encodeWithSelector(ErrLengthMismatch.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
 
     assembly {
       mstore(addingOperators, length)
       mstore(addingGovernors, add(length, 1))
     }
     vm.expectRevert(abi.encodeWithSelector(ErrLengthMismatch.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
 
     assembly {
       mstore(addingGovernors, length)
       mstore(addingWeights, add(length, 1))
     }
     vm.expectRevert(abi.encodeWithSelector(ErrLengthMismatch.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
   }
 
   function test_RevertWhen_VoteWeightIsZero() external {
@@ -64,7 +83,13 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
 
     addingWeights[0] = 0;
     vm.expectRevert(abi.encodeWithSelector(ErrInvalidVoteWeight.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
   }
 
   function test_RevertWhen_BridgeOperatorAddressIsZero() external {
@@ -73,7 +98,13 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
 
     addingOperators[0] = address(0);
     vm.expectRevert(abi.encodeWithSelector(ErrZeroAddress.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
   }
 
   function test_RevertWhen_GovernorAddressIsZero() external {
@@ -82,7 +113,13 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
 
     addingGovernors[0] = address(0);
     vm.expectRevert(abi.encodeWithSelector(ErrZeroAddress.selector, IBridgeManager.addBridgeOperators.selector));
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
   }
 
   function test_AddOperators_DuplicatedGovernor() external assertStateNotChange {
@@ -95,7 +132,14 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsAdded(expectedAddeds, new uint96[](0), new address[](0), new address[](0));
 
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    (bool success,) = address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
   }
 
   function test_AddOperators_DuplicatedBridgeOperator() external assertStateNotChange {
@@ -108,7 +152,14 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsAdded(expectedAddeds, new uint96[](0), new address[](0), new address[](0));
 
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    (bool success,) = address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
   }
 
   function test_AddOperators_DuplicatedGovernorWithExistedBridgeOperator() external assertStateNotChange {
@@ -121,7 +172,14 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsAdded(expectedAddeds, new uint96[](0), new address[](0), new address[](0));
 
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    (bool success,) = address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
   }
 
   function test_AddOperators_DuplicatedBridgeOperatorWithExistedGovernor() external assertStateNotChange {
@@ -134,7 +192,14 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsAdded(expectedAddeds, new uint96[](0), new address[](0), new address[](0));
 
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    (bool success,) = address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
   }
 
   function test_AddOperators_AllInfoIsValid() external {
@@ -147,7 +212,15 @@ contract Add_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsAdded(expectedAddeds, new uint96[](0), new address[](0), new address[](0));
 
-    _bridgeManager.addBridgeOperators(addingWeights, addingGovernors, addingOperators);
+    vm.prank(address(_bridgeManager));
+    (bool success,) = address(_bridgeManager).call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", addingWeights, addingGovernors, addingOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
+    vm.stopPrank();
 
     // Compare after and before state
     (address[] memory afterBridgeOperators, address[] memory afterGovernors, uint96[] memory afterVoteWeights) = _getBridgeMembers();

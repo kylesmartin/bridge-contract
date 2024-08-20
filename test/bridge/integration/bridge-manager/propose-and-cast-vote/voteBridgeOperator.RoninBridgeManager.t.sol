@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { GlobalProposal } from "@ronin/contracts/libraries/GlobalProposal.sol";
 import { Ballot } from "@ronin/contracts/libraries/Ballot.sol";
 import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
@@ -61,7 +61,10 @@ contract VoteBridgeOperator_RoninBridgeManager_Test is BaseIntegration_Test {
       executor: address(0),
       targetOption: GlobalProposal.TargetOption.BridgeManager,
       value: 0,
-      calldata_: abi.encodeCall(IBridgeManager.addBridgeOperators, (_voteWeights, _addingGovernors, _addingOperators)),
+      calldata_: abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", _voteWeights, _addingGovernors, _addingOperators)
+      ),
       gasAmount: 1_000_000,
       nonce: _roninBridgeManager.round(0) + 1
     });
@@ -118,7 +121,10 @@ contract VoteBridgeOperator_RoninBridgeManager_Test is BaseIntegration_Test {
       executor: address(0),
       targetOption: GlobalProposal.TargetOption.BridgeManager,
       value: 0,
-      calldata_: abi.encodeCall(IBridgeManager.addBridgeOperators, (_voteWeights, _addingGovernors, _addingOperators)),
+      calldata_: abi.encodeWithSignature(
+        "functionDelegateCall(bytes)",
+        abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", _voteWeights, _addingGovernors, _addingOperators)
+      ),
       gasAmount: 200_000 * numAddingOperators,
       nonce: _roninBridgeManager.round(0) + 1
     });
