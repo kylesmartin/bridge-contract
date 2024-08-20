@@ -22,6 +22,8 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   using LibProposal for *;
   using LibCompanionNetwork for *;
 
+  /// @dev The default expiry time for the proposal.
+  uint256 private proposalDuration = 20 minutes;
   /// @dev The vote weight of the bridge operators.
   uint96[] private vws = [100, 100];
   /// @dev The governor of the bridge operators.
@@ -30,12 +32,151 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
   address[] private ops = [makeAddr("op-1"), makeAddr("op-2")];
 
   function _validate_BridgeManager_Proposal() internal {
+    validate_RevertIf_NonGovernor_VoteProposal();
+    validate_RevertIf_NotEnoughSignatures_RelayUpgradeProposal();
+    validate_RevertIf_NonGovernor_CreateProposal();
     validate_canExecuteUpgradeItself();
     validate_relayUpgradeProposal();
     validate_ProposeGlobalProposalAndRelay_addBridgeOperator();
     validate_proposeAndRelay_addBridgeOperator();
     validate_canExecuteUpgradeSingleProposal();
     validate_canExecuteUpgradeAllOneProposal();
+  }
+
+  function validate_RevertIf_NonGovernor_VoteProposal()
+    private
+    onlyOnRoninNetworkOrLocal
+    onPostCheck("validate_RevertIf_NotEnoughSignature_RelayUpgradeProposal")
+  {
+    address nonGovernor = makeAddr("non-governor");
+
+    address[] memory targets = ronBM.toSingletonArray();
+    uint256[] memory values = uint256(0).toSingletonArray();
+    bytes[] memory calldatas = abi.encodeCall(
+      ITransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops)))
+    ).toSingletonArray();
+    uint256[] memory gasAmounts = uint256(1_000_000).toSingletonArray();
+
+    address[] memory governors = IRoninBridgeManager(ronBM).getGovernors();
+
+    Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
+      bm: ronBM,
+      expiry: block.timestamp + proposalDuration,
+      targets: targets,
+      values: values,
+      callDatas: calldatas,
+      gasAmounts: gasAmounts,
+      nonce: IRoninBridgeManager(ronBM).round(0) + 1
+    });
+
+    vm.prank(governors[0]);
+    IRoninBridgeManager(ronBM).proposeProposalForCurrentNetwork(
+      proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts, Ballot.VoteType.For
+    );
+
+    vm.prank(nonGovernor);
+    vm.expectRevert();
+    IRoninBridgeManager(ronBM).castProposalVoteForCurrentNetwork(proposal, Ballot.VoteType.For);
+
+    vm.prank(nonGovernor);
+    vm.expectRevert();
+    IRoninBridgeManager(ronBM).castProposalVoteForCurrentNetwork(proposal, Ballot.VoteType.Against);
+  }
+
+  function validate_RevertIf_NotEnoughSignatures_RelayUpgradeProposal()
+    private
+    onlyOnRoninNetworkOrLocal
+    onPostCheck("validate_RevertIf_NotEnoughSignature_RelayUpgradeProposal")
+  {
+    TNetwork currNetwork = vme.getCurrentNetwork();
+    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
+
+    switchTo(companionNetwork);
+
+    uint256 snapshotId = vm.snapshot();
+
+    overrideMockBOs(ethBM);
+
+    address[] memory targets = new address[](2);
+    uint256[] memory values = new uint256[](2);
+    uint256[] memory gasAmounts = new uint256[](2);
+    bytes[] memory calldatas = new bytes[](2);
+    address[] memory logics = new address[](2);
+
+    targets[0] = ethBM;
+    targets[1] = ethGW;
+
+    logics[0] = _deployLogic(Contract.MainchainBridgeManager.key());
+    logics[1] = _deployLogic(Contract.MainchainGatewayV3.key());
+
+    calldatas[0] = abi.encodeCall(ITransparentUpgradeableProxyV2.upgradeTo, (logics[0]));
+    calldatas[1] = abi.encodeCall(ITransparentUpgradeableProxyV2.upgradeTo, (logics[1]));
+
+    gasAmounts[0] = 1_000_000;
+    gasAmounts[1] = 1_000_000;
+
+    Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
+      bm: ethBM,
+      expiry: block.timestamp + proposalDuration,
+      targets: targets,
+      values: values,
+      callDatas: calldatas,
+      gasAmounts: gasAmounts,
+      nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
+    });
+
+    Signature[] memory signatures = proposal.generateSignatures(mockGvPKs, Ballot.VoteType.For);
+
+    uint256 minVW = IMainchainBridgeManager(ethBM).minimumVoteWeight();
+    uint256 defaultVW = IMainchainBridgeManager(ethBM).getTotalWeight() / IMainchainBridgeManager(ethBM).totalBridgeOperator();
+    uint256 minRequiredSig = minVW / defaultVW + 1;
+    assertTrue(minRequiredSig > 1, "Invalid Setup: minRequiredSig <= 1");
+
+    uint256 unmetSigCount = minRequiredSig - 1;
+
+    assembly {
+      mstore(signatures, unmetSigCount)
+    }
+
+    Ballot.VoteType[] memory _supports = new Ballot.VoteType[](signatures.length);
+
+    vm.prank(mockGvs[0]);
+    vm.expectRevert();
+    IMainchainBridgeManager(ethBM).relayProposal(proposal, _supports, signatures);
+
+    assertTrue(vm.revertTo(snapshotId), "Cannot revert to snapshot id");
+    _switchBackToRoninFork(currNetwork);
+  }
+
+  function validate_RevertIf_NonGovernor_CreateProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_RevertIf_NonGovernor_CreateProposal") {
+    address nonGovernor = makeAddr("non-governor");
+
+    address[] memory targets = ronBM.toSingletonArray();
+    uint256[] memory values = uint256(0).toSingletonArray();
+    bytes[] memory calldatas = abi.encodeCall(
+      ITransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops)))
+    ).toSingletonArray();
+    uint256[] memory gasAmounts = uint256(1_000_000).toSingletonArray();
+
+    vm.expectRevert();
+    vm.prank(nonGovernor);
+    IRoninBridgeManager(ronBM).propose(block.chainid, block.timestamp + proposalDuration, address(0x0), targets, values, calldatas, gasAmounts);
+
+    Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
+      bm: ronBM,
+      expiry: block.timestamp + proposalDuration,
+      targets: targets,
+      values: values,
+      callDatas: calldatas,
+      gasAmounts: gasAmounts,
+      nonce: IRoninBridgeManager(ronBM).round(0) + 1
+    });
+
+    vm.prank(nonGovernor);
+    vm.expectRevert();
+    IRoninBridgeManager(ronBM).proposeProposalForCurrentNetwork(
+      proposal.expiryTimestamp, proposal.executor, proposal.targets, proposal.values, proposal.calldatas, proposal.gasAmounts, Ballot.VoteType.For
+    );
   }
 
   function validate_proposeAndRelay_addBridgeOperator() private onlyOnRoninNetworkOrLocal onPostCheck("validate_proposeAndRelay_addBridgeOperator") {
@@ -52,17 +193,17 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     uint256 ronChainId = block.chainid;
 
     Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
-      manager: ronBM,
-      expiryTimestamp: block.timestamp + 20 minutes,
+      bm: ronBM,
+      expiry: block.timestamp + proposalDuration,
       targets: targets,
       values: values,
-      calldatas: calldatas,
+      callDatas: calldatas,
       gasAmounts: gasAmounts,
       nonce: IRoninBridgeManager(ronBM).round(0) + 1
     });
 
     vm.prank(cheatGv);
-    IRoninBridgeManager(ronBM).propose(ronChainId, block.timestamp + 20 minutes, address(0x0), targets, values, calldatas, gasAmounts);
+    IRoninBridgeManager(ronBM).propose(ronChainId, block.timestamp + proposalDuration, address(0x0), targets, values, calldatas, gasAmounts);
 
     {
       TNetwork currNetwork = vme.getCurrentNetwork();
@@ -78,11 +219,11 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       targets = ethBM.toSingletonArray();
 
       proposal = LibProposal.createProposal({
-        manager: ethBM,
-        expiryTimestamp: block.timestamp + 20 minutes,
+        bm: ethBM,
+        expiry: block.timestamp + proposalDuration,
         targets: targets,
         values: proposal.values,
-        calldatas: proposal.calldatas,
+        callDatas: proposal.calldatas,
         gasAmounts: proposal.gasAmounts,
         nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
       });
@@ -107,7 +248,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     }
   }
 
-  function validate_relayUpgradeProposal() private onPostCheck("validate_relayUpgradeProposal") {
+  function validate_relayUpgradeProposal() private onlyOnRoninNetworkOrLocal onPostCheck("validate_relayUpgradeProposal") {
     TNetwork currNetwork = vme.getCurrentNetwork();
     (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
 
@@ -126,7 +267,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       address[] memory logics = new address[](2);
 
       targets[0] = ethBM;
-      targets[1] = loadContract(Contract.MainchainGatewayV3.key());
+      targets[1] = ethGW;
 
       logics[0] = _deployLogic(Contract.MainchainBridgeManager.key());
       logics[1] = _deployLogic(Contract.MainchainGatewayV3.key());
@@ -138,11 +279,11 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       gasAmounts[1] = 1_000_000;
 
       Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
-        manager: ethBM,
-        expiryTimestamp: block.timestamp + 20 minutes,
+        bm: ethBM,
+        expiry: block.timestamp + proposalDuration,
         targets: targets,
         values: values,
-        calldatas: calldatas,
+        callDatas: calldatas,
         gasAmounts: gasAmounts,
         nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
       });
@@ -159,7 +300,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       IMainchainBridgeManager(ethBM).relayProposal(proposal, _supports, signatures);
 
       assertEq(ethBM.getProxyImplementation(), logics[0], "MainchainBridgeManager logic is not upgraded");
-      assertEq(loadContract(Contract.MainchainGatewayV3.key()).getProxyImplementation(), logics[1], "MainchainGatewayV3 logic is not upgraded");
+      assertEq(ethGW.getProxyImplementation(), logics[1], "MainchainGatewayV3 logic is not upgraded");
     }
 
     assertTrue(vm.revertTo(snapshotId), "Cannot revert to snapshot id");
@@ -177,10 +318,10 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     targetOptions[0] = GlobalProposal.TargetOption.BridgeManager;
 
     GlobalProposal.GlobalProposalDetail memory globalProposal = LibProposal.createGlobalProposal({
-      expiryTimestamp: block.timestamp + 20 minutes,
-      targetOptions: targetOptions,
+      expiry: block.timestamp + proposalDuration,
+      targetOpts: targetOptions,
       values: uint256(0).toSingletonArray(),
-      calldatas: abi.encodeCall(ITransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops))))
+      callDatas: abi.encodeCall(ITransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops))))
         .toSingletonArray(),
       gasAmounts: uint256(1_000_000).toSingletonArray(),
       nonce: IRoninBridgeManager(ronBM).round(0) + 1
@@ -267,11 +408,11 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     }
 
     Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
-      manager: ronBM,
-      expiryTimestamp: block.timestamp + 20 minutes,
+      bm: ronBM,
+      expiry: block.timestamp + proposalDuration,
       targets: targets,
       values: uint256(0).repeat(targets.length),
-      calldatas: calldatas,
+      callDatas: calldatas,
       gasAmounts: uint256(1_000_000).repeat(targets.length),
       nonce: IRoninBridgeManager(ronBM).round(block.chainid) + 1
     });
@@ -301,11 +442,11 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     }
 
     Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
-      manager: ronBM,
-      expiryTimestamp: block.timestamp + 20 minutes,
+      bm: ronBM,
+      expiry: block.timestamp + proposalDuration,
       targets: targets,
       values: uint256(0).repeat(targets.length),
-      calldatas: calldatas,
+      callDatas: calldatas,
       gasAmounts: uint256(1_000_000).repeat(targets.length),
       nonce: IRoninBridgeManager(ronBM).round(block.chainid) + 1
     });

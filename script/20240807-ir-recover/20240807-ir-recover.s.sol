@@ -127,7 +127,7 @@ contract Migration__20240807_IR_Recover is Migration {
     LibProposal.verifyProposalGasAmount(address(_mainchainBM), _proposal.targets, _proposal.values, _proposal.calldatas, _proposal.gasAmounts);
 
     // Validate proposal's execution
-    LibProposal.verifyProposalExecutionMainchain({ governance: address(_mainchainBM), proposal: _proposal, shouldRevertState: false });
+    LibProposal.verifyProposalExecutionMainchain({ bm: address(_mainchainBM), proposal: _proposal, shouldRevertState: false });
   }
 
   function __recover_createProposal() internal view returns (Proposal.ProposalDetail memory proposal) {
@@ -197,7 +197,6 @@ contract Migration__20240807_IR_Recover is Migration {
   }
 
   function _preCheck_Withdrawable() internal {
-
     uint256 snapshotId = vm.snapshot();
 
     _fake_unpause();
@@ -263,7 +262,7 @@ contract Migration__20240807_IR_Recover is Migration {
     require(reverted, string.concat("Cannot revert to snapshot id: ", vm.toString(snapshotId)));
   }
 
-  function _postCheck() virtual override internal  {
+  function _postCheck() internal virtual override {
     switchTo(_companionNetwork);
 
     // Cheat to unpause of MainchainGatewayV3 to self to pass post-check.
