@@ -266,7 +266,7 @@ contract BridgeSlashTest is IBridgeSlashEvents, BridgeManagerUtils {
 
     _bridgeManagerContract = address(
       new TransparentUpgradeableProxyV2(
-        deployCode("MockBridgeManager.sol"), _admin, abi.encodeCall(MockBridgeManager.initialize, (bridgeOperators, governors, voteWeights))
+        address(new MockBridgeManager()), _admin, abi.encodeCall(MockBridgeManager.initialize, (bridgeOperators, governors, voteWeights))
       )
     );
 
