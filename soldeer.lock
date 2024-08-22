@@ -4,3 +4,9 @@ name = "@fdk"
 version = "0.3.1-beta"
 source = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.1-beta.zip"
 checksum = "53cb5bf15abdc909d177c64e78070387af24ef39b2a4b408651836ac9de059c4"
+
+[[dependencies]]
+name = "@openzeppelin"
+version = "4.7.3"
+source = "https://github.com/OpenZeppelin/openzeppelin-contracts/archive/refs/tags/v4.7.3.zip"
+checksum = "e25b51f352864703de7b35e5030d63b38cbe4e8d61d7858f9ff9f77e18e370dd"

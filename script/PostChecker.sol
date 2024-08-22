@@ -8,7 +8,7 @@ import { TContract, Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
 import { TNetwork, DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
-import { PostCheck_BridgeManager } from "./post-check/bridge-manager/PostCheck_BridgeManager.s.sol";
+import { PostCheck_BridgeManager } from "./post-check/manager/PostCheck_BridgeManager.s.sol";
 import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol";
 import { Migration } from "./Migration.s.sol";
 import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
