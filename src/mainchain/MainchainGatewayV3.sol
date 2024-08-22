@@ -373,11 +373,16 @@ contract MainchainGatewayV3 is
       if (_token.erc != _request.info.erc) revert ErrInvalidTokenStandard();
 
       _request.info.handleAssetIn(_requester, _request.tokenAddr);
-      // Withdraw if token is WETH
-      // The withdraw of WETH must go via `WethUnwrapper`, because `WETH.withdraw` only sends 2300 gas, which is insufficient when recipient is a proxy.
+
+      /**
+       * Withdraw if token is WETH
+       *
+       * `IWETH.withdraw` only sends 2300 gas, which might be insufficient when recipient is a proxy, in this case, gateway proxy.
+       * However, the storage accesses on Shanghai hardfork are warm-access, only requires additional 100*2 gas. So it should be safe,
+       * no need to go via a mediator of WETH unwrapper.
+       */
       if (_roninWeth == _request.tokenAddr) {
-        wrappedNativeToken.approve(address(wethUnwrapper), _request.info.quantity);
-        wethUnwrapper.unwrap(_request.info.quantity);
+        IWETH(_roninWeth).withdraw(_request.info.quantity);
       }
     }
 
