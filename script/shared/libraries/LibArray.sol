@@ -18,6 +18,25 @@ library LibArray {
     }
   }
 
+  /**
+   * @dev Returns a slice of an array.
+   */
+  function slice(uint256[] memory self, uint256 start, uint256 end) internal pure returns (uint256[] memory) {
+    require(start <= end, "LibArray: invalid slice range");
+    require(end <= self.length, "LibArray: slice end exceeds array length");
+
+    uint256[] memory output = new uint256[](end - start);
+    for (uint256 i = start; i < end; ++i) {
+      output[i - start] = self[i];
+    }
+
+    return output;
+  }
+
+  function slice(address[] memory self, uint256 start, uint256 end) internal pure returns (address[] memory) {
+    return toAddressesUnsafe(slice(toUint256s(self), start, end));
+  }
+
   function toSingletonArray(address self) internal pure returns (address[] memory arr) {
     arr = new address[](1);
     arr[0] = self;
