@@ -51,5 +51,6 @@ script/PostChecker.sol:PostChecker:ethTokens (storage_slot: 61) (offset: 0) (typ
 script/PostChecker.sol:PostChecker:standards (storage_slot: 62) (offset: 0) (type: enum TokenStandard[]) (numberOfBytes: 32)
 script/PostChecker.sol:PostChecker:ronChainId (storage_slot: 63) (offset: 0) (type: uint256) (numberOfBytes: 32)
 script/PostChecker.sol:PostChecker:ethChainId (storage_slot: 64) (offset: 0) (type: uint256) (numberOfBytes: 32)
-script/PostChecker.sol:PostChecker:currNetwork (storage_slot: 65) (offset: 0) (type: TNetwork) (numberOfBytes: 32)
-script/PostChecker.sol:PostChecker:companionNetwork (storage_slot: 66) (offset: 0) (type: TNetwork) (numberOfBytes: 32)
+script/PostChecker.sol:PostChecker:ethWETH (storage_slot: 65) (offset: 0) (type: contract IWETH) (numberOfBytes: 20)
+script/PostChecker.sol:PostChecker:currNetwork (storage_slot: 66) (offset: 0) (type: TNetwork) (numberOfBytes: 32)
+script/PostChecker.sol:PostChecker:companionNetwork (storage_slot: 67) (offset: 0) (type: TNetwork) (numberOfBytes: 32)
