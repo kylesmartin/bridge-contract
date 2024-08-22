@@ -8,8 +8,6 @@ import { StdStorage, stdStorage } from "forge-std/StdStorage.sol";
 import { BaseMigration } from "@fdk/BaseMigration.s.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { TNetwork, Network } from "script/utils/Network.sol";
-import { GatewayV3 } from "@ronin/contracts/extensions/GatewayV3.sol";
-import { IPauseTarget } from "@ronin/contracts/interfaces/IPauseTarget.sol";
 import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
 import { ITransparentUpgradeableProxyV2 } from "script/interfaces/ITransparentUpgradeableProxyV2.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
@@ -59,17 +57,6 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
     _;
   }
 
-  function cheatUnpauseIfPaused(address payable gw) internal {
-    bool paused = IPauseTarget(gw).paused();
-    if (paused) {
-      address emergencyPauser = GatewayV3(gw).emergencyPauser();
-      vm.prank(emergencyPauser);
-      IPauseTarget(gw).unpause();
-
-      assertFalse(IPauseTarget(gw).paused(), "GatewayV3 should not be paused after unpausing");
-    }
-  }
-
   function cheatAddOverWeightedGovernor(address bm) internal {
     uint256 totalWeight;
     try IBridgeManager(bm).getTotalWeight() returns (uint256 res) {
@@ -81,6 +68,9 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
     uint256 cheatVW = totalWeight * 100;
     (cheatOp, cheatOpPK) = makeAddrAndKey(string.concat("cheat-op-", vm.toString(seed)));
     (cheatGv, cheatGvPK) = makeAddrAndKey(string.concat("cheat-gv-", vm.toString(seed)));
+
+    vm.rememberKey(cheatOpPK);
+    vm.rememberKey(cheatGvPK);
 
     vm.deal(cheatGv, 1); // Check created EOA
     vm.deal(cheatOp, 1); // Check created EOA
@@ -114,6 +104,9 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
 
       (address gv, uint256 gvPK) = makeAddrAndKey(string.concat("mock-gv-", vm.toString(vm.unixTime()), "-", vm.toString(i)));
       (address op, uint256 opPK) = makeAddrAndKey(string.concat("mock-op-", vm.toString(vm.unixTime()), "-", vm.toString(i)));
+
+      vm.rememberKey(gvPK);
+      vm.rememberKey(opPK);
 
       mockGvs.push(gv);
       mockOps.push(op);

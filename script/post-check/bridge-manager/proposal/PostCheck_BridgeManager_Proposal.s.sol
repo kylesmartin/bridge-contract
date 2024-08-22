@@ -125,7 +125,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
       nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
     });
 
-    Signature[] memory signatures = proposal.generateSignatures(mockGvPKs, Ballot.VoteType.For);
+    Signature[] memory signatures = proposal.generateSignatures(mockGvs, Ballot.VoteType.For);
 
     uint256 minVW = IMainchainBridgeManager(ethBM).minimumVoteWeight();
     uint256 defaultVW = IMainchainBridgeManager(ethBM).getTotalWeight() / IMainchainBridgeManager(ethBM).totalBridgeOperator();
@@ -228,7 +228,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
         nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
       });
 
-      Signature[] memory signatures = proposal.generateSignatures(cheatGvPK.toSingletonArray(), Ballot.VoteType.For);
+      Signature[] memory signatures = proposal.generateSignatures(cheatGv.toSingletonArray(), Ballot.VoteType.For);
       Ballot.VoteType[] memory _supports = new Ballot.VoteType[](signatures.length);
 
       uint256 minForVW = IMainchainBridgeManager(ethBM).minimumVoteWeight();
@@ -288,7 +288,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
         nonce: IMainchainBridgeManager(ethBM).round(block.chainid) + 1
       });
 
-      Signature[] memory signatures = proposal.generateSignatures(cheatGvPK.toSingletonArray(), Ballot.VoteType.For);
+      Signature[] memory signatures = proposal.generateSignatures(cheatGv.toSingletonArray(), Ballot.VoteType.For);
       Ballot.VoteType[] memory _supports = new Ballot.VoteType[](signatures.length);
 
       uint256 minForVW = IMainchainBridgeManager(ethBM).minimumVoteWeight();
@@ -330,7 +330,7 @@ abstract contract PostCheck_BridgeManager_Proposal is BasePostCheck {
     Signature[] memory signatures;
     Ballot.VoteType[] memory _supports;
     {
-      signatures = globalProposal.generateSignaturesGlobal(cheatGvPK.toSingletonArray(), Ballot.VoteType.For);
+      signatures = globalProposal.generateSignaturesGlobal(cheatGv.toSingletonArray(), Ballot.VoteType.For);
       _supports = new Ballot.VoteType[](signatures.length);
 
       vm.prank(cheatGv);

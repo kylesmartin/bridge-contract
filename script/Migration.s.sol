@@ -135,6 +135,9 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
         (address addrOperator, uint256 pkOperator) = makeAddrAndKey(string.concat("operator-", vm.toString(i + 1)));
         (address addrGovernor, uint256 pkGovernor) = makeAddrAndKey(string.concat("governor-", vm.toString(i + 1)));
 
+        vm.rememberKey(pkOperator);
+        vm.rememberKey(pkGovernor);
+
         operatorAddrs[i] = addrOperator;
         governorAddrs[i] = addrGovernor;
         operatorPKs[i] = pkOperator;

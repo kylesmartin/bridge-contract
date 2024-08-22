@@ -263,11 +263,13 @@ library LibProposal {
 
   function verifyProposalExecutionMainchain(address bm, Proposal.ProposalDetail memory proposal) internal {
     address cheatPowerGov = 0x19614c50b0d13399A1533Fc1d3c1AD980A249aEa; // cheating pk, do not use in production
-    uint256 cheatingPowerGovPk = 0x677911d1450076499cfe00fa1090c00c6ed7338fb5acfdef663a8fbde551d461; // cheating pk, do not use in production
+    uint256 cheatingPowerGovPK = 0x677911d1450076499cfe00fa1090c00c6ed7338fb5acfdef663a8fbde551d461; // cheating pk, do not use in production
+
+    vm.rememberKey(cheatingPowerGovPK);
     vm.label(cheatPowerGov, "CheatPowerGovernor");
 
-    uint256[] memory cheatingPks = new uint256[](1);
-    cheatingPks[0] = cheatingPowerGovPk;
+    address[] memory cheatingPowerGov = new address[](1);
+    cheatingPowerGov[0] = cheatPowerGov;
 
     uint256 $$_governorWeightMap_Slot = uint256(0xc648703095712c0419b6431ae642c061f0a105ac2d7c3d9604061ef4ebc38300) + 2;
     bytes32 $$_governorWeight_Slot = LibStorage.getMappingElementSlotIndex(cheatPowerGov, uint256($$_governorWeightMap_Slot));
@@ -279,7 +281,7 @@ library LibProposal {
       SignatureConsumer.Signature[] memory sigs_ = new SignatureConsumer.Signature[](1);
       supports_[0] = Ballot.VoteType.For;
 
-      sigs_ = generateSignatures(proposal, cheatingPks, supports_[0]);
+      sigs_ = generateSignatures(proposal, cheatingPowerGov, supports_[0]);
 
       if (proposal.executor == address(0)) {
         vm.prank(cheatPowerGov);
@@ -307,40 +309,34 @@ library LibProposal {
 
   function generateSignatures(
     Proposal.ProposalDetail memory proposal,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
   ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
-    return generateSignaturesFor(proposal.hash(), signerPKs, support);
+    return generateSignaturesFor(proposal.hash(), signers, support);
   }
 
   function generateSignaturesGlobal(
     GlobalProposal.GlobalProposalDetail memory proposal,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
   ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
-    return generateSignaturesFor(proposal.hash(), signerPKs, support);
+    return generateSignaturesFor(proposal.hash(), signers, support);
   }
 
   function generateSignaturesFor(
     bytes32 proposalHash,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
   ) internal view returns (SignatureConsumer.Signature[] memory sigs) {
-    address[] memory signers = new address[](signerPKs.length);
-
-    for (uint256 i; i < signerPKs.length; i++) {
-      signers[i] = vm.addr(signerPKs[i]);
-    }
-
     // Sort signer private keys by signer address
-    signerPKs.inplaceAscSortByValue(signers);
+    signers.inplaceAscSort();
 
-    sigs = new SignatureConsumer.Signature[](signerPKs.length);
+    sigs = new SignatureConsumer.Signature[](signers.length);
     bytes32 domain = getBridgeManagerDomain();
 
-    for (uint256 i; i < signerPKs.length; i++) {
+    for (uint256 i; i < signers.length; i++) {
       bytes32 digest = domain.toTypedDataHash(Ballot.hash(proposalHash, support));
-      sigs[i] = sign(signerPKs[i], digest);
+      sigs[i] = sign(signers[i], digest);
     }
   }
 
@@ -385,8 +381,8 @@ library LibProposal {
     return address(0);
   }
 
-  function sign(uint256 pk, bytes32 digest) private pure returns (SignatureConsumer.Signature memory sig) {
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+  function sign(address signer, bytes32 digest) private pure returns (SignatureConsumer.Signature memory sig) {
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
     sig.v = v;
     sig.r = r;
     sig.s = s;

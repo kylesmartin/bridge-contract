@@ -17,6 +17,7 @@ import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { IRoninGatewayV3 } from "@ronin/contracts/interfaces/IRoninGatewayV3.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
+import { IWETH } from "@ronin/contracts/interfaces/IWETH.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import { IQuorum } from "@ronin/contracts/interfaces/IQuorum.sol";
 import { ITransparentUpgradeableProxyV2 } from "script/interfaces/ITransparentUpgradeableProxyV2.sol";
@@ -45,6 +46,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
   uint256 private ronChainId;
   uint256 private ethChainId;
+
+  IWETH private ethWETH;
 
   TNetwork private currNetwork;
   TNetwork private companionNetwork;
@@ -118,15 +121,20 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     ethERC20 = new MockERC20("MainchainERC20", "MERC20");
     ethTokens[0] = address(ethERC20);
 
+    ethWETH = IWETH(loadContract(Contract.WETH.key()));
+
     vm.deal(user, 10 ether);
     deal(address(ethERC20), user, 1000 ether);
 
     switchBack(prevNetwork, prevForkId);
   }
 
-  function _validate_Gateway_DepositAndWithdraw() internal onlyOnRoninNetworkOrLocal {
+  function _validate_Gateway_DepositAndWithdraw() internal {
     _setUp();
 
+    validate_Gateway_WETHAddressUnchanged();
+    validate_Gateway_Deposit_ETH();
+    validate_Gateway_RevertIf_InsufficientSentValue_Deposit_ETH();
     validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20();
     validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20();
     validate_HasBridgeManager();
@@ -137,124 +145,43 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     validate_Gateway_RevertIf_InsufficientThreshold_Withdraw_ERC20();
   }
 
-  function validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20() private onPostCheck("validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20") {
-    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
-    withdrawReq.tokenAddr = address(ronERC20);
-    withdrawReq.info.erc = TokenStandard.ERC20;
-    withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
-
-    cheatUnpauseIfPaused(ronGW);
-
-    vm.prank(user);
-    ronERC20.approve(ronGW, withdrawReq.info.quantity);
-
-    vm.prank(user);
-    vm.recordLogs();
-    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
-
-    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
-
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
-    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
-
-    cheatUnpauseIfPaused(ethGW);
-    overrideMockBOs(ethBM);
-
-    uint256[] memory pks = new uint256[](2);
-    address[] memory bos = new address[](2);
-
-    pks[0] = mockOpPKs[0];
-    bos[0] = mockOps[0];
-
-    pks[1] = mockOpPKs[0];
-    bos[1] = mockOps[1];
-
-    Signature[] memory sigs = _bulkSignReceipt(pks, bos, receiptDigest);
-
-    vm.expectRevert();
-    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
-
-    switchBack(prevNetwork, prevForkId);
-  }
-
-  function validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20() private onPostCheck("validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20") {
-    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
-    withdrawReq.tokenAddr = address(ronERC20);
-    withdrawReq.info.erc = TokenStandard.ERC20;
-    withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
-
-    cheatUnpauseIfPaused(ronGW);
-
-    vm.prank(user);
-    ronERC20.approve(ronGW, withdrawReq.info.quantity);
-
-    vm.prank(user);
-    vm.recordLogs();
-    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
-
-    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
-
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
-    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
-
-    cheatUnpauseIfPaused(ethGW);
-    overrideMockBOs(ethBM);
-
-    Signature[] memory sigs = new Signature[](mockOpPKs.length);
-
-    for (uint256 i; i < mockOpPKs.length; ++i) {
-      (uint8 v, bytes32 r, bytes32 s) = vm.sign(mockOpPKs[i], receiptDigest);
-      sigs[i] = Signature(v, r, s);
-    }
-
-    vm.expectRevert();
-    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
-
-    switchBack(prevNetwork, prevForkId);
-  }
-
-  function validate_HasBridgeManager() private onPostCheck("validate_HasBridgeManager") {
-    assertEq(ronBM.getProxyAdmin(), ronBM, "Invalid ProxyAdmin in RoninBridgeManager, expected self");
-    assertEq(IHasContracts(ronGW).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in ronGW");
-    assertEq(IHasContracts(brTk).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeTracking");
-    assertEq(IHasContracts(brRw).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeReward");
-    assertEq(IHasContracts(brSl).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeSlash");
-
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
-    assertEq(ethBM.getProxyAdmin(), ethBM, "Invalid ProxyAdmin in MainchainBridgeManager, expected self");
-    assertEq(IHasContracts(ethGW).getContract(ContractType.BRIDGE_MANAGER), ethBM, "Invalid MainchainBridgeManager in ethGW");
-
-    switchBack(prevNetwork, prevForkId);
-  }
-
-  function validate_Gateway_Deposit_ERC20() private onPostCheck("validate_Gateway_Deposit_ERC20") {
+  function validate_Gateway_RevertIf_InsufficientSentValue_Deposit_ETH()
+    private
+    onPostCheck("validate_Gateway_RevertIf_InsufficientSentValue_Deposit_ETH")
+    onlyOnRoninNetworkOrLocal
+  {
     depositReq.recipientAddr = makeAddr("ronin-recipient");
-    depositReq.tokenAddr = address(ethERC20);
+    depositReq.tokenAddr = address(0x0);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
     depositReq.info.quantity = 100 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-    cheatUnpauseIfPaused(ethGW);
-
+    vm.deal(user, depositReq.info.quantity);
     vm.prank(user);
-    ethERC20.approve(ethGW, depositReq.info.quantity);
+    vm.expectRevert();
+    IMainchainGatewayV3(ethGW).requestDepositFor{ value: depositReq.info.quantity - 1 }(depositReq);
+  }
 
+  function validate_Gateway_Deposit_ETH() private onPostCheck("validate_Gateway_Deposit_ETH") onlyOnRoninNetworkOrLocal {
+    depositReq.recipientAddr = makeAddr("ronin-recipient");
+    depositReq.tokenAddr = address(0x0);
+    depositReq.info.erc = TokenStandard.ERC20;
+    depositReq.info.id = 0;
+    depositReq.info.quantity = 100 ether;
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    vm.deal(user, depositReq.info.quantity);
     vm.prank(user);
     vm.recordLogs();
-    IMainchainGatewayV3(ethGW).requestDepositFor(depositReq);
+    IMainchainGatewayV3(ethGW).requestDepositFor{ value: depositReq.info.quantity }(depositReq);
 
     (LibTransfer.Receipt memory receipt,) = _getReceiptHash(ethGW, IMainchainGatewayV3.DepositRequested.selector);
 
     switchBack(prevNetwork, prevForkId);
 
-    cheatUnpauseIfPaused(ronGW);
     overrideMockBOs(ronBM);
 
     uint256 minVW = IQuorum(ronGW).minimumVoteWeight();
@@ -270,7 +197,108 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     assertEq(ronERC20.balanceOf(depositReq.recipientAddr), depositReq.info.quantity, "Deposit should be processed");
   }
 
-  function validate_Gateway_RevertIf_InsufficientThreshold_Deposit_ERC20() private onPostCheck("validate_Gateway_RevertIf_InsufficientThreshold_Deposit_ERC20") {
+  function validate_Gateway_WETHAddressUnchanged() private onPostCheck("validate_Gateway_WETHAddressUnchanged") onlyOnRoninNetworkOrLocal {
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertEq(address(ethWETH), address(IMainchainGatewayV3(ethGW).wrappedNativeToken()), "WETH address should not change");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20()
+    private
+    onPostCheck("validate_Gateway_RevertIf_DuplicatedSigs_Withdraw_ERC20")
+    onlyOnRoninNetworkOrLocal
+  {
+    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
+    withdrawReq.tokenAddr = address(ronERC20);
+    withdrawReq.info.erc = TokenStandard.ERC20;
+    withdrawReq.info.id = 0;
+    withdrawReq.info.quantity = 100 ether;
+
+    vm.prank(user);
+    ronERC20.approve(ronGW, withdrawReq.info.quantity);
+
+    vm.prank(user);
+    vm.recordLogs();
+    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
+
+    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
+
+    overrideMockBOs(ethBM);
+
+    address[] memory bos = new address[](2);
+
+    bos[0] = mockOps[0];
+    bos[1] = mockOps[1];
+
+    Signature[] memory sigs = _bulkSignReceipt(bos, receiptDigest);
+
+    vm.expectRevert();
+    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20()
+    private
+    onPostCheck("validate_Gateway_RevertIf_UnsortedSigs_Withdraw_ERC20")
+    onlyOnRoninNetworkOrLocal
+  {
+    withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
+    withdrawReq.tokenAddr = address(ronERC20);
+    withdrawReq.info.erc = TokenStandard.ERC20;
+    withdrawReq.info.id = 0;
+    withdrawReq.info.quantity = 100 ether;
+
+    vm.prank(user);
+    ronERC20.approve(ronGW, withdrawReq.info.quantity);
+
+    vm.prank(user);
+    vm.recordLogs();
+    IRoninGatewayV3(ronGW).requestWithdrawalFor(withdrawReq, ethChainId);
+
+    (LibTransfer.Receipt memory receipt, bytes32 receiptHash) = _getReceiptHash(ronGW, IRoninGatewayV3.WithdrawalRequested.selector);
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    bytes32 receiptDigest = LibTransfer.receiptDigest(gwDomainHash, receiptHash);
+
+    overrideMockBOs(ethBM);
+
+    Signature[] memory sigs = new Signature[](mockOps.length);
+
+    for (uint256 i; i < mockOps.length; ++i) {
+      (uint8 v, bytes32 r, bytes32 s) = vm.sign(mockOps[i], receiptDigest);
+      sigs[i] = Signature(v, r, s);
+    }
+
+    vm.expectRevert();
+    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_HasBridgeManager() private onPostCheck("validate_HasBridgeManager") onlyOnRoninNetworkOrLocal {
+    assertEq(ronBM.getProxyAdmin(), ronBM, "Invalid ProxyAdmin in RoninBridgeManager, expected self");
+    assertEq(IHasContracts(ronGW).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in ronGW");
+    assertEq(IHasContracts(brTk).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeTracking");
+    assertEq(IHasContracts(brRw).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeReward");
+    assertEq(IHasContracts(brSl).getContract(ContractType.BRIDGE_MANAGER), ronBM, "Invalid RoninBridgeManager in bridgeSlash");
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    assertEq(ethBM.getProxyAdmin(), ethBM, "Invalid ProxyAdmin in MainchainBridgeManager, expected self");
+    assertEq(IHasContracts(ethGW).getContract(ContractType.BRIDGE_MANAGER), ethBM, "Invalid MainchainBridgeManager in ethGW");
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function validate_Gateway_Deposit_ERC20() private onPostCheck("validate_Gateway_Deposit_ERC20") onlyOnRoninNetworkOrLocal {
     depositReq.recipientAddr = makeAddr("ronin-recipient");
     depositReq.tokenAddr = address(ethERC20);
     depositReq.info.erc = TokenStandard.ERC20;
@@ -278,8 +306,6 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.info.quantity = 100 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
-    cheatUnpauseIfPaused(ethGW);
 
     vm.prank(user);
     ethERC20.approve(ethGW, depositReq.info.quantity);
@@ -292,7 +318,45 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     switchBack(prevNetwork, prevForkId);
 
-    cheatUnpauseIfPaused(ronGW);
+    overrideMockBOs(ronBM);
+
+    uint256 minVW = IQuorum(ronGW).minimumVoteWeight();
+    uint256 defaultVW = IBridgeManager(ronBM).getTotalWeight() / IBridgeManager(ronBM).totalBridgeOperator();
+    uint256 minVoteRequired = minVW / defaultVW + 1;
+    assertTrue(minVoteRequired > 1, "Invalid test setup");
+
+    for (uint256 i; i < minVoteRequired; ++i) {
+      vm.prank(mockOps[i]);
+      IRoninGatewayV3(ronGW).depositFor(receipt);
+    }
+
+    assertEq(ronERC20.balanceOf(depositReq.recipientAddr), depositReq.info.quantity, "Deposit should be processed");
+  }
+
+  function validate_Gateway_RevertIf_InsufficientThreshold_Deposit_ERC20()
+    private
+    onPostCheck("validate_Gateway_RevertIf_InsufficientThreshold_Deposit_ERC20")
+    onlyOnRoninNetworkOrLocal
+  {
+    depositReq.recipientAddr = makeAddr("ronin-recipient");
+    depositReq.tokenAddr = address(ethERC20);
+    depositReq.info.erc = TokenStandard.ERC20;
+    depositReq.info.id = 0;
+    depositReq.info.quantity = 100 ether;
+
+    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
+
+    vm.prank(user);
+    ethERC20.approve(ethGW, depositReq.info.quantity);
+
+    vm.prank(user);
+    vm.recordLogs();
+    IMainchainGatewayV3(ethGW).requestDepositFor(depositReq);
+
+    (LibTransfer.Receipt memory receipt,) = _getReceiptHash(ethGW, IMainchainGatewayV3.DepositRequested.selector);
+
+    switchBack(prevNetwork, prevForkId);
+
     overrideMockBOs(ronBM);
 
     uint256 minVW = IQuorum(ronGW).minimumVoteWeight();
@@ -309,14 +373,16 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     assertEq(ronERC20.balanceOf(depositReq.recipientAddr), 0, "Deposit should not be processed");
   }
 
-  function validate_Gateway_RevertIf_InvalidSignature_Withdraw_ERC20() private onPostCheck("validate_Gateway_RevertIf_InvalidSignature_Withdraw_ERC20") {
+  function validate_Gateway_RevertIf_InvalidSignature_Withdraw_ERC20()
+    private
+    onPostCheck("validate_Gateway_RevertIf_InvalidSignature_Withdraw_ERC20")
+    onlyOnRoninNetworkOrLocal
+  {
     withdrawReq.recipientAddr = makeAddr("malicious-recipient");
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
     withdrawReq.info.quantity = 100 ether;
-
-    cheatUnpauseIfPaused(ronGW);
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -336,8 +402,6 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     Signature[] memory sigs = new Signature[](1);
     sigs[0] = Signature(v, r, s);
 
-    cheatUnpauseIfPaused(ethGW);
-
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
 
@@ -347,14 +411,13 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
   function validate_Gateway_RevertIf_InsufficientThreshold_Withdraw_ERC20()
     private
     onPostCheck("validate_Gateway_RevertIf_InsufficientThreshold_Withdraw_ERC20")
+    onlyOnRoninNetworkOrLocal
   {
     withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
     withdrawReq.info.quantity = 100 ether;
-
-    cheatUnpauseIfPaused(ronGW);
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -369,7 +432,6 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-    cheatUnpauseIfPaused(ethGW);
     overrideMockBOs(ethBM);
 
     uint256 minVW = IQuorum(ethGW).minimumVoteWeight();
@@ -378,7 +440,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     uint256 unmetSigCount = minSigRequired - 1;
     assertTrue(unmetSigCount > 1, "Invalid test setup");
 
-    Signature[] memory sigs = _bulkSignReceipt(mockOpPKs, mockOps, receiptDigest);
+    Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
 
     assembly {
       mstore(sigs, unmetSigCount)
@@ -390,14 +452,12 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     switchBack(prevNetwork, prevForkId);
   }
 
-  function validate_Gateway_Withdraw_ERC20() private onPostCheck("validate_Gateway_Withdraw_ERC20") {
+  function validate_Gateway_Withdraw_ERC20() private onPostCheck("validate_Gateway_Withdraw_ERC20") onlyOnRoninNetworkOrLocal {
     withdrawReq.recipientAddr = makeAddr("mainchain-recipient");
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
     withdrawReq.info.quantity = 100 ether;
-
-    cheatUnpauseIfPaused(ronGW);
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -412,10 +472,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
-    cheatUnpauseIfPaused(ethGW);
-
     overrideMockBOs(ethBM);
-    Signature[] memory sigs = _bulkSignReceipt(mockOpPKs, mockOps, receiptDigest);
+    Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
 
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
 
@@ -424,23 +482,23 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     switchBack(prevNetwork, prevForkId);
   }
 
-  function _bulkSignReceipt(uint256[] memory pks, address[] memory signers, bytes32 receiptDigest) private pure returns (Signature[] memory sigs) {
-    LibArray.inplaceAscSortByValue(pks, signers);
+  function _bulkSignReceipt(address[] memory signers, bytes32 receiptDigest) private pure returns (Signature[] memory sigs) {
+    LibArray.inplaceAscSort(signers);
 
-    sigs = new Signature[](pks.length);
+    sigs = new Signature[](signers.length);
 
-    for (uint256 i; i < pks.length; ++i) {
-      (uint8 v, bytes32 r, bytes32 s) = vm.sign(pks[i], receiptDigest);
+    for (uint256 i; i < signers.length; ++i) {
+      (uint8 v, bytes32 r, bytes32 s) = vm.sign(signers[i], receiptDigest);
       sigs[i] = Signature(v, r, s);
     }
   }
 
   function _getReceiptHash(address emitter, bytes32 eventTopic) private returns (LibTransfer.Receipt memory receipt, bytes32 receiptHash) {
-    Vm.Log[] memory logs = vm.getRecordedLogs();
+    Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
 
-    for (uint256 i; i < logs.length; ++i) {
-      if (logs[i].emitter == emitter && logs[i].topics[0] == eventTopic) {
-        (receiptHash, receipt) = abi.decode(logs[i].data, (bytes32, LibTransfer.Receipt));
+    for (uint256 i; i < recordedLogs.length; ++i) {
+      if (recordedLogs[i].emitter == emitter && recordedLogs[i].topics[0] == eventTopic) {
+        (receiptHash, receipt) = abi.decode(recordedLogs[i].data, (bytes32, LibTransfer.Receipt));
       }
     }
   }

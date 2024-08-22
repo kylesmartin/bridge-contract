@@ -51,6 +51,11 @@ interface IMainchainGatewayV3 is SignatureConsumer, MappedTokenConsumer {
   event WithdrawalUnlocked(bytes32 receiptHash, Transfer.Receipt receipt);
 
   /**
+   * @dev Returns the WETH address.
+   */
+  function wrappedNativeToken() external view returns (IWETH);
+
+  /**
    * @dev Returns the domain separator.
    */
   function DOMAIN_SEPARATOR() external view returns (bytes32);

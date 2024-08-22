@@ -265,6 +265,17 @@ library LibArray {
   }
 
   /**
+   * @dev Sorts array of address `values`.
+   *
+   * - Values are sorted in ascending order.
+   *
+   * WARNING This function DOES modifies the original `values`.
+   */
+  function inplaceAscSort(address[] memory self) internal pure returns (address[] memory sorted) {
+    return toAddressesUnsafe(inplaceAscQuickSort(toUint256s(self)));
+  }
+
+  /**
    * @dev Sorts array of uint256 `values`.
    *
    * - Values are sorted in ascending order.
