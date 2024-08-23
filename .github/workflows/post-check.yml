@@ -62,6 +62,6 @@ jobs:
           ./run.sh PostCheckCI -f ronin-mainnet -vvvv
           if [ $? -ne 0 ]; then
             echo "Script failed. Reverting changes..."
-            exit 255
+            return 1
           fi
         id: postcheck
