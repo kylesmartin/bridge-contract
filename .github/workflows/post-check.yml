@@ -1,4 +1,4 @@
-name: PostCheck
+name: Post Check
 
 on:
   push:
