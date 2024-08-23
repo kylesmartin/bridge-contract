@@ -51,7 +51,8 @@ contract MainchainGatewayV3 is
 
   uint96 private _totalOperatorWeight;
   mapping(address operator => uint96 weight) private _operatorWeight;
-  WethUnwrapper public wethUnwrapper;
+  /// @custom:deprecated Previously `_wethUnwrapper` (address)
+  uint256 private ______deprecatedWethUnwrapper;
 
   constructor() {
     _disableInitializers();
@@ -127,8 +128,11 @@ contract MainchainGatewayV3 is
     _totalOperatorWeight = totalWeight;
   }
 
-  function initializeV4(address payable wethUnwrapper_) external reinitializer(4) {
-    wethUnwrapper = WethUnwrapper(wethUnwrapper_);
+  function initializeV4(address payable /* wethUnwrapper_ */) external reinitializer(4) {
+    /** @deprecated
+     *
+     * wethUnwrapper = WethUnwrapper(wethUnwrapper_);
+     */
   }
 
   /**
@@ -155,16 +159,6 @@ contract MainchainGatewayV3 is
    */
   function requestDepositFor(Transfer.Request calldata _request) external payable virtual whenNotPaused {
     _requestDepositFor(_request, msg.sender);
-  }
-
-  /**
-   * @inheritdoc IMainchainGatewayV3
-   */
-  function requestDepositForBatch(Transfer.Request[] calldata _requests) external payable virtual whenNotPaused {
-    uint length = _requests.length;
-    for (uint256 i; i < length; ++i) {
-      _requestDepositFor(_requests[i], msg.sender);
-    }
   }
 
   /**
@@ -356,16 +350,16 @@ contract MainchainGatewayV3 is
    */
   function _requestDepositFor(Transfer.Request memory _request, address _requester) internal virtual {
     MappedToken memory _token;
-    address _roninWeth = address(wrappedNativeToken);
+    address mainchainWeth = address(wrappedNativeToken);
 
     _request.info.validate();
     if (_request.tokenAddr == address(0)) {
       if (_request.info.quantity != msg.value) revert ErrInvalidRequest();
 
-      _token = getRoninToken(_roninWeth);
+      _token = getRoninToken(mainchainWeth);
       if (_token.erc != _request.info.erc) revert ErrInvalidTokenStandard();
 
-      _request.tokenAddr = _roninWeth;
+      _request.tokenAddr = mainchainWeth;
     } else {
       if (msg.value != 0) revert ErrInvalidRequest();
 
@@ -373,11 +367,16 @@ contract MainchainGatewayV3 is
       if (_token.erc != _request.info.erc) revert ErrInvalidTokenStandard();
 
       _request.info.handleAssetIn(_requester, _request.tokenAddr);
-      // Withdraw if token is WETH
-      // The withdraw of WETH must go via `WethUnwrapper`, because `WETH.withdraw` only sends 2300 gas, which is insufficient when recipient is a proxy.
-      if (_roninWeth == _request.tokenAddr) {
-        wrappedNativeToken.approve(address(wethUnwrapper), _request.info.quantity);
-        wethUnwrapper.unwrap(_request.info.quantity);
+
+      /**
+       * Withdraw if token is WETH
+       *
+       * `IWETH.withdraw` only sends 2300 gas, which might be insufficient when recipient is a proxy, in this case, gateway proxy.
+       * However, the storage accesses of proxy relating variables on Shanghai hardfork are warm-access, only requires additional 100*2 gas. So it should be safe,
+       * no need to go via a mediator of WETH unwrapper.
+       */
+      if (mainchainWeth == _request.tokenAddr) {
+        IWETH(mainchainWeth).withdraw(_request.info.quantity);
       }
     }
 
@@ -442,10 +441,10 @@ contract MainchainGatewayV3 is
   }
 
   /**
-   * @dev Receives ETH from WETH or creates deposit request if sender is not WETH or WETHUnwrapper.
+   * @dev Receives ETH from WETH or creates deposit request if sender is not WETH.
    */
   function _fallback() internal virtual {
-    if (msg.sender == address(wrappedNativeToken) || msg.sender == address(wethUnwrapper)) {
+    if (msg.sender == address(wrappedNativeToken)) {
       return;
     }
 
