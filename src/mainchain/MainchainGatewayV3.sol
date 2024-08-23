@@ -51,7 +51,8 @@ contract MainchainGatewayV3 is
 
   uint96 private _totalOperatorWeight;
   mapping(address operator => uint96 weight) private _operatorWeight;
-  WethUnwrapper public wethUnwrapper;
+  /// @custom:deprecated Previously `_wethUnwrapper` (uint256)
+  uint256 private ______deprecatedWethUnwrapper;
 
   constructor() {
     _disableInitializers();
