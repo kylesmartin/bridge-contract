@@ -29,4 +29,4 @@ src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:______deprecatedBridgeOp
 src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:______deprecatedBridgeOperators (storage_slot: 124) (offset: 0) (type: uint256) (numberOfBytes: 32)
 src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:_totalOperatorWeight (storage_slot: 125) (offset: 0) (type: uint96) (numberOfBytes: 12)
 src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:_operatorWeight (storage_slot: 126) (offset: 0) (type: mapping(address => uint96)) (numberOfBytes: 32)
-src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:wethUnwrapper (storage_slot: 127) (offset: 0) (type: contract WethUnwrapper) (numberOfBytes: 20)
+src/mainchain/MainchainGatewayV3.sol:MainchainGatewayV3:______deprecatedWethUnwrapper (storage_slot: 127) (offset: 0) (type: uint256) (numberOfBytes: 32)
