@@ -136,7 +136,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     _setUp();
 
     validate_Gateway_Deposit_WETH();
-    // validate_Gateway_RevertIf_OperatorsRenounced_InsufficientThreshold_Withdraw_ERC20();
+    validate_Gateway_RevertIf_OperatorsRenounced_InsufficientThreshold_Withdraw_ERC20();
     validate_Gateway_Withdraw_ETH();
     validate_Gateway_WETHAddressUnchanged();
     validate_Gateway_Deposit_ETH();
@@ -218,16 +218,35 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     // Sign first to get renounced operator signatures
     Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
-    console.log("Sig count", sigs.length);
 
     // Renounce operators
     vm.prank(address(ethBM));
     ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(
       abi.encodeCall(IBridgeManager.removeBridgeOperators, (mockOps.slice(unmetSigCount, mockOps.length)))
     );
+    mockOps = mockOps.slice(0, unmetSigCount);
+    mockGvs = mockGvs.slice(0, unmetSigCount);
 
-    console.log("Current operator count", IBridgeManager(ethBM).totalBridgeOperator());
-    console.log("MinVW After", IQuorum(ethGW).minimumVoteWeight());
+    uint256 reAddOpCount = mockOps.length - unmetSigCount;
+    address[] memory newOps = new address[](reAddOpCount);
+    address[] memory newGvs = new address[](reAddOpCount);
+    uint96[] memory newVWs = new uint96[](reAddOpCount);
+
+    for (uint256 i; i < reAddOpCount; ++i) {
+      uint256 opPK;
+      uint256 gvPK;
+
+      (newOps[i], opPK) = makeAddrAndKey(string.concat("new-op", vm.toString(i)));
+      (newGvs[i], gvPK) = makeAddrAndKey(string.concat("new-gv", vm.toString(i)));
+      newVWs[i] = 100;
+
+      vm.rememberKey(opPK);
+      vm.rememberKey(gvPK);
+    }
+
+    // Re-add new operators
+    vm.prank(address(ethBM));
+    ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (newVWs, newGvs, newOps)));
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);

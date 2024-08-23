@@ -32,13 +32,9 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
 
   address internal cheatGv;
   address internal cheatOp;
-  uint256 internal cheatGvPK;
-  uint256 internal cheatOpPK;
 
   address[] internal mockGvs;
   address[] internal mockOps;
-  uint256[] internal mockGvPKs;
-  uint256[] internal mockOpPKs;
 
   bytes32 internal gwDomainHash;
 
@@ -65,7 +61,11 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
       (, bytes memory res) = bm.staticcall(abi.encodeWithSignature("getTotalWeights()"));
       totalWeight = abi.decode(res, (uint256));
     }
+
     uint256 cheatVW = totalWeight * 100;
+    uint256 cheatOpPK;
+    uint256 cheatGvPK;
+
     (cheatOp, cheatOpPK) = makeAddrAndKey(string.concat("cheat-op-", vm.toString(seed)));
     (cheatGv, cheatGvPK) = makeAddrAndKey(string.concat("cheat-gv-", vm.toString(seed)));
 
@@ -95,8 +95,6 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
 
     delete mockGvs;
     delete mockOps;
-    delete mockGvPKs;
-    delete mockOpPKs;
 
     for (uint256 i; i < boCount; ++i) {
       vws[i] = IBridgeManager(bm).getBridgeOperatorWeight(bos[i]);
@@ -110,8 +108,6 @@ abstract contract BasePostCheck is BaseMigration, SignatureConsumer {
 
       mockGvs.push(gv);
       mockOps.push(op);
-      mockGvPKs.push(gvPK);
-      mockOpPKs.push(opPK);
     }
 
     address pa = bm.getProxyAdmin();
