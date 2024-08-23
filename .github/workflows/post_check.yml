@@ -58,6 +58,6 @@ jobs:
         id: build
 
       - name: Run PostCheck CI
-        run: ./run.sh PostCheckCI -f ronin-mainnet
+        run: ./run.sh PostCheckCI -f ronin-mainnet -vvvv
         id: postcheck
 
