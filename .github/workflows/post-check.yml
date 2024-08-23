@@ -1,4 +1,4 @@
-name: PostCheck 
+name: PostCheck
 
 on:
   push:
@@ -58,6 +58,10 @@ jobs:
         id: build
 
       - name: Run PostCheck CI
-        run: ./run.sh PostCheckCI -f ronin-mainnet -vvvv
+        run: |
+          ./run.sh PostCheckCI -f ronin-mainnet -vvvv
+          if [ $? -ne 0 ]; then
+            echo "Script failed. Reverting changes..."
+            exit 1
+          fi
         id: postcheck
-
