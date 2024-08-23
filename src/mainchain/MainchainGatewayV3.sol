@@ -128,7 +128,7 @@ contract MainchainGatewayV3 is
     _totalOperatorWeight = totalWeight;
   }
 
-  function initializeV4(address payable wethUnwrapper_) external reinitializer(4) {
+  function initializeV4(address payable /* wethUnwrapper_ */) external reinitializer(4) {
     /** @deprecated
      *
      * wethUnwrapper = WethUnwrapper(wethUnwrapper_);
