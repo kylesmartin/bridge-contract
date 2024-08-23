@@ -60,8 +60,4 @@ jobs:
       - name: Run PostCheck CI
         run: |
           ./run.sh PostCheckCI -f ronin-mainnet -vvvv
-          if [ $? -ne 0 ]; then
-            echo "Script failed. Reverting changes..."
-            return 1
-          fi
         id: postcheck
