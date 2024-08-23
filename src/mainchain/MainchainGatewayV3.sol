@@ -372,7 +372,7 @@ contract MainchainGatewayV3 is
        * Withdraw if token is WETH
        *
        * `IWETH.withdraw` only sends 2300 gas, which might be insufficient when recipient is a proxy, in this case, gateway proxy.
-       * However, the storage accesses on Shanghai hardfork are warm-access, only requires additional 100*2 gas. So it should be safe,
+       * However, the storage accesses of proxy relating variables on Shanghai hardfork are warm-access, only requires additional 100*2 gas. So it should be safe,
        * no need to go via a mediator of WETH unwrapper.
        */
       if (_roninWeth == _request.tokenAddr) {
