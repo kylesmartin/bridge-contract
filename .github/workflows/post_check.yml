@@ -1,4 +1,4 @@
-name: Test & Analyze
+name: PostCheck 
 
 on:
   push:
@@ -57,18 +57,7 @@ jobs:
           forge build
         id: build
 
-      - name: Run Forge tests
-        run: |
-          forge test -vvv
-        id: test
+      - name: Run PostCheck CI
+        run: ./run.sh PostCheckCI -f ronin-mainnet
+        id: postcheck
 
-      - name: Install Slither for security analysis
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          python3 -m pip install slither-analyzer
-
-      - name: Run Slither analysis
-        run: |
-          slither . --exclude-low --exclude-medium --exclude-informational --exclude-dependencies --filter-paths "dependencies/|mocks/" --exclude-optimization
-        id: slither
