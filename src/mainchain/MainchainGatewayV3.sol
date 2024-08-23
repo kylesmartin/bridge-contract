@@ -129,7 +129,10 @@ contract MainchainGatewayV3 is
   }
 
   function initializeV4(address payable wethUnwrapper_) external reinitializer(4) {
-    wethUnwrapper = WethUnwrapper(wethUnwrapper_);
+    /** @deprecated
+     *
+     * wethUnwrapper = WethUnwrapper(wethUnwrapper_);
+     */
   }
 
   /**
@@ -438,10 +441,10 @@ contract MainchainGatewayV3 is
   }
 
   /**
-   * @dev Receives ETH from WETH or creates deposit request if sender is not WETH or WETHUnwrapper.
+   * @dev Receives ETH from WETH or creates deposit request if sender is not WETH.
    */
   function _fallback() internal virtual {
-    if (msg.sender == address(wrappedNativeToken) || msg.sender == address(wethUnwrapper)) {
+    if (msg.sender == address(wrappedNativeToken)) {
       return;
     }
 
