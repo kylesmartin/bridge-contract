@@ -350,16 +350,16 @@ contract MainchainGatewayV3 is
    */
   function _requestDepositFor(Transfer.Request memory _request, address _requester) internal virtual {
     MappedToken memory _token;
-    address _roninWeth = address(wrappedNativeToken);
+    address mainchainWeth = address(wrappedNativeToken);
 
     _request.info.validate();
     if (_request.tokenAddr == address(0)) {
       if (_request.info.quantity != msg.value) revert ErrInvalidRequest();
 
-      _token = getRoninToken(_roninWeth);
+      _token = getRoninToken(mainchainWeth);
       if (_token.erc != _request.info.erc) revert ErrInvalidTokenStandard();
 
-      _request.tokenAddr = _roninWeth;
+      _request.tokenAddr = mainchainWeth;
     } else {
       if (msg.value != 0) revert ErrInvalidRequest();
 
@@ -375,8 +375,8 @@ contract MainchainGatewayV3 is
        * However, the storage accesses of proxy relating variables on Shanghai hardfork are warm-access, only requires additional 100*2 gas. So it should be safe,
        * no need to go via a mediator of WETH unwrapper.
        */
-      if (_roninWeth == _request.tokenAddr) {
-        IWETH(_roninWeth).withdraw(_request.info.quantity);
+      if (mainchainWeth == _request.tokenAddr) {
+        IWETH(mainchainWeth).withdraw(_request.info.quantity);
       }
     }
 
