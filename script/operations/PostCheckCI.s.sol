@@ -28,6 +28,7 @@ contract PostCheckCI is Migration {
     (, uint256 prevForkId) = switchTo(companionNetwork);
     address payable ethBM = loadContract(Contract.MainchainBridgeManager.key());
     address payable ethGW = loadContract(Contract.MainchainGatewayV3.key());
+
     _cheatChangePAIfNotSelf(ethBM);
     _cheatUnpauseIfPaused(ethGW);
 

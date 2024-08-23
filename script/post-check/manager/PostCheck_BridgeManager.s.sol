@@ -16,6 +16,6 @@ abstract contract PostCheck_BridgeManager is
     _validate_BridgeManager_CRUD_addBridgeOperators();
     _validate_BridgeManager_CRUD_removeBridgeOperators();
     _validate_BridgeManager_Proposal();
-    // _validate_BridgeManager_Quorum();
+    _validate_BridgeManager_Quorum();
   }
 }
