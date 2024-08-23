@@ -240,6 +240,9 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
       (newGvs[i], gvPK) = makeAddrAndKey(string.concat("new-gv", vm.toString(i)));
       newVWs[i] = 100;
 
+      mockOps.push(newOps[i]);
+      mockGvs.push(newGvs[i]);
+
       vm.rememberKey(opPK);
       vm.rememberKey(gvPK);
     }
@@ -250,6 +253,10 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
+
+    Signature[] memory newSig = _bulkSignReceipt(newOps[0].toSingletonArray(), receiptDigest);
+
+    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, _concat(sigs, newSig));
 
     switchBack(prevNetwork, prevForkId);
   }
@@ -649,6 +656,18 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     for (uint256 i; i < signers.length; ++i) {
       (uint8 v, bytes32 r, bytes32 s) = vm.sign(signers[i], receiptDigest);
       sigs[i] = Signature(v, r, s);
+    }
+  }
+
+  function _concat(Signature[] memory a, Signature[] memory b) private pure returns (Signature[] memory c) {
+    c = new Signature[](a.length + b.length);
+
+    for (uint256 i; i < a.length; ++i) {
+      c[i] = a[i];
+    }
+
+    for (uint256 i; i < b.length; ++i) {
+      c[a.length + i] = b[i];
     }
   }
 
