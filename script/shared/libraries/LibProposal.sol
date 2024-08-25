@@ -141,7 +141,7 @@ library LibProposal {
     if (totalGas < DEFAULT_PROPOSAL_GAS) totalGas = DEFAULT_PROPOSAL_GAS * 120_00 / 100_00;
 
     for (uint256 i = 1; i < governors.length; ++i) {
-      (VoteStatusConsumer.VoteStatus status,,,,) = bm.vote(block.chainid, proposal.nonce);
+      (VoteStatusConsumer.VoteStatus status,,,,) = bm.vote(proposal.chainId, proposal.nonce);
       if (status != VoteStatusConsumer.VoteStatus.Pending) break;
 
       address governor = governors[i];
@@ -152,6 +152,36 @@ library LibProposal {
       }
 
       bm.castProposalVoteForCurrentNetwork{ gas: totalGas }(proposal, support);
+    }
+  }
+
+  function voteForBySignature(IRoninBridgeManager bm, Proposal.ProposalDetail memory proposal, Ballot.VoteType support) internal {
+    Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](1);
+    supports_[0] = support;
+
+    address[] memory governors = bm.getGovernors();
+    bool shouldPrankOnly = vme.isPostChecking();
+
+    uint256 totalGas = proposal.gasAmounts.sum();
+    // 20% more gas for each governor
+    totalGas += totalGas * 20_00 / 100_00;
+    // if totalGas is less than DEFAULT_PROPOSAL_GAS, set it to 120% of DEFAULT_PROPOSAL_GAS
+    if (totalGas < DEFAULT_PROPOSAL_GAS) totalGas = DEFAULT_PROPOSAL_GAS * 120_00 / 100_00;
+
+    for (uint256 i = 1; i < governors.length; ++i) {
+      (VoteStatusConsumer.VoteStatus status,,,,) = bm.vote(proposal.chainId, proposal.nonce);
+      if (status != VoteStatusConsumer.VoteStatus.Pending) break;
+
+      address governor = governors[i];
+      SignatureConsumer.Signature[] memory sig = generateSignatures(proposal, governor.toSingletonArray(), support);
+
+      if (shouldPrankOnly) {
+        vm.prank(governor);
+      } else {
+        vm.prank(governor);
+      }
+
+      bm.castProposalBySignatures{ gas: totalGas }(proposal, supports_, sig);
     }
   }
 

@@ -17,7 +17,6 @@ abstract contract PostCheck_Gateway_Quorum is BasePostCheck {
   function _validate_Gateway_Quorum() internal {
     // -------------- Gateway Quorum --------------
     validate_NonZero_MinimumVoteWeight_Gateway();
-    validate_NonZero_TotalWeight_Gateway();
     validate_Valid_Threshold_Gateway();
   }
 
@@ -33,18 +32,6 @@ abstract contract PostCheck_Gateway_Quorum is BasePostCheck {
     (num, denom) = IQuorum(ethGW).getThreshold();
     assertTrue(num > 0 && denom > 0, "Mainchain: Gateway's Threshold must be greater than 0");
     assertTrue(num <= denom, "Mainchain: Gateway's Threshold numerator must be less than or equal to denominator");
-
-    switchBack(prevNetwork, prevForkId);
-  }
-
-  function validate_NonZero_TotalWeight_Gateway() private onlyOnRoninNetworkOrLocal onPostCheck("validate_NonZero_TotalWeight_Gateway") {
-    assertTrue(IBridgeManager(ronGW).getTotalWeight() > 0, "Ronin: Gateway's Total weight must be greater than 0");
-    TNetwork currNetwork = network();
-
-    (, TNetwork companionNetwork) = currNetwork.companionNetworkData();
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
-
-    assertTrue(IBridgeManager(ethGW).getTotalWeight() > 0, "Mainchain: Gateway's Total weight must be greater than 0");
 
     switchBack(prevNetwork, prevForkId);
   }

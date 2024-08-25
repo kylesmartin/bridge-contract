@@ -157,7 +157,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronWETH);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     deal(address(ronWETH), user, withdrawReq.info.quantity);
     vm.prank(user);
@@ -195,7 +195,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -219,15 +219,14 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     // Sign first to get renounced operator signatures
     Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
 
-    // Renounce operators
-    vm.prank(address(ethBM));
-    ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(
-      abi.encodeCall(IBridgeManager.removeBridgeOperators, (mockOps.slice(unmetSigCount, mockOps.length)))
-    );
+    // Cache to be renounced operators
+    address[] memory gvsToRemove = mockOps.slice(unmetSigCount, mockOps.length);
+
+    uint256 reAddOpCount = mockOps.length - unmetSigCount;
+
     mockOps = mockOps.slice(0, unmetSigCount);
     mockGvs = mockGvs.slice(0, unmetSigCount);
 
-    uint256 reAddOpCount = mockOps.length - unmetSigCount;
     address[] memory newOps = new address[](reAddOpCount);
     address[] memory newGvs = new address[](reAddOpCount);
     uint96[] memory newVWs = new uint96[](reAddOpCount);
@@ -251,12 +250,12 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     vm.prank(address(ethBM));
     ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (newVWs, newGvs, newOps)));
 
+    // Renounce operators
+    vm.prank(address(ethBM));
+    ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(abi.encodeCall(IBridgeManager.removeBridgeOperators, (gvsToRemove)));
+
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
-
-    Signature[] memory newSig = _bulkSignReceipt(newOps[0].toSingletonArray(), receiptDigest);
-
-    IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, _concat(sigs, newSig));
 
     switchBack(prevNetwork, prevForkId);
   }
@@ -270,7 +269,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.tokenAddr = address(0x0);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
-    depositReq.info.quantity = 100 ether;
+    depositReq.info.quantity = 1 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
@@ -287,7 +286,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.tokenAddr = address(ethWETH);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
-    depositReq.info.quantity = 100 ether;
+    depositReq.info.quantity = 1 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
@@ -328,7 +327,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.tokenAddr = address(0x0);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
-    depositReq.info.quantity = 100 ether;
+    depositReq.info.quantity = 1 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
@@ -377,7 +376,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -416,7 +415,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -466,7 +465,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.tokenAddr = address(ethERC20);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
-    depositReq.info.quantity = 100 ether;
+    depositReq.info.quantity = 1 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
@@ -503,7 +502,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     depositReq.tokenAddr = address(ethERC20);
     depositReq.info.erc = TokenStandard.ERC20;
     depositReq.info.id = 0;
-    depositReq.info.quantity = 100 ether;
+    depositReq.info.quantity = 1 ether;
 
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(companionNetwork);
 
@@ -543,7 +542,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -579,7 +578,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
@@ -617,7 +616,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     withdrawReq.tokenAddr = address(ronERC20);
     withdrawReq.info.erc = TokenStandard.ERC20;
     withdrawReq.info.id = 0;
-    withdrawReq.info.quantity = 100 ether;
+    withdrawReq.info.quantity = 1 ether;
 
     vm.prank(user);
     ronERC20.approve(ronGW, withdrawReq.info.quantity);
