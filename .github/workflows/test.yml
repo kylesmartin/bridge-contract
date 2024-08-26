@@ -1,23 +1,23 @@
-name: test
+name: Unit Test
 
 on:
   push:
     branches:
       - mainnet
       - testnet
-      - 'feature/*'
-      - 'features/*'
-      - 'feat/*'
-      - 'feats/*'
+      - "feature/*"
+      - "features/*"
+      - "feat/*"
+      - "feats/*"
   pull_request:
     branches:
       - mainnet
       - testnet
-      - 'feature/*'
-      - 'features/*'
-      - 'feat/*'
-      - 'feats/*'
-      - 'release/*'
+      - "feature/*"
+      - "features/*"
+      - "feat/*"
+      - "feats/*"
+      - "release/*"
 
 env:
   FOUNDRY_PROFILE: ci
@@ -29,6 +29,11 @@ jobs:
 
     name: Foundry project
     runs-on: ubuntu-latest
+
+    env:
+      ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+      INFURA_API_KEY: ${{ secrets.INFURA_API_KEY }}
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -36,8 +41,6 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
 
       - name: Update package with soldeer
         run: forge soldeer update
@@ -46,6 +49,7 @@ jobs:
         run: |
           chmod +x ./update-deps.sh
           ./update-deps.sh
+        id: update-deps
 
       - name: Run Forge build
         run: |

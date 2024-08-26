@@ -1,10 +1,9 @@
 forge-std/=dependencies/@fdk-0.3.1-beta/dependencies/@forge-std-1.9.1/src/
-@openzeppelin/=lib/openzeppelin-contracts/
+@openzeppelin/=dependencies/@openzeppelin-4.7.3/
 hardhat/=node_modules/hardhat/
 @ronin/contracts/=src/
 @ronin/test/=test/
-@ronin/script=script/
-@prb/test/=lib/prb-test/src/
-@prb/math/=lib/prb-math/
 solady/=dependencies/@fdk-0.3.1-beta/dependencies/@solady-0.0.228/src/
 @fdk=dependencies/@fdk-0.3.1-beta/script/
+@prb/math/=lib/prb-math/
+@prb/test/=dependencies/@prb-test-0.6.5/src/

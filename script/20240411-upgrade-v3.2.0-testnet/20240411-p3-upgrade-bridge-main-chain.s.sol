@@ -188,7 +188,7 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
       supports_[i] = Ballot.VoteType.For;
     }
 
-    Signature[] memory signatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), _loadGovernorPKs(), Ballot.VoteType.For);
+    Signature[] memory signatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), _loadGovernors(), Ballot.VoteType.For);
 
     vm.broadcast(_governor);
     (bool success,) = address(_currMainchainBridgeManager).call{ gas: (proposal.targets.length + 1) * 1_000_000 }(
@@ -213,19 +213,19 @@ contract Migration__20240409_P3_UpgradeBridgeMainchain is Migration, Migration__
   function _generateSignaturesFor(
     bytes32 domain,
     bytes32 proposalHash,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
   ) public pure returns (Signature[] memory sigs) {
-    sigs = new Signature[](signerPKs.length);
+    sigs = new Signature[](signers.length);
 
-    for (uint256 i; i < signerPKs.length; i++) {
+    for (uint256 i; i < signers.length; i++) {
       bytes32 digest = ECDSA.toTypedDataHash(domain, Ballot.hash(proposalHash, support));
-      sigs[i] = _sign(signerPKs[i], digest);
+      sigs[i] = _sign(signers[i], digest);
     }
   }
 
-  function _sign(uint256 pk, bytes32 digest) internal pure returns (Signature memory sig) {
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+  function _sign(address signer, bytes32 digest) internal pure returns (Signature memory sig) {
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
     sig.v = v;
     sig.r = r;
     sig.s = s;

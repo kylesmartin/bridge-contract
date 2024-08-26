@@ -39,12 +39,13 @@ contract Factory__MapTokensSimulation_Mainchain is Factory__MapTokensSimulation_
     super.simulate();
 
     Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
-    uint256[] memory cheatingPks = new uint256[](1);
+    address[] memory cheatingGvs = new address[](1);
     (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
+    vm.rememberKey(cheatingGovPk);
 
     cheatingSupports[0] = Ballot.VoteType.For;
-    cheatingPks[0] = cheatingGovPk;
-    Signature[] memory cheatingSignatures = LibProposal.generateSignatures(proposal, cheatingPks, Ballot.VoteType.For);
+    cheatingGvs[0] = cheatingGov;
+    Signature[] memory cheatingSignatures = LibProposal.generateSignatures(proposal, cheatingGvs, Ballot.VoteType.For);
 
     uint256 gasAmounts = 1_000_000;
     for (uint256 i; i < proposal.gasAmounts.length; ++i) {
@@ -60,7 +61,7 @@ contract Factory__MapTokensSimulation_Mainchain is Factory__MapTokensSimulation_
       );
       _roninBridgeManager.castProposalBySignatures(proposal, cheatingSupports, cheatingSignatures);
 
-      address mMainchainAdress = _mainchainBridgeManager;
+      address mMainchainAddress = _mainchainBridgeManager;
       TNetwork currentNetwork = network();
       config.createFork(network().companionNetwork());
       config.switchTo(network().companionNetwork());
@@ -71,12 +72,12 @@ contract Factory__MapTokensSimulation_Mainchain is Factory__MapTokensSimulation_
         bytes32 $ = keccak256(abi.encode(block.chainid, roundSlot));
 
         bytes32 newNonce = bytes32(proposal.nonce - 1);
-        vm.store(address(mMainchainAdress), $, newNonce);
-        assertEq(MainchainBridgeManager(mMainchainAdress).round(block.chainid) + 1, proposal.nonce);
+        vm.store(address(mMainchainAddress), $, newNonce);
+        assertEq(MainchainBridgeManager(mMainchainAddress).round(block.chainid) + 1, proposal.nonce);
       }
 
-      _cheatWeightGovernor(IBridgeManager(mMainchainAdress), cheatingGov);
-      MainchainBridgeManager(mMainchainAdress).relayProposal{ gas: gasAmounts }(proposal, cheatingSupports, cheatingSignatures);
+      _cheatWeightGovernor(IBridgeManager(mMainchainAddress), cheatingGov);
+      MainchainBridgeManager(mMainchainAddress).relayProposal{ gas: gasAmounts }(proposal, cheatingSupports, cheatingSignatures);
 
       config.switchTo(currentNetwork);
     } else {

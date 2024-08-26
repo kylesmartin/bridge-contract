@@ -27,11 +27,10 @@ import { TNetwork } from "@fdk/types/TNetwork.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 import "./20240716-helper.s.sol";
-import "./20240716-operators-key.s.sol";
 import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
-contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
+contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__MapToken_WBTC_Threshold {
   using StdStyle for *;
 
   IRoninBridgeManager _oldRoninBridgeManager;
@@ -278,19 +277,19 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   function _generateSignaturesFor(
     bytes32 domain,
     bytes32 proposalHash,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
   ) public pure returns (Signature[] memory sigs) {
-    sigs = new Signature[](signerPKs.length);
+    sigs = new Signature[](signers.length);
 
-    for (uint256 i; i < signerPKs.length; i++) {
+    for (uint256 i; i < signers.length; i++) {
       bytes32 digest = ECDSA.toTypedDataHash(domain, Ballot.hash(proposalHash, support));
-      sigs[i] = _sign(signerPKs[i], digest);
+      sigs[i] = _sign(signers[i], digest);
     }
   }
 
-  function _sign(uint256 pk, bytes32 digest) internal pure returns (Signature memory sig) {
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+  function _sign(address signer, bytes32 digest) internal pure returns (Signature memory sig) {
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
     sig.v = v;
     sig.r = r;
     sig.s = s;
@@ -332,12 +331,13 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     switchTo(_companionNetwork);
 
     Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
-    uint256[] memory cheatingPks = new uint256[](1);
+    address[] memory cheatingGvs = new address[](1);
     (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
+    vm.rememberKey(cheatingGovPk);
 
     cheatingSupports[0] = Ballot.VoteType.For;
-    cheatingPks[0] = cheatingGovPk;
-    Signature[] memory cheatingSignatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingPks, Ballot.VoteType.For);
+    cheatingGvs[0] = cheatingGov;
+    Signature[] memory cheatingSignatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingGvs, Ballot.VoteType.For);
 
     uint256 totalGas = 1_000_000;
     for (uint256 i; i < proposal.gasAmounts.length; ++i) {

@@ -1,11 +1,11 @@
 [profile.default]
 src = 'src'
 out = 'out'
+script = 'script'
 optimizer = true
 optimizer_runs = 200
 ffi = true
 
-libs = ['lib', 'node_modules/hardhat']
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
@@ -70,3 +70,6 @@ ronin-testnet = "https://saigon-archive.roninchain.com/rpc"
 
 [dependencies]
 "@fdk" = { version = "0.3.1-beta", url = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.1-beta.zip" }
+"@openzeppelin" = { version = "4.7.3", url = "https://github.com/OpenZeppelin/openzeppelin-contracts/archive/refs/tags/v4.7.3.zip" }
+"@prb-math" = "4.0.3"
+"@prb-test" = "0.6.5"

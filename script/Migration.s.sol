@@ -11,10 +11,9 @@ import { ISharedArgument } from "./interfaces/ISharedArgument.sol";
 import { TNetwork, Network } from "./utils/Network.sol";
 import { IGeneralConfigExtended } from "./interfaces/IGeneralConfigExtended.sol";
 import { Utils } from "./utils/Utils.sol";
-import { LibTokenInfo, TokenInfo, TokenStandard } from "@ronin/contracts/libraries/LibTokenInfo.sol";
 import { Contract, TContract } from "./utils/Contract.sol";
 import { GlobalProposal, Proposal, LibProposal } from "script/shared/libraries/LibProposal.sol";
-import { TransparentUpgradeableProxy } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
+import { ITransparentUpgradeableProxyV2 } from "script/interfaces/ITransparentUpgradeableProxyV2.sol";
 import { LibArray } from "script/shared/libraries/LibArray.sol";
 import { IPostCheck } from "./interfaces/IPostCheck.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
@@ -32,15 +31,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
   ISharedArgument internal constant config = ISharedArgument(address(CONFIG));
 
   function _postCheck() internal virtual override {
-    address postChecker = _deployImmutable(
-      Contract.PostChecker.key(),
-      "PostChecker.sol:PostChecker", //string memory artifactName,
-      makeAddr("PostCheckerDeployer"),
-      0,
-      EMPTY_ARGS
-    );
+    address postChecker = _deployImmutable(Contract.PostChecker.key(), "PostChecker.sol:PostChecker", makeAddr("PostCheckerDeployer"), 0, EMPTY_ARGS);
 
-    // address postChecker = _deployImmutable(Contract.PostChecker.key());
     vm.allowCheatcodes(postChecker);
     vm.makePersistent(postChecker);
     IPostCheck(postChecker).run();
@@ -143,6 +135,9 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
         (address addrOperator, uint256 pkOperator) = makeAddrAndKey(string.concat("operator-", vm.toString(i + 1)));
         (address addrGovernor, uint256 pkGovernor) = makeAddrAndKey(string.concat("governor-", vm.toString(i + 1)));
 
+        vm.rememberKey(pkOperator);
+        vm.rememberKey(pkGovernor);
+
         operatorAddrs[i] = addrOperator;
         governorAddrs[i] = addrGovernor;
         operatorPKs[i] = pkOperator;
@@ -150,8 +145,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
         voteWeights[i] = 100;
       }
 
-      operatorPKs.inplaceSortByValue(operatorAddrs.toUint256s());
-      governorPKs.inplaceSortByValue(governorAddrs.toUint256s());
+      operatorPKs.inplaceAscSortByValue(operatorAddrs.toUint256s());
+      governorPKs.inplaceAscSortByValue(governorAddrs.toUint256s());
 
       param.test.operatorPKs = operatorPKs;
       param.test.governorPKs = governorPKs;
@@ -263,7 +258,7 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
     bytes memory args,
     ProxyInterface /* proxyInterface */
   ) public virtual override {
-    if (!config.isPostChecking() && logic.codehash == payable(proxy).getProxyImplementation({ nullCheck: true }).codehash) {
+    if (!config.isPostChecking() && logic.codehash == proxy.getProxyImplementation({ nullCheck: true }).codehash) {
       console.log("BaseMigration: Logic is already upgraded!".yellow());
       return;
     }
@@ -277,8 +272,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
       // in case proxyAdmin is an eoa
       console.log(StdStyle.yellow("Upgrading with EOA wallet..."));
       prankOrBroadcast(address(proxyAdmin));
-      if (args.length == 0) TransparentUpgradeableProxy(payable(proxy)).upgradeTo(logic);
-      else TransparentUpgradeableProxy(payable(proxy)).upgradeToAndCall(logic, args);
+      if (args.length == 0) ITransparentUpgradeableProxyV2(proxy).upgradeTo(logic);
+      else ITransparentUpgradeableProxyV2(proxy).upgradeToAndCall(logic, args);
     }
     // in case proxyAdmin is GovernanceAdmin
     else if (
@@ -295,16 +290,16 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
 
       targets[0] = proxy;
       callDatas[0] = args.length == 0
-        ? abi.encodeCall(TransparentUpgradeableProxy.upgradeTo, (logic))
-        : abi.encodeCall(TransparentUpgradeableProxy.upgradeToAndCall, (logic, args));
+        ? abi.encodeCall(ITransparentUpgradeableProxyV2.upgradeTo, (logic))
+        : abi.encodeCall(ITransparentUpgradeableProxyV2.upgradeToAndCall, (logic, args));
 
       Proposal.ProposalDetail memory proposal = LibProposal.createProposal({
-        manager: address(manager),
+        bm: address(manager),
         nonce: manager.round(block.chainid) + 1,
-        expiryTimestamp: block.timestamp + 10 minutes,
+        expiry: block.timestamp + 10 minutes,
         targets: targets,
         values: values,
-        calldatas: callDatas,
+        callDatas: callDatas,
         gasAmounts: uint256(DEFAULT_PROPOSAL_GAS).toSingletonArray()
       });
 
