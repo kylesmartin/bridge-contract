@@ -31,6 +31,7 @@ import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 
 contract Migration__20240807_IR_Recover_Testnet is Migration {
   using LibProxy for *;
+  using LibProposal for *;
   using LibCompanionNetwork for TNetwork;
 
   TNetwork _companionNetwork;
@@ -61,22 +62,43 @@ contract Migration__20240807_IR_Recover_Testnet is Migration {
     _mainchainBMproxy = TransparentUpgradeableProxyV2(payable(address(_mainchainBM)));
     _mainchainGW = IMainchainGatewayV3(loadContract(Contract.MainchainGatewayV3.key()));
 
+    _newGWLogic = _deployLogic(Contract.MainchainGatewayV3.key());
+    uint256 snapshotId = vm.snapshot();
     {
       // _preCheck_Withdrawable();
       _perform_PrankFix();
       _perform_checkAfterPrankFix();
     }
+    // Cheat to cache proposal
+    Proposal.ProposalDetail memory _cache = _proposal;
+    vm.revertTo(snapshotId);
+
+    _proposal = _cache;
 
     switchBack(prevNetwork, prevForkId);
 
     _performCreateAndExecuteProposalOnRonin();
+
+    (prevNetwork, prevForkId) = switchTo(_companionNetwork);
+
+    _performRelayProposalOnMainchain();
+
+    switchBack(prevNetwork, prevForkId);
+  }
+
+  function _performRelayProposalOnMainchain() internal {
+    address[] memory gvs = _mainchainBM.getGovernors();
+    Signature[] memory signatures = _proposal.generateSignatures(gvs, Ballot.VoteType.For);
+    Ballot.VoteType[] memory _supports = new Ballot.VoteType[](signatures.length);
+
+    vm.broadcast(gvs[0]);
+    IMainchainBridgeManager(_mainchainBM).relayProposal(_proposal, _supports, signatures);
   }
 
   function _perform_PrankFix() internal {
     // vm.prank(_multisigEth);
     // _prevBMLogic = _mainchainBMproxy.implementation();
     // _newBMLogic = _deployLogic(Contract.MainchainBridgeManager.key());
-    _newGWLogic = _deployLogic(Contract.MainchainGatewayV3.key());
 
     _recover_relayProposalWithCheatGovernors();
 
@@ -107,32 +129,38 @@ contract Migration__20240807_IR_Recover_Testnet is Migration {
   }
 
   function _performCreateAndExecuteProposalOnRonin() internal {
-    address[] memory gvs = _roninBM.getGovernors();
-    address gv = gvs[0];
+    while (_roninBM.round(11155111) <= 7) {
+      uint256 nonce = _roninBM.round(11155111) + 1;
 
-    vm.broadcast(gv);
-    vm.recordLogs();
-    _roninBM.propose({
-      chainId: _proposal.chainId,
-      expiryTimestamp: _proposal.expiryTimestamp,
-      executor: _proposal.executor,
-      targets: _proposal.targets,
-      values: _proposal.values,
-      calldatas: _proposal.calldatas,
-      gasAmounts: _proposal.gasAmounts
-    });
+      address[] memory gvs = _roninBM.getGovernors();
+      address gv = gvs[0];
 
-    Vm.Log[] memory logs = vm.getRecordedLogs();
-    Proposal.ProposalDetail memory proposal;
+      vm.broadcast(gv);
+      vm.recordLogs();
+      _roninBM.propose({
+        chainId: _proposal.chainId,
+        expiryTimestamp: _proposal.expiryTimestamp,
+        executor: _proposal.executor,
+        targets: _proposal.targets,
+        values: _proposal.values,
+        calldatas: _proposal.calldatas,
+        gasAmounts: _proposal.gasAmounts
+      });
 
-    for (uint256 i = 0; i < logs.length; i++) {
-      if (logs[i].emitter == address(_roninBM) && logs[i].topics[0] == IRoninBridgeManager.ProposalCreated.selector) {
-        (proposal,) = abi.decode(logs[i].data, (Proposal.ProposalDetail, address));
-        break;
+      Vm.Log[] memory logs = vm.getRecordedLogs();
+
+      for (uint256 i = 0; i < logs.length; i++) {
+        if (logs[i].emitter == address(_roninBM) && logs[i].topics[0] == IRoninBridgeManager.ProposalCreated.selector) {
+          (_proposal,) = abi.decode(logs[i].data, (Proposal.ProposalDetail, address));
+          break;
+        }
       }
-    }
 
-    LibProposal.voteForBySignature(_roninBM, proposal, Ballot.VoteType.For);
+      console.log("Proposal nonce: ", _proposal.nonce);
+      require(_proposal.nonce == nonce, "Invalid proposal nonce");
+
+      LibProposal.voteForBySignature(_roninBM, _proposal, Ballot.VoteType.For);
+    }
   }
 
   function _recover_relayProposalWithCheatGovernors() internal {
