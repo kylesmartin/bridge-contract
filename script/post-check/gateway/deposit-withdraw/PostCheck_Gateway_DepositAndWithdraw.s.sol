@@ -221,6 +221,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM);
     uint256 unmetSigCount = minSigRequired - 1;
+    console.log("Unmet sig count", unmetSigCount);
     assertTrue(unmetSigCount > 1, "Invalid test setup");
 
     // Sign first to get renounced operator signatures
@@ -260,6 +261,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     // Renounce operators
     vm.prank(address(ethBM));
     ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(abi.encodeCall(IBridgeManager.removeBridgeOperators, (gvsToRemove)));
+
+    assertEq(IMainchainBridgeManager(ethBM).totalBridgeOperator(), 4, "Invalid total BOs");
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
@@ -415,7 +418,10 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     bos[0] = mockOps[0];
     bos[1] = mockOps[1];
 
-    Signature[] memory sigs = _bulkSignReceipt(bos.concat(mockOps), receiptDigest);
+    console.log("GW min vote weight:", IQuorum(ethGW).minimumVoteWeight());
+    assertEq(IMainchainBridgeManager(ethBM).totalBridgeOperator(), 4, "Invalid total BOs");
+
+    Signature[] memory sigs = _bulkSignReceipt(bos.extend(mockOps), receiptDigest);
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
