@@ -92,7 +92,7 @@ contract Migration__20240807_IR_Recover_Testnet is Migration {
     Ballot.VoteType[] memory _supports = new Ballot.VoteType[](signatures.length);
 
     vm.broadcast(SM_GOVERNOR);
-    IMainchainBridgeManager(_mainchainBM).relayProposal(_proposal, _supports, signatures);
+    IMainchainBridgeManager(_mainchainBM).relayProposal{ gas: 4_000_000 }(_proposal, _supports, signatures);
   }
 
   function _perform_PrankFix() internal {
