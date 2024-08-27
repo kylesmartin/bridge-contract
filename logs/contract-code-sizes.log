@@ -19,7 +19,7 @@
 | ERC721                                          |    4,363 |     20,213 |
 | EnumerableSet                                   |       86 |     24,490 |
 | ErrorHandler                                    |       86 |     24,490 |
-| GeneralConfig                                   |   33,011 |     -8,435 |
+| GeneralConfig                                   |   32,890 |     -8,314 |
 | GlobalProposal                                  |       86 |     24,490 |
 | HasBridgeDeprecated                             |       63 |     24,513 |
 | HasValidatorDeprecated                          |       63 |     24,513 |

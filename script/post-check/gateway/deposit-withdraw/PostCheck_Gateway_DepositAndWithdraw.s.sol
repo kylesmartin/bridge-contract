@@ -179,7 +179,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ethBM);
 
-    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM);
+    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM, ethGW);
     assertTrue(minSigRequired > 1, "Invalid test setup");
 
     Signature[] memory sigs = _bulkSignReceipt(mockOps.slice(0, minSigRequired), receiptDigest);
@@ -219,9 +219,10 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ethBM);
 
-    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM);
+    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM, ethGW);
     uint256 unmetSigCount = minSigRequired - 1;
-    assertTrue(unmetSigCount > 1, "Invalid test setup");
+    console.log("Unmet sig count", unmetSigCount);
+    assertTrue(unmetSigCount >= 1, "Invalid test setup");
 
     // Sign first to get renounced operator signatures
     Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
@@ -260,6 +261,8 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     // Renounce operators
     vm.prank(address(ethBM));
     ITransparentUpgradeableProxyV2(ethBM).functionDelegateCall(abi.encodeCall(IBridgeManager.removeBridgeOperators, (gvsToRemove)));
+
+    assertEq(IMainchainBridgeManager(ethBM).totalBridgeOperator(), 4, "Invalid total BOs");
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
@@ -323,7 +326,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ronBM);
 
-    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM);
+    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM, ronGW);
     assertTrue(minVoteRequired > 1, "Invalid test setup");
 
     for (uint256 i; i < minVoteRequired; ++i) {
@@ -362,7 +365,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ronBM);
 
-    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM);
+    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM, ronGW);
     assertTrue(minVoteRequired > 1, "Invalid test setup");
 
     for (uint256 i; i < minVoteRequired; ++i) {
@@ -415,6 +418,9 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     bos[0] = mockOps[0];
     bos[1] = mockOps[1];
 
+    console.log("GW min vote weight:", IQuorum(ethGW).minimumVoteWeight());
+    assertEq(IMainchainBridgeManager(ethBM).totalBridgeOperator(), 4, "Invalid total BOs");
+
     Signature[] memory sigs = _bulkSignReceipt(bos.extend(mockOps), receiptDigest);
 
     vm.expectRevert();
@@ -457,6 +463,26 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
       (uint8 v, bytes32 r, bytes32 s) = vm.sign(mockOps[i], receiptDigest);
       sigs[i] = Signature(v, r, s);
     }
+
+    if (uint160(mockOps[0]) < uint160(mockOps[1])) {
+      // Swap if sorted
+      Signature memory temp = sigs[0];
+      sigs[0] = sigs[1];
+      sigs[1] = temp;
+
+      // Swap the mock ops
+      address tempOp = mockOps[0];
+      mockOps[0] = mockOps[1];
+      mockOps[1] = tempOp;
+
+      // Swap the mock gvs
+      address tempGv = mockGvs[0];
+      mockGvs[0] = mockGvs[1];
+      mockGvs[1] = tempGv;
+    }
+
+    console.log("GW min vote weight:", IQuorum(ethGW).minimumVoteWeight());
+    assertEq(IMainchainBridgeManager(ethBM).totalBridgeOperator(), 4, "Invalid total BOs");
 
     vm.expectRevert();
     IMainchainGatewayV3(ethGW).submitWithdrawal(receipt, sigs);
@@ -506,7 +532,7 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ronBM);
 
-    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM);
+    uint256 minVoteRequired = _calcMinSigOrVoteRequired(ronBM, ronGW);
     assertTrue(minVoteRequired > 1, "Invalid test setup");
 
     for (uint256 i; i < minVoteRequired; ++i) {
@@ -624,9 +650,9 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
 
     overrideMockBOs(ethBM);
 
-    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM);
+    uint256 minSigRequired = _calcMinSigOrVoteRequired(ethBM, ethGW);
     uint256 unmetSigCount = minSigRequired - 1;
-    assertTrue(unmetSigCount > 1, "Invalid test setup");
+    assertTrue(unmetSigCount >= 1, "Invalid test setup");
 
     Signature[] memory sigs = _bulkSignReceipt(mockOps, receiptDigest);
 
@@ -673,10 +699,10 @@ abstract contract PostCheck_Gateway_DepositAndWithdraw is BasePostCheck {
     switchBack(prevNetwork, prevForkId);
   }
 
-  function _calcMinSigOrVoteRequired(address bm) private view returns (uint256 minVoteOrSig) {
-    uint256 minVW = IQuorum(bm).minimumVoteWeight();
+  function _calcMinSigOrVoteRequired(address bm, address gw) private view returns (uint256 minVoteOrSig) {
+    uint256 minVW = IQuorum(gw).minimumVoteWeight();
     uint256 defaultVW = IBridgeManager(bm).getTotalWeight() / IBridgeManager(bm).totalBridgeOperator();
-    minVoteOrSig = minVW / defaultVW + 1;
+    minVoteOrSig = (minVW / defaultVW) + 1;
   }
 
   function _bulkSignReceipt(address[] memory signers, bytes32 receiptDigest) private pure returns (Signature[] memory sigs) {

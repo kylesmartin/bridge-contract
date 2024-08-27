@@ -178,7 +178,7 @@ library LibProposal {
       if (shouldPrankOnly) {
         vm.prank(governor);
       } else {
-        vm.prank(governor);
+        vm.broadcast(governor);
       }
 
       bm.castProposalBySignatures{ gas: totalGas }(proposal, supports_, sig);
