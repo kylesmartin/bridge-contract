@@ -19,7 +19,7 @@
 | ERC721                                          |    4,363 |     20,213 |
 | EnumerableSet                                   |       86 |     24,490 |
 | ErrorHandler                                    |       86 |     24,490 |
-| GeneralConfig                                   |   32,890 |     -8,314 |
+| GeneralConfig                                   |   32,968 |     -8,392 |
 | GlobalProposal                                  |       86 |     24,490 |
 | HasBridgeDeprecated                             |       63 |     24,513 |
 | HasValidatorDeprecated                          |       63 |     24,513 |
@@ -81,6 +81,7 @@
 | TransparentUpgradeableProxyV2                   |    2,361 |     22,215 |
 | Uint96ArrayUtils                                |       86 |     24,490 |
 | WBTC                                            |    6,574 |     18,002 |
+| WBTC_Sepolia                                    |    2,173 |     22,403 |
 | WethUnwrapper                                   |    1,218 |     23,358 |
 | console                                         |       86 |     24,490 |
 | safeconsole                                     |       86 |     24,490 |
