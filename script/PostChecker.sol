@@ -8,7 +8,7 @@ import { TContract, Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
 import { TNetwork, DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
-import { PostCheck_BridgeManager } from "./post-check/bridge-manager/PostCheck_BridgeManager.s.sol";
+import { PostCheck_BridgeManager } from "./post-check/manager/PostCheck_BridgeManager.s.sol";
 import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol";
 import { Migration } from "./Migration.s.sol";
 import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
@@ -24,8 +24,8 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     _originForkBlockNumber = opt.forkBlockNumber;
 
     _loadSysContract();
-    _validate_BridgeManager();
     _validate_Gateway();
+    _validate_BridgeManager();
   }
 
   function _deployLogic(TContract contractType) internal virtual override(BaseMigration, Migration) returns (address payable logic) {
@@ -60,36 +60,35 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
       currentNetwork == DefaultNetwork.RoninMainnet.key() || currentNetwork == DefaultNetwork.RoninTestnet.key() || currentNetwork == Network.RoninDevnet.key()
         || currentNetwork == DefaultNetwork.LocalHost.key()
     ) {
-      _loadRoninContracts(currentNetwork);
+      _loadRoninContracts();
 
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
-      mainchainGateway = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
-      mainchainBridgeManager = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
+      ethGW = CONFIG.getAddress(companionNetwork, Contract.MainchainGatewayV3.key());
+      ethBM = CONFIG.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
     } else {
-      mainchainGateway = loadContract(Contract.MainchainGatewayV3.key());
-      mainchainBridgeManager = loadContract(Contract.MainchainBridgeManager.key());
+      ethGW = loadContract(Contract.MainchainGatewayV3.key());
+      ethBM = loadContract(Contract.MainchainBridgeManager.key());
 
-      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(mainchainBridgeManager));
+      console.log("Mainchain Bridge Manager Logic:", LibProxy.getProxyImplementation(ethBM));
       (, TNetwork companionNetwork) = currentNetwork.companionNetworkData();
 
       uint256 originForkBlockNumber = config.getRuntimeConfig().forkBlockNumber;
       uint256 originForkId = config.getForkId(companionNetwork, originForkBlockNumber);
       config.switchTo(originForkId);
 
-      _loadRoninContracts(companionNetwork);
+      _loadRoninContracts();
     }
 
     _markSysContractsAsPersistent();
   }
 
-  function _loadRoninContracts(TNetwork roninNetwork) private {
-    bridgeSlash = loadContract(Contract.BridgeSlash.key());
-    bridgeReward = loadContract(Contract.BridgeReward.key());
-    roninGateway = loadContract(Contract.RoninGatewayV3.key());
-    bridgeTracking = loadContract(Contract.BridgeTracking.key());
-    roninBridgeManager = loadContract(Contract.RoninBridgeManager.key());
+  function _loadRoninContracts() private {
+    brSl = loadContract(Contract.BridgeSlash.key());
+    brRw = loadContract(Contract.BridgeReward.key());
+    ronGW = loadContract(Contract.RoninGatewayV3.key());
+    brTk = loadContract(Contract.BridgeTracking.key());
+    ronBM = loadContract(Contract.RoninBridgeManager.key());
   }
 
-  function _markSysContractsAsPersistent() internal {
-  }
+  function _markSysContractsAsPersistent() internal { }
 }

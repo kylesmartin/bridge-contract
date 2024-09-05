@@ -118,7 +118,7 @@ contract Migration__MapTokenRoninchain is Migration {
     calldatas[2] = _addAxieChatGovernorAddress();
     gasAmounts[2] = 1_000_000;
 
-    (uint256 companionChainId, TNetwork companionNetwork) = network().companionNetworkData();
+    (, TNetwork companionNetwork) = network().companionNetworkData();
     address companionManager = config.getAddress(companionNetwork, Contract.MainchainBridgeManager.key());
     LibProposal.verifyMainchainProposalGasAmount(companionNetwork, companionManager, targets, values, calldatas, gasAmounts);
 

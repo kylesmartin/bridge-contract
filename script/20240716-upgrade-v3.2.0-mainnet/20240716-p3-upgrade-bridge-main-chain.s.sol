@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import { console } from "forge-std/console.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
+import { IBridgeManager } from "@ronin/contracts/interfaces/bridge/IBridgeManager.sol";
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
 import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
@@ -13,24 +14,23 @@ import { Network } from "../utils/Network.sol";
 import { Contract } from "../utils/Contract.sol";
 import { ISharedArgument } from "../interfaces/ISharedArgument.sol";
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
-import "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
+import { IMainchainGatewayV3 } from "@ronin/contracts/interfaces/IMainchainGatewayV3.sol";
 import "@ronin/contracts/libraries/Proposal.sol";
 import "@ronin/contracts/libraries/Ballot.sol";
 
 import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
-import "@ronin/script/contracts/MainchainBridgeManagerDeploy.s.sol";
-import "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
+import "script/contracts/MainchainBridgeManagerDeploy.s.sol";
+import "script/contracts/MainchainWethUnwrapperDeploy.s.sol";
 import { TNetwork } from "@fdk/types/TNetwork.sol";
 import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 
 import "./20240716-helper.s.sol";
-import "./20240716-operators-key.s.sol";
 import "./wbtc-threshold.s.sol";
 import { Migration } from "../Migration.s.sol";
 
-contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__20240716_GovernorsKey, Migration__MapToken_WBTC_Threshold {
+contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__MapToken_WBTC_Threshold {
   using StdStyle for *;
 
   IRoninBridgeManager _oldRoninBridgeManager;
@@ -44,10 +44,6 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   LegacyProposalDetail _mainchainProposal;
 
   address private _proposer;
-
-  function setUp() public virtual override {
-    super.setUp();
-  }
 
   function run() public virtual onlyOn(DefaultNetwork.RoninMainnet.key()) {
     console.log("=== Starting migration Mainchain".bold().cyan());
@@ -93,7 +89,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   /**
    * @dev Deploy Mainchain Bridge Manager and transfer proxy admin to current BM
    */
-  function _deployMainchainBridgeManager() internal returns (address mainchainBM) {
+  function _deployMainchainBridgeManager() internal {
     console.log("@@@ Switch to companion");
     (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
 
@@ -211,9 +207,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     }
 
     targets[1] = mainchainGatewayV3Proxy;
-    calldatas[1] = abi.encodeWithSignature(
-      "upgradeToAndCall(address,bytes)", mainchainGatewayV3Logic, abi.encodeWithSelector(MainchainGatewayV3.initializeV4.selector, wethUnwrapper)
-    );
+    calldatas[1] =
+      abi.encodeWithSignature("upgradeToAndCall(address,bytes)", mainchainGatewayV3Logic, abi.encodeWithSignature("initializeV4(address)", wethUnwrapper));
 
     targets[2] = mainchainGatewayV3Proxy;
     calldatas[2] =
@@ -246,7 +241,8 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     switchBack(prevNetwork, prevForkId);
 
     vm.startBroadcast(_proposer);
-    address(_oldRoninBridgeManager).call(abi.encodeWithSignature(
+    (bool success,) = address(_oldRoninBridgeManager).call(
+      abi.encodeWithSignature(
         "propose(uint256,uint256,address[],uint256[],bytes[],uint256[])",
         _mainchainProposal.chainId,
         _mainchainProposal.expiryTimestamp,
@@ -254,7 +250,9 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
         _mainchainProposal.values,
         _mainchainProposal.calldatas,
         _mainchainProposal.gasAmounts
-    ));
+      )
+    );
+    require(success, "Failed to propose");
     vm.stopBroadcast();
   }
 
@@ -279,19 +277,19 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   function _generateSignaturesFor(
     bytes32 domain,
     bytes32 proposalHash,
-    uint256[] memory signerPKs,
+    address[] memory signers,
     Ballot.VoteType support
-  ) public pure returns (SignatureConsumer.Signature[] memory sigs) {
-    sigs = new SignatureConsumer.Signature[](signerPKs.length);
+  ) public pure returns (Signature[] memory sigs) {
+    sigs = new Signature[](signers.length);
 
-    for (uint256 i; i < signerPKs.length; i++) {
+    for (uint256 i; i < signers.length; i++) {
       bytes32 digest = ECDSA.toTypedDataHash(domain, Ballot.hash(proposalHash, support));
-      sigs[i] = _sign(signerPKs[i], digest);
+      sigs[i] = _sign(signers[i], digest);
     }
   }
 
-  function _sign(uint256 pk, bytes32 digest) internal pure returns (SignatureConsumer.Signature memory sig) {
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+  function _sign(address signer, bytes32 digest) internal pure returns (Signature memory sig) {
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
     sig.v = v;
     sig.r = r;
     sig.s = s;
@@ -330,16 +328,16 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
   }
 
   function _simulateProposal(LegacyProposalDetail memory proposal) internal {
-    (TNetwork prevNetwork, uint256 prevForkId) = switchTo(_companionNetwork);
+    switchTo(_companionNetwork);
 
     Ballot.VoteType[] memory cheatingSupports = new Ballot.VoteType[](1);
-    uint256[] memory cheatingPks = new uint256[](1);
+    address[] memory cheatingGvs = new address[](1);
     (address cheatingGov, uint256 cheatingGovPk) = makeAddrAndKey("Governor");
+    vm.rememberKey(cheatingGovPk);
 
     cheatingSupports[0] = Ballot.VoteType.For;
-    cheatingPks[0] = cheatingGovPk;
-    SignatureConsumer.Signature[] memory cheatingSignatures =
-      _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingPks, Ballot.VoteType.For);
+    cheatingGvs[0] = cheatingGov;
+    Signature[] memory cheatingSignatures = _generateSignaturesFor(getDomain(), hashLegacyProposal(proposal), cheatingGvs, Ballot.VoteType.For);
 
     uint256 totalGas = 1_000_000;
     for (uint256 i; i < proposal.gasAmounts.length; ++i) {
@@ -349,7 +347,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
     _cheatWeightGovernor(IBridgeManager(address(_currMainchainBridgeManager)), cheatingGov);
 
     vm.prank(cheatingGov);
-    address(_currMainchainBridgeManager).call{ gas: totalGas }(
+    (bool success,) = address(_currMainchainBridgeManager).call{ gas: totalGas }(
       abi.encodeWithSignature(
         "relayProposal((uint256,uint256,uint256,address[],uint256[],bytes[],uint256[]),uint8[],(uint8,bytes32,bytes32)[])",
         proposal,
@@ -357,6 +355,7 @@ contract Migration__20240716_P3_UpgradeBridgeMainchain is Migration, Migration__
         cheatingSignatures
       )
     );
+    require(success, "Failed to relay proposal");
   }
 
   function _cheatWeightGovernor(IBridgeManager manager, address gov) internal {

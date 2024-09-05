@@ -9,17 +9,13 @@ import "../BaseIntegration.t.sol";
 contract EmergencyAction_PauseEnforcer_Test is BaseIntegration_Test {
   error ErrTargetIsNotOnPaused();
 
-  function setUp() public virtual override {
-    super.setUp();
-  }
-
   // Emergency pause & emergency unpause > Should be able to emergency pause
   function test_EmergencyPause_RoninGatewayV3() public {
     vm.prank(_param.roninPauseEnforcer.sentries[0]);
     _roninPauseEnforcer.triggerPause();
 
-    assertEq(_roninPauseEnforcer.emergency(), true);
-    assertEq(_roninGatewayV3.paused(), true);
+    assertEq(_roninPauseEnforcer.emergency(), true, "emergency");
+    assertEq(IPauseTarget(address(_roninGatewayV3)).paused(), true, "paused");
   }
 
   // Emergency pause & emergency unpause > Should the gateway cannot interacted when on pause
@@ -44,9 +40,8 @@ contract EmergencyAction_PauseEnforcer_Test is BaseIntegration_Test {
   function test_RevertWhen_PauseAgain() public {
     test_EmergencyPause_RoninGatewayV3();
 
-    vm.expectRevert(ErrTargetIsNotOnPaused.selector);
-
     vm.prank(_param.roninPauseEnforcer.sentries[0]);
+    vm.expectRevert(ErrTargetIsNotOnPaused.selector);
     _roninPauseEnforcer.triggerPause();
   }
 
@@ -58,7 +53,7 @@ contract EmergencyAction_PauseEnforcer_Test is BaseIntegration_Test {
     _roninPauseEnforcer.triggerUnpause();
 
     assertEq(_roninPauseEnforcer.emergency(), false);
-    assertEq(_roninGatewayV3.paused(), false);
+    assertEq(IPauseTarget(address(_roninGatewayV3)).paused(), false);
   }
 
   // Emergency pause & emergency unpause > Should the gateway can be interacted after unpause

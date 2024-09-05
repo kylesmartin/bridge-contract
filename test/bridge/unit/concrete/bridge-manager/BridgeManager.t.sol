@@ -74,6 +74,8 @@ contract BridgeManager_Unit_Concrete_Test is Base_Test {
         new TransparentUpgradeableProxyV2(bridgeManagerLogic, _admin, abi.encodeCall(MockBridgeManager.initialize, (bridgeOperators, governors, voteWeights)))
       )
     );
+    vm.prank(_admin);
+    TransparentUpgradeableProxyV2(payable(address(_bridgeManager))).changeAdmin(address(_bridgeManager));
   }
 
   function _generateNewOperators() internal pure returns (address[] memory operators, address[] memory governors, uint96[] memory weights) {
