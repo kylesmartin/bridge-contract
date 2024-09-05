@@ -6,6 +6,8 @@ import "./GatewayV3.sol";
 abstract contract WithdrawalLimitation is GatewayV3 {
   /// @dev Error of invalid percentage.
   error ErrInvalidPercentage();
+  /// @dev Error thrown when the high-tier vote weight threshold is `0`.
+  error ErrNullHighTierVoteWeightProvided(bytes4 msgSig);
 
   /// @dev Emitted when the high-tier vote weight threshold is updated
   event HighTierVoteWeightThresholdUpdated(
@@ -163,7 +165,7 @@ abstract contract WithdrawalLimitation is GatewayV3 {
    *
    */
   function _setHighTierVoteWeightThreshold(uint256 _numerator, uint256 _denominator) internal returns (uint256 _previousNum, uint256 _previousDenom) {
-    if (_numerator > _denominator) revert ErrInvalidThreshold(msg.sig);
+    if (_numerator > _denominator || _numerator == 0 || _denominator == 0) revert ErrInvalidThreshold(msg.sig);
 
     _previousNum = _highTierVWNum;
     _previousDenom = _highTierVWDenom;
@@ -316,8 +318,9 @@ abstract contract WithdrawalLimitation is GatewayV3 {
   /**
    * @dev Returns high-tier vote weight.
    */
-  function _highTierVoteWeight(uint256 _totalWeight) internal view virtual returns (uint256) {
-    return (_highTierVWNum * _totalWeight + _highTierVWDenom - 1) / _highTierVWDenom;
+  function _highTierVoteWeight(uint256 _totalWeight) internal view virtual returns (uint256 highTierVW) {
+    highTierVW = (_highTierVWNum * _totalWeight + _highTierVWDenom - 1) / _highTierVWDenom;
+    if (highTierVW == 0) revert ErrNullHighTierVoteWeightProvided(msg.sig);
   }
 
   /**

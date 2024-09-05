@@ -17,26 +17,27 @@ event BridgeOperatorsRemoved(bool[] statuses, address[] bridgeOperators);
 contract Remove_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
   function setUp() public virtual override {
     BridgeManager_Unit_Concrete_Test.setUp();
-    vm.startPrank({ msgSender: address(_bridgeManager) });
   }
 
   function test_RevertWhen_NotSelfCall() external {
     // Prepare data
     (address[] memory removingOperators,,,,,) = _generateRemovingOperators(1);
 
-    // Make the caller not self-call.
-    changePrank({ msgSender: _bridgeOperators[0] });
-
     // Run the test.
     vm.expectRevert(abi.encodeWithSelector(ErrOnlySelfCall.selector, IBridgeManager.removeBridgeOperators.selector));
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
   }
 
   function test_RevertWhen_RemoveOperator_OneAddress_AddressNotOperator() external {
     address[] memory removingOperators = wrapAddress(_governors[0]);
 
     vm.expectRevert(abi.encodeWithSelector(IBridgeManager.ErrOperatorNotFound.selector, removingOperators[0]));
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    vm.prank({ msgSender: address(_bridgeManager) });
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
   }
 
   function test_RemoveOperators_OneAddress_ThatValid() external {
@@ -53,8 +54,10 @@ contract Remove_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     expectedRemoveds[0] = true;
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsRemoved(expectedRemoveds, new address[](0));
-
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    vm.prank({ msgSender: address(_bridgeManager) });
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
 
     assertEq(_bridgeManager.totalBridgeOperator(), _bridgeOperators.length - 1, "wrong total bridge operator");
     assertEq(_bridgeManager.getTotalWeight(), _totalWeight - removingWeights[0], "wrong total total weight");
@@ -88,7 +91,10 @@ contract Remove_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
 
     // Run the test.
     vm.expectRevert(abi.encodeWithSelector(AddressArrayUtils.ErrDuplicated.selector, IBridgeManager.removeBridgeOperators.selector));
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    vm.prank({ msgSender: address(_bridgeManager) });
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
   }
 
   function test_RemoveOperators_TwoAddress_ThatValid() external {
@@ -108,8 +114,10 @@ contract Remove_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
     expectedRemoveds[1] = true;
     vm.expectEmit(true, false, false, false);
     emit BridgeOperatorsRemoved(expectedRemoveds, new address[](0));
-
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    vm.prank({ msgSender: address(_bridgeManager) });
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
 
     address[] memory zeroAddressArrays = new address[](TO_REMOVE_NUM);
     zeroAddressArrays[0] = address(0);
@@ -147,6 +155,9 @@ contract Remove_Unit_Concrete_Test is BridgeManager_Unit_Concrete_Test {
 
     // Run the test.
     vm.expectRevert(abi.encodeWithSelector(IBridgeManager.ErrBelowMinRequiredGovernors.selector));
-    _bridgeManager.removeBridgeOperators(removingOperators);
+    vm.prank({ msgSender: address(_bridgeManager) });
+    address(_bridgeManager).call(
+      abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("removeBridgeOperators(address[])", removingOperators))
+    );
   }
 }

@@ -18,6 +18,25 @@ library LibArray {
     }
   }
 
+  /**
+   * @dev Returns a slice of an array.
+   */
+  function slice(uint256[] memory self, uint256 start, uint256 end) internal pure returns (uint256[] memory) {
+    require(start <= end, "LibArray: invalid slice range");
+    require(end <= self.length, "LibArray: slice end exceeds array length");
+
+    uint256[] memory output = new uint256[](end - start);
+    for (uint256 i = start; i < end; ++i) {
+      output[i - start] = self[i];
+    }
+
+    return output;
+  }
+
+  function slice(address[] memory self, uint256 start, uint256 end) internal pure returns (address[] memory) {
+    return toAddressesUnsafe(slice(toUint256s(self), start, end));
+  }
+
   function toSingletonArray(address self) internal pure returns (address[] memory arr) {
     arr = new address[](1);
     arr[0] = self;
@@ -230,28 +249,62 @@ library LibArray {
   }
 
   /**
-   * @dev Sorts an array of uint256 values based on a corresponding array of values using the specified sorting mode.
-   * @param self The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @notice This function modify `self` and `values`
-   * @return sorted The sorted array.
+   * @notice Sorts an array of uint256 values based on a corresponding array of values ascending.
+   * WARNING: This function modify `self` and `values`
    */
-  function inplaceSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
-    return inplaceQuickSortByValue(self, values);
+  function inplaceAscSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(self, values);
   }
 
   /**
-   * @dev Sorts an array of uint256 based on a corresponding array of values.
-   * @param self The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @notice This function modify `self` and `values`
-   * @return sorted The sorted array.
+   * @notice Sorts an array of address based on a corresponding array of values ascending.
+   * WARNING: This function modify `self` and `values`
    */
-  function inplaceQuickSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+  function inplaceAscSortByValue(address[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(toUint256s(self), values);
+  }
+
+  /**
+   * @notice Sorts an array of uint256 based on a corresponding array of address values ascending.
+   * WARNING: This function modify `self` and `values`
+   */
+  function inplaceAscSortByValue(uint256[] memory self, address[] memory values) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSortByValue(self, toUint256s(values));
+  }
+
+  /**
+   * @dev Sorts array of uint256 `values`.
+   *
+   * - Values are sorted in ascending order.
+   *
+   * WARNING This function DOES modifies the original `values`.
+   */
+  function inplaceAscSort(uint256[] memory self) internal pure returns (uint256[] memory sorted) {
+    return inplaceAscQuickSort(self);
+  }
+
+  /**
+   * @dev Sorts array of address `values`.
+   *
+   * - Values are sorted in ascending order.
+   *
+   * WARNING This function DOES modifies the original `values`.
+   */
+  function inplaceAscSort(address[] memory self) internal pure returns (address[] memory sorted) {
+    return toAddressesUnsafe(inplaceAscQuickSort(toUint256s(self)));
+  }
+
+  /**
+   * @dev Sorts array of uint256 `values`.
+   *
+   * - Values are sorted in ascending order.
+   *
+   * WARNING This function DOES modifies the original `values`.
+   */
+  function inplaceAscQuickSort(uint256[] memory self) internal pure returns (uint256[] memory sorted) {
     uint256 length = self.length;
-    if (length != values.length) revert LengthMismatch();
     unchecked {
-      if (length > 1) inplaceQuickSortByValue(self, values, 0, int256(length - 1));
+      if (length > 1) _inplaceAscQuickSort(self, 0, int256(length - 1));
     }
 
     assembly ("memory-safe") {
@@ -260,14 +313,58 @@ library LibArray {
   }
 
   /**
-   * @dev Internal function to perform quicksort on an array of uint256 values based on a corresponding array of values.
-   * @param arr The array to be sorted.
-   * @param values The corresponding array of values used for sorting.
-   * @param left The left index of the subarray to be sorted.
-   * @param right The right index of the subarray to be sorted.
-   * @notice This function modify `arr` and `values`
+   * @dev Internal function to perform quicksort on an `values`.
+   *
+   * - Values are sorted in ascending order.
+   *
+   * WARNING This function modify `values`
    */
-  function inplaceQuickSortByValue(uint256[] memory arr, uint256[] memory values, int256 left, int256 right) private pure {
+  function _inplaceAscQuickSort(uint256[] memory values, int256 left, int256 right) private pure {
+    unchecked {
+      if (left < right) {
+        if (left == right) return;
+        int256 i = left;
+        int256 j = right;
+        uint256 pivot = values[uint256(left + right) >> 1];
+
+        while (i <= j) {
+          while (pivot > values[uint256(i)]) ++i;
+          while (pivot < values[uint256(j)]) --j;
+
+          if (i <= j) {
+            (values[uint256(i)], values[uint256(j)]) = (values[uint256(j)], values[uint256(i)]);
+            ++i;
+            --j;
+          }
+        }
+
+        if (left < j) _inplaceAscQuickSort(values, left, j);
+        if (i < right) _inplaceAscQuickSort(values, i, right);
+      }
+    }
+  }
+
+  /**
+   * @notice Sorts an array of uint256 based on a corresponding array of values ascending.
+   * WARNING: This function modify `self` and `values`
+   */
+  function inplaceAscQuickSortByValue(uint256[] memory self, uint256[] memory values) internal pure returns (uint256[] memory sorted) {
+    uint256 length = self.length;
+    if (length != values.length) revert LengthMismatch();
+    unchecked {
+      if (length > 1) _inplaceAscQuickSortByValue(self, values, 0, int256(length - 1));
+    }
+
+    assembly ("memory-safe") {
+      sorted := self
+    }
+  }
+
+  /**
+   * @dev Private function to perform quicksort on an array of uint256 values based on a corresponding array of values ascending.
+   * WARNING: This function modify `arr` and `values`
+   */
+  function _inplaceAscQuickSortByValue(uint256[] memory arr, uint256[] memory values, int256 left, int256 right) private pure {
     unchecked {
       if (left == right) return;
       int256 i = left;
@@ -286,8 +383,8 @@ library LibArray {
         }
       }
 
-      if (left < j) inplaceQuickSortByValue(arr, values, left, j);
-      if (i < right) inplaceQuickSortByValue(arr, values, i, right);
+      if (left < j) _inplaceAscQuickSortByValue(arr, values, left, j);
+      if (i < right) _inplaceAscQuickSortByValue(arr, values, i, right);
     }
   }
 }

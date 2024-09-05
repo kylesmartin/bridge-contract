@@ -27,6 +27,16 @@ interface IMainchainGatewayV3 is SignatureConsumer, MappedTokenConsumer {
    */
   error ErrQueryForInsufficientVoteWeight();
 
+  /**
+   * @dev Error indicating that the recovered signer from the signature has invalid vote weight.
+   */
+  error ErrInvalidSigner(address signer, uint256 weight, Signature sig);
+
+  /**
+   * @dev Error indicating that the total weight provided is null.
+   */
+  error ErrNullTotalWeightProvided(bytes4 msgSig);
+
   /// @dev Emitted when the deposit is requested
   event DepositRequested(bytes32 receiptHash, Transfer.Receipt receipt);
   /// @dev Emitted when the assets are withdrawn
@@ -41,7 +51,12 @@ interface IMainchainGatewayV3 is SignatureConsumer, MappedTokenConsumer {
   event WithdrawalUnlocked(bytes32 receiptHash, Transfer.Receipt receipt);
 
   /**
-   * @dev Returns the domain seperator.
+   * @dev Returns the WETH address.
+   */
+  function wrappedNativeToken() external view returns (IWETH);
+
+  /**
+   * @dev Returns the domain separator.
    */
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
@@ -75,11 +90,6 @@ interface IMainchainGatewayV3 is SignatureConsumer, MappedTokenConsumer {
    * @dev Locks the assets and request deposit.
    */
   function requestDepositFor(Transfer.Request calldata _request) external payable;
-
-  /**
-   * @dev Locks the assets and request deposit for batch.
-   */
-  function requestDepositForBatch(Transfer.Request[] calldata requests) external payable;
 
   /**
    * @dev Withdraws based on the receipt and the validator signatures.

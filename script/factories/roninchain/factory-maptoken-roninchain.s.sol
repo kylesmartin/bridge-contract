@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 } from "forge-std/console2.sol";
 import { StdStyle } from "forge-std/StdStyle.sol";
 
 import { RoninBridgeManager } from "@ronin/contracts/ronin/gateway/RoninBridgeManager.sol";
@@ -28,14 +27,12 @@ abstract contract Factory__MapTokensRoninchain is Migration {
   address internal _specifiedCaller;
   address[] internal _governors;
 
-  function setUp() public virtual override {
-    super.setUp();
+  function run() public virtual {
     _roninBridgeManager = RoninBridgeManager(config.getAddressFromCurrentNetwork(Contract.RoninBridgeManager.key()));
     _roninGatewayV3 = config.getAddressFromCurrentNetwork(Contract.RoninGatewayV3.key());
     _specifiedCaller = _initCaller();
   }
 
-  function run() public virtual;
   function _initCaller() internal virtual returns (address);
   function _initTokenList() internal virtual returns (uint256 totalToken, MapTokenInfo[] memory infos);
 
@@ -79,7 +76,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
   }
 
   function _createAndVerifyProposalOnRonin() internal returns (Proposal.ProposalDetail memory proposal) {
-    (uint256 N, MapTokenInfo[] memory tokenInfos) = _initTokenList();
+    _initTokenList();
 
     (address[] memory roninTokens, address[] memory mainchainTokens, uint256[] memory chainIds, TokenStandard[] memory standards) = _prepareMapTokens();
 
@@ -99,7 +96,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
     bytes memory innerData = abi.encodeCall(IRoninGatewayV3.mapTokens, (roninTokens, mainchainTokens, chainIds, standards));
     bytes memory proxyData = abi.encodeWithSignature("functionDelegateCall(bytes)", innerData);
 
-    uint256 expiredTime = block.timestamp + 14 days;
+    uint256 expiry = block.timestamp + 14 days;
     targets[0] = _roninGatewayV3;
     values[0] = 0;
     calldatas[0] = proxyData;
@@ -111,7 +108,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
       calldatas = new bytes[](2);
       gasAmounts = new uint256[](2);
 
-      uint256 expiredTime = block.timestamp + 14 days;
+      expiry = block.timestamp + 14 days;
       targets[0] = _roninGatewayV3;
       values[0] = 0;
       calldatas[0] = proxyData;
@@ -133,7 +130,7 @@ abstract contract Factory__MapTokensRoninchain is Migration {
     proposal = Proposal.ProposalDetail({
       nonce: RoninBridgeManager(_roninBridgeManager).round(block.chainid) + 1,
       chainId: block.chainid,
-      expiryTimestamp: expiredTime,
+      expiryTimestamp: expiry,
       executor: address(0),
       targets: targets,
       values: values,

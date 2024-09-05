@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { console2 as console } from "forge-std/console2.sol";
+import { console } from "forge-std/console.sol";
 import { Base_Test } from "../../Base.t.sol";
 import { LibSharedAddress } from "@fdk/libraries/LibSharedAddress.sol";
-import { ISharedArgument } from "@ronin/script/interfaces/ISharedArgument.sol";
+import { ISharedArgument } from "script/interfaces/ISharedArgument.sol";
 import { IGeneralConfig } from "@fdk/interfaces/IGeneralConfig.sol";
-import { GeneralConfig } from "@ronin/script/GeneralConfig.sol";
-import { Network } from "@ronin/script/utils/Network.sol";
+import { GeneralConfig } from "script/GeneralConfig.sol";
+import { Network } from "script/utils/Network.sol";
 
 import { IRoninBridgeManager } from "script/interfaces/IRoninBridgeManager.sol";
-import { RoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
-import { BridgeTracking } from "@ronin/contracts/ronin/gateway/BridgeTracking.sol";
-import { BridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
-import { BridgeReward } from "@ronin/contracts/ronin/gateway/BridgeReward.sol";
-import { MainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
-import { MainchainGatewayBatcher } from "@ronin/contracts/mainchain/MainchainGatewayBatcher.sol";
+import { IRoninGatewayV3 } from "@ronin/contracts/ronin/gateway/RoninGatewayV3.sol";
+import { IBridgeTracking } from "@ronin/contracts/ronin/gateway/BridgeTracking.sol";
+import { IBridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
+import { IBridgeReward } from "@ronin/contracts/ronin/gateway/BridgeReward.sol";
+import { IMainchainGatewayV3 } from "@ronin/contracts/mainchain/MainchainGatewayV3.sol";
+import { IMainchainGatewayBatcher } from "script/interfaces/IMainchainGatewayBatcher.sol";
+
 import { IMainchainBridgeManager } from "script/interfaces/IMainchainBridgeManager.sol";
 import { WethUnwrapper } from "@ronin/contracts/extensions/WethUnwrapper.sol";
 import { MockSLP } from "@ronin/contracts/mocks/token/MockSLP.sol";
@@ -39,30 +40,31 @@ import { IBridgeManagerCallbackRegister } from "@ronin/contracts/interfaces/brid
 import { ContractType } from "@ronin/contracts/utils/ContractType.sol";
 import { TransparentUpgradeableProxyV2 } from "@ronin/contracts/extensions/TransparentUpgradeableProxyV2.sol";
 import { MockValidatorContract_OnlyTiming_ForHardhatTest } from "@ronin/contracts/mocks/ronin/MockValidatorContract_OnlyTiming_ForHardhatTest.sol";
-import { PauseEnforcer } from "@ronin/contracts/ronin/gateway/PauseEnforcer.sol";
+import { IPauseEnforcer } from "script/interfaces/IPauseEnforcer.sol";
 import { IPauseTarget } from "@ronin/contracts/interfaces/IPauseTarget.sol";
 import { GatewayV3 } from "@ronin/contracts/extensions/GatewayV3.sol";
 import { IBridgeManagerCallbackRegister } from "@ronin/contracts/interfaces/bridge/IBridgeManagerCallbackRegister.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
 
-import { RoninBridgeManagerDeploy } from "@ronin/script/contracts/RoninBridgeManagerDeploy.s.sol";
-import { RoninGatewayV3Deploy } from "@ronin/script/contracts/RoninGatewayV3Deploy.s.sol";
-import { BridgeTrackingDeploy } from "@ronin/script/contracts/BridgeTrackingDeploy.s.sol";
-import { BridgeSlashDeploy } from "@ronin/script/contracts/BridgeSlashDeploy.s.sol";
-import { BridgeRewardDeploy } from "@ronin/script/contracts/BridgeRewardDeploy.s.sol";
-import { RoninPauseEnforcerDeploy } from "@ronin/script/contracts/RoninPauseEnforcerDeploy.s.sol";
+import { RoninBridgeManagerDeploy } from "script/contracts/RoninBridgeManagerDeploy.s.sol";
+import { RoninGatewayV3Deploy } from "script/contracts/RoninGatewayV3Deploy.s.sol";
+import { BridgeTrackingDeploy } from "script/contracts/BridgeTrackingDeploy.s.sol";
+import { BridgeSlashDeploy } from "script/contracts/BridgeSlashDeploy.s.sol";
+import { BridgeRewardDeploy } from "script/contracts/BridgeRewardDeploy.s.sol";
+import { RoninPauseEnforcerDeploy } from "script/contracts/RoninPauseEnforcerDeploy.s.sol";
 
-import { MainchainGatewayV3Deploy } from "@ronin/script/contracts/MainchainGatewayV3Deploy.s.sol";
-import { MainchainGatewayBatcherDeploy } from "@ronin/script/contracts/MainchainGatewayBatcherDeploy.s.sol";
-import { MainchainBridgeManagerDeploy } from "@ronin/script/contracts/MainchainBridgeManagerDeploy.s.sol";
-import { MainchainPauseEnforcerDeploy } from "@ronin/script/contracts/MainchainPauseEnforcerDeploy.s.sol";
-import { MainchainWethUnwrapperDeploy } from "@ronin/script/contracts/MainchainWethUnwrapperDeploy.s.sol";
-import { WETHDeploy } from "@ronin/script/contracts/token/WETHDeploy.s.sol";
-import { WRONDeploy } from "@ronin/script/contracts/token/WRONDeploy.s.sol";
-import { AXSDeploy } from "@ronin/script/contracts/token/AXSDeploy.s.sol";
-import { SLPDeploy } from "@ronin/script/contracts/token/SLPDeploy.s.sol";
-import { USDCDeploy } from "@ronin/script/contracts/token/USDCDeploy.s.sol";
-import { MockERC721Deploy } from "@ronin/script/contracts/token/MockERC721Deploy.s.sol";
-import { MockERC1155Deploy } from "@ronin/script/contracts/token/MockERC1155Deploy.s.sol";
+import { MainchainGatewayV3Deploy } from "script/contracts/MainchainGatewayV3Deploy.s.sol";
+import { MainchainGatewayBatcherDeploy } from "script/contracts/MainchainGatewayBatcherDeploy.s.sol";
+import { MainchainBridgeManagerDeploy } from "script/contracts/MainchainBridgeManagerDeploy.s.sol";
+import { MainchainPauseEnforcerDeploy } from "script/contracts/MainchainPauseEnforcerDeploy.s.sol";
+import { MainchainWethUnwrapperDeploy } from "script/contracts/MainchainWethUnwrapperDeploy.s.sol";
+import { WETHDeploy } from "script/contracts/token/WETHDeploy.s.sol";
+import { WRONDeploy } from "script/contracts/token/WRONDeploy.s.sol";
+import { AXSDeploy } from "script/contracts/token/AXSDeploy.s.sol";
+import { SLPDeploy } from "script/contracts/token/SLPDeploy.s.sol";
+import { USDCDeploy } from "script/contracts/token/USDCDeploy.s.sol";
+import { MockERC721Deploy } from "script/contracts/token/MockERC721Deploy.s.sol";
+import { MockERC1155Deploy } from "script/contracts/token/MockERC1155Deploy.s.sol";
 
 import { RoninBridgeAdminUtils } from "test/helpers/RoninBridgeAdminUtils.t.sol";
 import { MainchainBridgeAdminUtils } from "test/helpers/MainchainBridgeAdminUtils.t.sol";
@@ -80,48 +82,48 @@ contract MockPoisonERC20 is MockERC20 {
 contract BaseIntegration_Test is Base_Test {
   using LibTransfer for LibTransfer.Receipt;
 
-  address sender;
+  address internal sender;
 
-  IGeneralConfig _config;
-  ISharedArgument.SharedParameter _param;
+  IGeneralConfig internal _config;
+  ISharedArgument.SharedParameter internal _param;
 
-  PauseEnforcer _roninPauseEnforcer;
-  IRoninBridgeManager _roninBridgeManager;
-  RoninGatewayV3 _roninGatewayV3;
-  BridgeTracking _bridgeTracking;
-  BridgeSlash _bridgeSlash;
-  BridgeReward _bridgeReward;
+  IPauseEnforcer internal _roninPauseEnforcer;
+  IRoninBridgeManager internal _roninBridgeManager;
+  IRoninGatewayV3 internal _roninGatewayV3;
+  IBridgeTracking internal _bridgeTracking;
+  IBridgeSlash internal _bridgeSlash;
+  IBridgeReward internal _bridgeReward;
 
-  PauseEnforcer _mainchainPauseEnforcer;
-  MainchainGatewayV3 _mainchainGatewayV3;
-  MainchainGatewayBatcher _mainchainGatewayBatcher;
-  IMainchainBridgeManager _mainchainBridgeManager;
-  WethUnwrapper _mainchainWethUnwrapper;
+  IPauseEnforcer internal _mainchainPauseEnforcer;
+  IMainchainGatewayV3 internal _mainchainGatewayV3;
+  IMainchainGatewayBatcher internal _mainchainGatewayBatcher;
+  IMainchainBridgeManager internal _mainchainBridgeManager;
+  WethUnwrapper internal _mainchainWethUnwrapper;
 
-  MockWrappedToken _roninWeth;
-  MockWrappedToken _roninWron;
-  MockERC20 _roninAxs;
-  MockSLP _roninSlp;
-  MockUSDC _roninUsdc;
-  MockERC721 _roninMockERC721;
-  MockERC1155 _roninMockERC1155;
+  MockWrappedToken internal _roninWeth;
+  MockWrappedToken internal _roninWron;
+  MockERC20 internal _roninAxs;
+  MockSLP internal _roninSlp;
+  MockUSDC internal _roninUsdc;
+  MockERC721 internal _roninMockERC721;
+  MockERC1155 internal _roninMockERC1155;
 
-  MockWrappedToken _mainchainWeth;
-  MockERC20 _mainchainAxs;
-  MockSLP _mainchainSlp;
-  MockUSDC _mainchainUsdc;
-  MockERC721 _mainchainMockERC721;
-  MockERC1155 _mainchainMockERC1155;
+  MockWrappedToken internal _mainchainWeth;
+  MockERC20 internal _mainchainAxs;
+  MockSLP internal _mainchainSlp;
+  MockUSDC internal _mainchainUsdc;
+  MockERC721 internal _mainchainMockERC721;
+  MockERC1155 internal _mainchainMockERC1155;
 
-  MockValidatorContract_OnlyTiming_ForHardhatTest _validatorSet;
+  MockValidatorContract_OnlyTiming_ForHardhatTest internal _validatorSet;
 
-  RoninBridgeAdminUtils _roninProposalUtils;
-  MainchainBridgeAdminUtils _mainchainProposalUtils;
+  RoninBridgeAdminUtils internal _roninProposalUtils;
+  MainchainBridgeAdminUtils internal _mainchainProposalUtils;
 
-  MockERC20 _mainchainMockERC20;
-  MockPoisonERC20 _mainchainMockPoisonERC20;
-  MockERC20 _roninMockERC20;
-  MockPoisonERC20 _roninMockPoisonERC20;
+  MockERC20 internal _mainchainMockERC20;
+  MockPoisonERC20 internal _mainchainMockPoisonERC20;
+  MockERC20 internal _roninMockERC20;
+  MockPoisonERC20 internal _roninMockPoisonERC20;
 
   function setUp() public virtual {
     _deployGeneralConfig();
@@ -164,6 +166,10 @@ contract BaseIntegration_Test is Base_Test {
     _param = ISharedArgument(LibSharedAddress.CONFIG).sharedArguments();
     _roninProposalUtils = new RoninBridgeAdminUtils(block.chainid, _param.test.governorPKs, _roninBridgeManager, _param.roninBridgeManager.governors[0]);
     _validatorSet = new MockValidatorContract_OnlyTiming_ForHardhatTest(_param.test.numberOfBlocksInEpoch);
+
+    address proxyAdmin = LibProxy.getProxyAdmin(address(_roninBridgeManager));
+    vm.prank(proxyAdmin);
+    TransparentUpgradeableProxyV2(payable(address(_roninBridgeManager))).changeAdmin(address(_roninBridgeManager));
   }
 
   function _deployContractsOnMainchain() internal {
@@ -187,7 +193,11 @@ contract BaseIntegration_Test is Base_Test {
     _mainchainProposalUtils =
       new MainchainBridgeAdminUtils(block.chainid, _param.test.governorPKs, _mainchainBridgeManager, _param.mainchainBridgeManager.governors[0]);
 
-    _mainchainGatewayBatcher = new MainchainGatewayBatcherDeploy().runWithArgs(abi.encodeCall(MainchainGatewayBatcher.initialize, (_mainchainGatewayV3)));
+    _mainchainGatewayBatcher = new MainchainGatewayBatcherDeploy().runWithArgs(abi.encodeWithSignature("initialize(address)", _mainchainGatewayV3));
+
+    address proxyAdmin = LibProxy.getProxyAdmin(address(_mainchainBridgeManager));
+    vm.prank(proxyAdmin);
+    TransparentUpgradeableProxyV2(payable(address(_mainchainBridgeManager))).changeAdmin(address(_mainchainBridgeManager));
   }
 
   function _initializeRonin() internal {
@@ -205,6 +215,7 @@ contract BaseIntegration_Test is Base_Test {
 
   function _initializeMainchain() internal {
     _mainchainPauseEnforcerInitialize();
+    _mainchainBridgeManagerInitialize();
     _constructForMainchainBridgeManager();
     _mainchainGatewayV3Initialize();
   }
@@ -218,12 +229,22 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.BridgeRewardParam memory param = _param.bridgeReward;
 
-    _bridgeReward.initialize(
-      param.bridgeManagerContract, param.bridgeTrackingContract, param.bridgeSlashContract, param.validatorSetContract, param.dposGA, param.rewardPerPeriod
+    (bool success,) = address(_bridgeReward).call(
+      abi.encodeWithSignature(
+        "initialize(address,address,address,address,address,uint256)",
+        param.bridgeManagerContract,
+        param.bridgeTrackingContract,
+        param.bridgeSlashContract,
+        param.validatorSetContract,
+        param.dposGA,
+        param.rewardPerPeriod
+      )
     );
+    require(success, "BridgeReward initialize failed");
 
     vm.prank(_param.test.dposGA);
-    _bridgeReward.initializeREP2();
+    (success,) = address(_bridgeReward).call(abi.encodeWithSignature("initializeREP2()"));
+    require(success, "BridgeReward initializeREP2 failed");
   }
 
   function _bridgeTrackingInitialize() internal {
@@ -233,11 +254,18 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.BridgeTrackingParam memory param = _param.bridgeTracking;
 
-    _bridgeTracking.initialize(param.bridgeContract, param.validatorContract, param.startedAtBlock);
-    // _bridgeTracking.initializeV2(); NOT INITIALIZE V2
-    _bridgeTracking.initializeV3(address(_roninBridgeManager), address(_bridgeSlash), address(_bridgeReward), _param.test.dposGA);
+    (bool success,) = address(_bridgeTracking).call(
+      abi.encodeWithSignature("initialize(address,address,uint256)", param.bridgeContract, param.validatorContract, param.startedAtBlock)
+    );
+    require(success, "BridgeTracking initialize failed");
+    // address(_bridgeTracking).call(abi.encodeWithSignature("initializeV2()"); NOT INITIALIZE
+    (success,) = address(_bridgeTracking).call(
+      abi.encodeWithSignature("initializeV3(address,address,address,address)", (_roninBridgeManager), (_bridgeSlash), (_bridgeReward), _param.test.dposGA)
+    );
+    require(success, "BridgeTracking initializeV3 failed");
     vm.prank(_param.test.dposGA);
-    _bridgeTracking.initializeREP2();
+    (success,) = address(_bridgeTracking).call(abi.encodeWithSignature("initializeREP2()"));
+    require(success, "BridgeTracking initializeREP2 failed");
     // _bridgeTracking.initializeV2();
     // _bridgeTracking.initializeV3(address(_roninBridgeManager), address(_bridgeSlash), address(_bridgeReward), _param.test.dposGA);
   }
@@ -250,10 +278,16 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.BridgeSlashParam memory param = _param.bridgeSlash;
 
-    _bridgeSlash.initialize(param.validatorContract, param.bridgeManagerContract, param.bridgeTrackingContract, param.dposGA);
+    (bool success,) = address(_bridgeSlash).call(
+      abi.encodeWithSignature(
+        "initialize(address,address,address,address)", param.validatorContract, param.bridgeManagerContract, param.bridgeTrackingContract, param.dposGA
+      )
+    );
+    require(success, "BridgeSlash initialize failed");
 
     vm.prank(_param.test.dposGA);
-    _bridgeSlash.initializeREP2();
+    (success,) = address(_bridgeSlash).call(abi.encodeWithSignature("initializeREP2()"));
+    require(success, "BridgeSlash initializeREP2 failed");
   }
 
   function _roninPauseEnforcerInitialize() internal {
@@ -261,7 +295,9 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.PauseEnforcerParam memory param = _param.roninPauseEnforcer;
 
-    _roninPauseEnforcer.initialize(IPauseTarget(param.target), param.admin, param.sentries);
+    (bool success,) =
+      address(_roninPauseEnforcer).call(abi.encodeWithSignature("initialize(address,address,address[])", param.target, param.admin, param.sentries));
+    require(success, "RoninPauseEnforcer initialize failed");
   }
 
   function _roninGatewayV3Initialize() internal {
@@ -284,20 +320,25 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.RoninGatewayV3Param memory param = _param.roninGatewayV3;
 
-    _roninGatewayV3.initialize(
-      param.roleSetter,
-      param.numerator,
-      param.denominator,
-      param.trustedNumerator,
-      param.trustedDenominator,
-      param.withdrawalMigrators,
-      param.packedAddresses,
-      param.packedNumbers,
-      param.standards
+    (bool success,) = address(_roninGatewayV3).call(
+      abi.encodeWithSignature(
+        "initialize(address,uint256,uint256,uint256,uint256,address[],address[][2],uint256[][2],uint8[])",
+        param.roleSetter,
+        param.numerator,
+        param.denominator,
+        param.trustedNumerator,
+        param.trustedDenominator,
+        param.withdrawalMigrators,
+        param.packedAddresses,
+        param.packedNumbers,
+        param.standards
+      )
     );
-
-    _roninGatewayV3.initializeV2();
-    _roninGatewayV3.initializeV3(address(_roninBridgeManager));
+    require(success, "RoninGatewayV3 initialize failed");
+    (success,) = address(_roninGatewayV3).call(abi.encodeWithSignature("initializeV2()"));
+    require(success, "RoninGatewayV3 initializeV2 failed");
+    (success,) = address(_roninGatewayV3).call(abi.encodeWithSignature("initializeV3(address)", _roninBridgeManager));
+    require(success, "RoninGatewayV3 initializeV3 failed");
   }
 
   function _constructForRoninBridgeManager() internal {
@@ -336,7 +377,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(GlobalCoreGovernance.updateManyTargetOption, (param.targetOptions, param.targets)),
+        calldata_: abi.encodeCall(
+          TransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(GlobalCoreGovernance.updateManyTargetOption, (param.targetOptions, param.targets)))
+        ),
         gasAmount: 500_000,
         nonce: _roninBridgeManager.round(0) + 1
       });
@@ -353,7 +396,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(IHasContracts.setContract, (ContractType.BRIDGE, param.bridgeContract)),
+        calldata_: abi.encodeCall(
+          TransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IHasContracts.setContract, (ContractType.BRIDGE, param.bridgeContract)))
+        ),
         gasAmount: 500_000,
         nonce: _roninBridgeManager.round(0) + 1
       });
@@ -366,7 +411,8 @@ contract BaseIntegration_Test is Base_Test {
 
     {
       // set callback register
-      bytes memory calldata_ = abi.encodeCall(IBridgeManagerCallbackRegister.registerCallbacks, (param.callbackRegisters));
+      bytes memory calldata_ =
+        abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("registerCallbacks(address[])", param.callbackRegisters));
       GlobalProposal.GlobalProposalDetail memory globalProposal = _roninProposalUtils.createGlobalProposal({
         expiryTimestamp: block.timestamp + 10,
         executor: address(0),
@@ -390,7 +436,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(IBridgeManager.setMinRequiredGovernor, (_param.roninBridgeManager.minRequiredGovernor)),
+        calldata_: abi.encodeWithSignature(
+          "functionDelegateCall(bytes)", abi.encodeCall(IBridgeManager.setMinRequiredGovernor, (_param.roninBridgeManager.minRequiredGovernor))
+        ),
         gasAmount: 500_000,
         nonce: _roninBridgeManager.round(0) + 1
       });
@@ -429,7 +477,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(GlobalCoreGovernance.updateManyTargetOption, (param.targetOptions, param.targets)),
+        calldata_: abi.encodeCall(
+          TransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(GlobalCoreGovernance.updateManyTargetOption, (param.targetOptions, param.targets)))
+        ),
         gasAmount: 500_000,
         nonce: _mainchainBridgeManager.round(0) + 1
       });
@@ -446,7 +496,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(IHasContracts.setContract, (ContractType.BRIDGE, param.bridgeContract)),
+        calldata_: abi.encodeCall(
+          TransparentUpgradeableProxyV2.functionDelegateCall, (abi.encodeCall(IHasContracts.setContract, (ContractType.BRIDGE, param.bridgeContract)))
+        ),
         gasAmount: 500_000,
         nonce: _mainchainBridgeManager.round(0) + 1
       });
@@ -459,7 +511,8 @@ contract BaseIntegration_Test is Base_Test {
 
     {
       // set callback register
-      bytes memory calldata_ = abi.encodeCall(IBridgeManagerCallbackRegister.registerCallbacks, (param.callbackRegisters));
+      bytes memory calldata_ =
+        abi.encodeWithSignature("functionDelegateCall(bytes)", abi.encodeWithSignature("registerCallbacks(address[])", param.callbackRegisters));
       GlobalProposal.GlobalProposalDetail memory globalProposal = _mainchainProposalUtils.createGlobalProposal({
         expiryTimestamp: block.timestamp + 10,
         executor: address(0),
@@ -483,7 +536,9 @@ contract BaseIntegration_Test is Base_Test {
         executor: address(0),
         targetOption: GlobalProposal.TargetOption.BridgeManager,
         value: 0,
-        calldata_: abi.encodeCall(IBridgeManager.setMinRequiredGovernor, (_param.roninBridgeManager.minRequiredGovernor)),
+        calldata_: abi.encodeWithSignature(
+          "functionDelegateCall(bytes)", abi.encodeCall(IBridgeManager.setMinRequiredGovernor, (_param.roninBridgeManager.minRequiredGovernor))
+        ),
         gasAmount: 500_000,
         nonce: _mainchainBridgeManager.round(0) + 1
       });
@@ -510,6 +565,7 @@ contract BaseIntegration_Test is Base_Test {
       param.targetOptions,
       param.targets
     );
+    emit LogNamedArray("BridgeManager governors", param.governors);
   }
 
   function _mainchainGatewayV3Initialize() internal {
@@ -544,28 +600,36 @@ contract BaseIntegration_Test is Base_Test {
 
     ISharedArgument.MainchainGatewayV3Param memory param = _param.mainchainGatewayV3;
 
-    _mainchainGatewayV3.initialize(
-      param.roleSetter,
-      IWETH(param.wrappedToken),
-      block.chainid,
-      param.numerator,
-      param.highTierVWNumerator,
-      param.denominator,
-      param.addresses,
-      param.thresholds,
-      param.standards
+    (bool success,) = address(_mainchainGatewayV3).call(
+      abi.encodeWithSignature(
+        "initialize(address,address,uint256,uint256,uint256,uint256,address[][3],uint256[][4],uint8[])",
+        param.roleSetter,
+        IWETH(param.wrappedToken),
+        block.chainid,
+        param.numerator,
+        param.highTierVWNumerator,
+        param.denominator,
+        param.addresses,
+        param.thresholds,
+        param.standards
+      )
     );
-
-    _mainchainGatewayV3.initializeV2(address(_mainchainBridgeManager));
-    _mainchainGatewayV3.initializeV3();
-    _mainchainGatewayV3.initializeV4(payable(address(_mainchainWethUnwrapper)));
+    require(success, "MainchainGatewayV3 initialize failed");
+    (success,) = address(_mainchainGatewayV3).call(abi.encodeWithSignature("initializeV2(address)", _mainchainBridgeManager));
+    require(success, "MainchainGatewayV3 initializeV2 failed");
+    (success,) = address(_mainchainGatewayV3).call(abi.encodeWithSignature("initializeV3()"));
+    require(success, "MainchainGatewayV3 initializeV3 failed");
+    (success,) = address(_mainchainGatewayV3).call(abi.encodeWithSignature("initializeV4(address)", _mainchainWethUnwrapper));
+    require(success, "MainchainGatewayV3 initializeV4 failed");
   }
 
   function _mainchainPauseEnforcerInitialize() internal {
     _param.mainchainPauseEnforcer.target = address(_mainchainGatewayV3);
 
     ISharedArgument.PauseEnforcerParam memory param = _param.mainchainPauseEnforcer;
-    _mainchainPauseEnforcer.initialize(IPauseTarget(param.target), param.admin, param.sentries);
+    (bool success,) =
+      address(_mainchainPauseEnforcer).call(abi.encodeWithSignature("initialize(address,address,address[])", param.target, param.admin, param.sentries));
+    require(success, "MainchainPauseEnforcer initialize failed");
   }
 
   function _getMainchainAndRoninTokens()

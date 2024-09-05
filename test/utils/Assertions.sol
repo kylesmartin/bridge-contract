@@ -2,7 +2,7 @@
 pragma solidity >=0.8.21;
 
 import { PRBTest } from "@prb/test/PRBTest.sol";
-import { PRBMathAssertions } from "@prb/math/src/test/Assertions.sol";
+import { PRBMathAssertions } from "@prb/math/test/utils/Assertions.sol";
 
 abstract contract Assertions is PRBTest, PRBMathAssertions {
   event LogNamedArray(string key, uint96[] value);

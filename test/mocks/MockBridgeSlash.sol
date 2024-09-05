@@ -1,28 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.17 <0.9.0;
 
-import { IBridgeSlash } from "@ronin/contracts/interfaces/bridge/IBridgeSlash.sol";
+import { BridgeSlash } from "@ronin/contracts/ronin/gateway/BridgeSlash.sol";
 
-contract MockBridgeSlash is IBridgeSlash {
+contract MockBridgeSlash is BridgeSlash {
   mapping(address => uint256) internal _slashMap;
 
-  function MINIMUM_VOTE_THRESHOLD() external view returns (uint256) { }
+  function calcSlashUntilPeriod(Tier tier, uint256 period, uint256 slashUntilPeriod) external pure returns (uint256 newSlashUntilPeriod) {
+    newSlashUntilPeriod = _calcSlashUntilPeriod(tier, period, slashUntilPeriod, _getPenaltyDurations());
+  }
 
-  function REMOVE_DURATION_THRESHOLD() external view returns (uint256) { }
+  function isSlashDurationMetRemovalThreshold(uint256 slashUntilPeriod, uint256 period) external pure returns (bool) {
+    return _isSlashDurationMetRemovalThreshold(slashUntilPeriod, period);
+  }
 
-  function TIER_1_PENALTY_DURATION() external view returns (uint256) { }
-
-  function TIER_2_PENALTY_DURATION() external view returns (uint256) { }
-
-  function execSlashBridgeOperators(address[] calldata operators, uint256[] calldata ballots, uint256 totalBallot, uint256 totalVote, uint256 period) external { }
-
-  function getAddedPeriodOf(address[] calldata bridgeOperators) external view returns (uint256[] memory addedPeriods) { }
-
-  function getPenaltyDurations() external pure returns (uint256[] memory penaltyDurations) { }
-
-  function getSlashTier(uint256 ballot, uint256 totalVote) external pure returns (Tier tier) { }
-
-  function getSlashUntilPeriodOf(address[] calldata operators) external view returns (uint256[] memory untilPeriods) {
+  function getSlashUntilPeriodOf(address[] calldata operators) external view virtual override returns (uint256[] memory untilPeriods) {
     untilPeriods = new uint256[](operators.length);
     for (uint i; i < operators.length; i++) {
       untilPeriods[i] = _slashMap[operators[i]];

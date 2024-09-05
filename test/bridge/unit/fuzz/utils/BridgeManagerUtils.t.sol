@@ -37,7 +37,12 @@ abstract contract BridgeManagerUtils is Randomizer {
     emit BridgeOperatorsAdded(statuses, voteWeights, governors, bridgeOperators);
     bridgeManager = IBridgeManager(bridgeManagerContract);
     vm.prank(caller);
-    bridgeManager.addBridgeOperators(voteWeights, governors, bridgeOperators);
+    (bool success,) = bridgeManagerContract.call(
+      abi.encodeWithSignature(
+        "functionDelegateCall(bytes)", abi.encodeWithSignature("addBridgeOperators(uint96[],address[],address[])", voteWeights, governors, bridgeOperators)
+      )
+    );
+    require(success, "BridgeManagerUtils: addBridgeOperators failed");
   }
 
   function getValidAndNonExistingInputs(
@@ -130,14 +135,14 @@ abstract contract BridgeManagerUtils is Randomizer {
     uint256 seed,
     uint256 duplicateAmount,
     uint256[] memory inputs
-  ) public pure virtual returns (uint256[] memory outputs, uint256[] memory dupplicateIndices) {
+  ) public pure virtual returns (uint256[] memory outputs, uint256[] memory duplicateIndices) {
     uint256 inputLength = inputs.length;
     vm.assume(inputLength != 0);
     duplicateAmount = _bound(duplicateAmount, 1, inputLength);
 
     uint256 r1;
     uint256 r2;
-    dupplicateIndices = new uint256[](duplicateAmount);
+    duplicateIndices = new uint256[](duplicateAmount);
 
     // bound index to range [0, inputLength - 1]
     inputLength--;
@@ -146,8 +151,8 @@ abstract contract BridgeManagerUtils is Randomizer {
       r1 = _randomize(seed, 0, inputLength);
       r2 = _randomize(r1, 0, inputLength);
       vm.assume(r1 != r2);
-      // save dupplicate index
-      dupplicateIndices[i] = r1;
+      // save duplicate index
+      duplicateIndices[i] = r1;
 
       // copy inputs[r2] to inputs[r1]
       inputs[r1] = inputs[r2];

@@ -56,6 +56,7 @@ contract GeneralConfig is BaseGeneralConfig, Utils {
     _mapContractName(Contract.RoninBridgeManagerConstructor);
     _mapContractName(Contract.WBTC);
     _mapContractName(Contract.PostChecker);
+    _mapContractName(Contract.WETH);
 
     _contractNameMap[Contract.AXS.key()] = "MockERC20";
     _contractNameMap[Contract.SLP.key()] = "MockSLP";
@@ -68,7 +69,6 @@ contract GeneralConfig is BaseGeneralConfig, Utils {
     _contractNameMap[Contract.MainchainPauseEnforcer.key()] = "PauseEnforcer";
 
     _contractAddrMap[Network.Goerli.key()][Contract.WETH.name()] = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
-    _contractAddrMap[Network.Sepolia.key()][Contract.WETH.name()] = 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9;
     _contractAddrMap[Network.EthMainnet.key()][Contract.WETH.name()] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     _contractAddrMap[DefaultNetwork.RoninTestnet.key()][Contract.AXS.name()] = 0x0eD7e52944161450477ee417DE9Cd3a859b14fD0;
@@ -78,6 +78,9 @@ contract GeneralConfig is BaseGeneralConfig, Utils {
 
     _contractAddrMap[DefaultNetwork.RoninTestnet.key()][Contract.WETH.name()] = 0x29C6F8349A028E1bdfC68BFa08BDee7bC5D47E16;
     _contractAddrMap[DefaultNetwork.RoninTestnet.key()][Contract.WRON.name()] = 0xA959726154953bAe111746E265E6d754F48570E6;
+
+    TNetwork currNetwork = getCurrentNetwork();
+    if (currNetwork == Network.Sepolia.key()) _contractNameMap[Contract.WBTC.key()] = "WBTC_Sepolia";
   }
 
   function _mapContractName(Contract contractEnum) internal {
