@@ -60,7 +60,7 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
 
   function _postCheck() internal virtual override {
     uint256 ronSnapshotId = vm.snapshot();
-    genMockBos(address(_ronBM));
+    genMockBOs(address(_ronBM));
     overrideMockBOs(address(_ronBM));
 
     Signature[] memory sigs = LibProposal.voteForBySignature(_ronBM, _proposal, Ballot.VoteType.For);
@@ -83,7 +83,7 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
     super._postCheck();
   }
 
-  function genMockBos(
+  function genMockBOs(
     address bm
   ) internal {
     uint256 boCount = IBridgeManager(bm).totalBridgeOperator();
@@ -117,18 +117,10 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
     }
 
     vm.prank(pa);
-    try ITransparentUpgradeableProxyV2(bm).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, mockGvs, mockOps))) { }
-    catch {
-      vm.prank(pa);
-      IBridgeManager(bm).addBridgeOperators(vws, mockGvs, mockOps);
-    }
+    ITransparentUpgradeableProxyV2(bm).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, mockGvs, mockOps)));
 
     // remove real bridge operators
     vm.prank(pa);
-    try ITransparentUpgradeableProxyV2(bm).functionDelegateCall(abi.encodeCall(IBridgeManager.removeBridgeOperators, (bos))) { }
-    catch {
-      vm.prank(pa);
-      IBridgeManager(bm).removeBridgeOperators(bos);
-    }
+    ITransparentUpgradeableProxyV2(bm).functionDelegateCall(abi.encodeCall(IBridgeManager.removeBridgeOperators, (bos)));
   }
 }
