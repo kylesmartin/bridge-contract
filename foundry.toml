@@ -12,19 +12,19 @@ ffi = true
 solc = '0.8.23'
 extra_output = ["devdoc", "userdoc", "storagelayout"]
 fs_permissions = [{ access = "read-write", path = "./" }]
-evm_version = 'istanbul'
+evm_version = 'shanghai'
 verbosity = 4
 use_literal_content = true
 unchecked_cheatcode_artifacts = true
 
 [profile.ronin]
-evm_version = 'istanbul'
+evm_version = 'london'
 
 [profile.ethereum]
 evm_version = 'shanghai'
 
 [profile.ronin_bridge_manager]
-evm_version = 'istanbul'
+evm_version = 'london'
 optimizer = true
 optimizer_runs = 1
 ffi = true
