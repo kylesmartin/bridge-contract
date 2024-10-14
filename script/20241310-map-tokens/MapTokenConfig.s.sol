@@ -33,7 +33,7 @@ abstract contract MapTokenConfig is Migration {
     highTierThreshold: 10_000 ether,
     lockedThreshold: 40_000 ether,
     dailyWithdrawalLimit: 30_000 ether,
-    unlockFeePercentages: 1000, // Max percentage is: 1_000_000
+    unlockFeePercentages: 10, // Max percentage is: 1_000_000
     standard: TokenStandard.ERC20
   });
 
@@ -60,7 +60,7 @@ abstract contract MapTokenConfig is Migration {
     highTierThreshold: 50_000 ether,
     lockedThreshold: 200_000 ether,
     dailyWithdrawalLimit: 100_000 ether,
-    unlockFeePercentages: 1000, // Max percentage is: 1_000_000
+    unlockFeePercentages: 10, // Max percentage is: 1_000_000
     standard: TokenStandard.ERC20
   });
 
@@ -87,7 +87,7 @@ abstract contract MapTokenConfig is Migration {
     highTierThreshold: 5_000_000 ether,
     lockedThreshold: 20_000_000 ether,
     dailyWithdrawalLimit: 12_000_000 ether,
-    unlockFeePercentages: 1000, // Max percentage is: 1_000_000
+    unlockFeePercentages: 10, // Max percentage is: 1_000_000
     standard: TokenStandard.ERC20
   });
 
