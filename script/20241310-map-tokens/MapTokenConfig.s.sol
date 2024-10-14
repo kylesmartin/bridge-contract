@@ -10,7 +10,7 @@ import { Contract } from "script/utils/Contract.sol";
 import { Network } from "script/utils/Network.sol";
 
 abstract contract MapTokenConfig is Migration {
-  uint256 internal constant _DEFAULT_EXPIRY_DURATION = 10 days;
+  uint256 internal constant _DEFAULT_EXPIRY_DURATION = 14 days;
 
   /* 
     * @dev
