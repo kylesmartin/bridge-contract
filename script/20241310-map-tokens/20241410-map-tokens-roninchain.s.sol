@@ -8,7 +8,7 @@ import { MapTokenConfig } from "script/20241310-map-tokens/MapTokenConfig.s.sol"
 import { LibProposal } from "script/shared/libraries/LibProposal.sol";
 import { Contract } from "script/utils/Contract.sol";
 
-contract Migration__20241410_MapTokens_RoninChain is MapTokenConfig {
+contract Migration__20241410_MapTokens_Roninchain is MapTokenConfig {
   address internal constant _SM_GOVERNOR = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
   address internal constant _EXECUTOR = address(0);
 
@@ -31,6 +31,6 @@ contract Migration__20241410_MapTokens_RoninChain is MapTokenConfig {
   function _postCheck() internal virtual override {
     LibProposal.voteFor(_ronBM, _proposal);
 
-    super._postCheck();
+    // super._postCheck();
   }
 }

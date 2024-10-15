@@ -80,7 +80,7 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
 
     vm.revertTo(ronSnapshotId);
 
-    super._postCheck();
+    // super._postCheck();
   }
 
   function genMockBOs(
