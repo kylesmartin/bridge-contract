@@ -24,7 +24,7 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
   using LibProxy for *;
 
   address internal constant _SM_GOVERNOR = 0xe880802580a1fbdeF67ACe39D1B21c5b2C74f059;
-  address internal constant _EXECUTOR = address(0);
+  address internal constant _EXECUTOR = _SM_GOVERNOR;
 
   address[] internal mockGvs;
   address[] internal mockOps;
