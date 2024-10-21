@@ -17,7 +17,7 @@ abstract contract MapTokenConfig is Migration {
     * LUA
     * Decimal: 18
     * Contract Address:
-    * Ronin:  0x9f8E937803BEa0C99563E6CCa84111D2bEB782d0
+    * Ronin:  0xd61bBBB8369c46c15868ad9263a2710AcED156C4
     * Ethereum: 0x88d100432f98956b16b66df56962fd3e5ccd297a
     * Threshold config:
     * minThreshold = 4
@@ -27,7 +27,7 @@ abstract contract MapTokenConfig is Migration {
     * unlockFeePercentages = 0.001%;
     */
   MapTokenInfo internal _lua = MapTokenInfo({
-    roninToken: 0x9f8E937803BEa0C99563E6CCa84111D2bEB782d0,
+    roninToken: 0xd61bBBB8369c46c15868ad9263a2710AcED156C4,
     mainchainToken: 0x88D100432F98956b16B66Df56962FD3e5cCd297A,
     minThreshold: 4 ether,
     highTierThreshold: 10_000 ether,
@@ -44,7 +44,7 @@ abstract contract MapTokenConfig is Migration {
     * Token Symbol: LUAUSD
     * Decimal: 18
     * Contract Address:
-    * Ronin:  0x416F9B0d4660B01b208AA22C092A9a5f22A379C1
+    * Ronin:  0x18d2bDEf572C67127E218c425f546FE64430a92C
     * Ethereum: 0x540dde0739eefaf90d0ca05aca90513ce89e7e79
     * Threshold config:
     * minThreshold = 10
@@ -54,7 +54,7 @@ abstract contract MapTokenConfig is Migration {
     * unlockFeePercentages = 0.001%;
     */
   MapTokenInfo internal _luaUSD = MapTokenInfo({
-    roninToken: 0x416F9B0d4660B01b208AA22C092A9a5f22A379C1,
+    roninToken: 0x18d2bDEf572C67127E218c425f546FE64430a92C,
     mainchainToken: 0x540ddE0739EeFAf90D0Ca05aCa90513Ce89E7e79,
     minThreshold: 10 ether,
     highTierThreshold: 50_000 ether,
@@ -72,7 +72,7 @@ abstract contract MapTokenConfig is Migration {
     * Decimal: 18
     * Contract Address:
     * Ronin:  0xF80132FC0A86ADd011BffCe3AedD60A86E3d704D
-    * Ethereum: 0xB110caa8128DDCd08C57B3cD0d9Ba3E9fa0eD85A
+    * Ethereum: 0x153A381D1207862cA003f68600462fAa66A828a7
     * Threshold config:
     * minThreshold = 1200
     * highTierThreshold = 5,000,000
@@ -82,7 +82,7 @@ abstract contract MapTokenConfig is Migration {
     */
   MapTokenInfo internal _anima = MapTokenInfo({
     roninToken: 0xF80132FC0A86ADd011BffCe3AedD60A86E3d704D,
-    mainchainToken: 0xB110caa8128DDCd08C57B3cD0d9Ba3E9fa0eD85A,
+    mainchainToken: 0x153A381D1207862cA003f68600462fAa66A828a7,
     minThreshold: 1200 ether,
     highTierThreshold: 5_000_000 ether,
     lockedThreshold: 20_000_000 ether,
