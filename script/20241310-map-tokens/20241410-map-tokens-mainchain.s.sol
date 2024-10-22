@@ -71,7 +71,7 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
 
     overrideMockBOs(address(_ethBM));
 
-    vm.prank(mockGvs[0]);
+    vm.prank(_SM_GOVERNOR);
     _ethBM.relayProposal(_proposal, new Ballot.VoteType[](sigs.length), sigs);
 
     vm.revertTo(ethSnapshotId);
