@@ -71,6 +71,16 @@ contract Migration__20241410_MapTokens_Mainchain is MapTokenConfig {
 
     overrideMockBOs(address(_ethBM));
 
+    // Cheat re-add executor as bridge operator since we assigned executor as bridge operator in the proposal
+    address[] memory ops = new address[](1);
+    ops[0] = makeAddr("cheat-re-added-sm-bo");
+    uint96[] memory vws = new uint96[](1);
+    vws[0] = 1;
+    address[] memory gvs = new address[](1);
+    gvs[0] = _SM_GOVERNOR;
+    // SkyMavis Gnosis Safe
+    vm.prank(0x51F6696Ae42C6C40CA9F5955EcA2aaaB1Cefb26e);
+    ITransparentUpgradeableProxyV2(address(_ethBM)).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops)));
     vm.prank(_SM_GOVERNOR);
     _ethBM.relayProposal(_proposal, new Ballot.VoteType[](sigs.length), sigs);
 
