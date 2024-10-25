@@ -12,19 +12,19 @@ ffi = true
 solc = '0.8.23'
 extra_output = ["devdoc", "userdoc", "storagelayout"]
 fs_permissions = [{ access = "read-write", path = "./" }]
-evm_version = 'istanbul'
+evm_version = 'shanghai'
 verbosity = 4
 use_literal_content = true
 unchecked_cheatcode_artifacts = true
 
 [profile.ronin]
-evm_version = 'istanbul'
+evm_version = 'london'
 
 [profile.ethereum]
 evm_version = 'shanghai'
 
 [profile.ronin_bridge_manager]
-evm_version = 'istanbul'
+evm_version = 'london'
 optimizer = true
 optimizer_runs = 1
 ffi = true
@@ -62,7 +62,7 @@ sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111, url = "https://api-s
 
 [rpc_endpoints]
 localhost = "http://localhost:8545"
-ethereum = "https://eth.llamarpc.com"
+ethereum = "https://mainnet.infura.io/v3/${INFURA_API_KEY}"
 sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY}"
 goerli = "https://ethereum-goerli.publicnode.com"
 ronin-mainnet = "https://api-archived.roninchain.com/rpc"
