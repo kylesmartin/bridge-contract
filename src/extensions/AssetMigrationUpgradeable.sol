@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IWETH } from "src/interfaces/IWETH.sol";
 import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-abstract contract AssetMigrationUpgradeable is Initializable {
+abstract contract AssetMigrationUpgradeable {
   using SafeERC20 for IERC20;
 
   /// @dev Error when the storage location is null
@@ -50,21 +49,6 @@ abstract contract AssetMigrationUpgradeable is Initializable {
    */
   function _getWrappedNativeToken() internal view returns (IWETH) {
     return _getAssetMigration()._wnt;
-  }
-
-  /**
-   * @dev Initializes the neccessary data.
-   */
-  function __AssetMigration_init(address wnt, address migrator) internal onlyInitializing {
-    __AssetMigration_init_unchained(wnt, migrator);
-  }
-
-  /**
-   * @dev Initializes the neccessary data.
-   */
-  function __AssetMigration_init_unchained(address wnt, address migrator) internal onlyInitializing {
-    _setMigrator(migrator);
-    _setWrappedNativeToken(wnt);
   }
 
   /**
