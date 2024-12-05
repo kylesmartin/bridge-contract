@@ -168,11 +168,13 @@ abstract contract AssetMigrationUpgradeable is Initializable {
 
   /**
    * @dev Sets the migrator address.
+   * Delete any pending migrator address.
    */
   function _setMigrator(
     address addr
   ) internal {
     _getAssetMigration()._addr = addr;
+    delete _getAssetMigration()._pendingAddr;
 
     emit NewMigrator(msg.sender, addr);
   }
