@@ -135,7 +135,7 @@ abstract contract AssetMigrationUpgradeable {
   function _$$AssetMigrationLocation() internal pure virtual returns (bytes32 storageLoc) {
     // value is equal to keccak256(abi.encode(uint256(keccak256("ronin.bridge.AssetMigration")) - 1)) &
     // ~bytes32(uint256(0xff))
-    storageLoc = 0xbfb7c7cbd9f93146fbbf37acaa2236698ffc013cbf87c0b4f57505d22ae7c200;
+    storageLoc = 0x06e9d321f1aa72738d882c53ba334d30578ba3db2fbd2df66a07059b7abc9900;
   }
 
   /**
