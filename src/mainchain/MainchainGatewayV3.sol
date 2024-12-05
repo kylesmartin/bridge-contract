@@ -114,9 +114,7 @@ contract MainchainGatewayV3 is
     }
   }
 
-  function initializeV2(
-    address bridgeManagerContract
-  ) external reinitializer(2) {
+  function initializeV2(address bridgeManagerContract) external reinitializer(2) {
     _setContract(ContractType.BRIDGE_MANAGER, bridgeManagerContract);
   }
 
@@ -132,19 +130,14 @@ contract MainchainGatewayV3 is
     _totalOperatorWeight = totalWeight;
   }
 
-  function initializeV4(
-    address payable /* wethUnwrapper_ */
-  ) external reinitializer(4) {
-    /**
-     * @deprecated
+  function initializeV4(address payable /* wethUnwrapper_ */) external reinitializer(4) {
+    /** @deprecated
      *
      * wethUnwrapper = WethUnwrapper(wethUnwrapper_);
      */
   }
 
-  function initializeV5(
-    address migrator
-  ) external reinitializer(5) {
+  function initializeV5(address migrator) external reinitializer(5) {
     _setWrappedNativeToken(address(wrappedNativeToken));
     _setMigrator(migrator);
   }
@@ -164,18 +157,14 @@ contract MainchainGatewayV3 is
   /**
    * @inheritdoc IMainchainGatewayV3
    */
-  function setWrappedNativeTokenContract(
-    IWETH _wrappedToken
-  ) external virtual onlyProxyAdmin {
+  function setWrappedNativeTokenContract(IWETH _wrappedToken) external virtual onlyProxyAdmin {
     _setWrappedNativeTokenContract(_wrappedToken);
   }
 
   /**
    * @inheritdoc IMainchainGatewayV3
    */
-  function requestDepositFor(
-    Transfer.Request calldata _request
-  ) external payable virtual whenNotPaused {
+  function requestDepositFor(Transfer.Request calldata _request) external payable virtual whenNotPaused {
     _requestDepositFor(_request, msg.sender);
   }
 
@@ -189,9 +178,7 @@ contract MainchainGatewayV3 is
   /**
    * @inheritdoc IMainchainGatewayV3
    */
-  function unlockWithdrawal(
-    Transfer.Receipt calldata receipt
-  ) external onlyRole(WITHDRAWAL_UNLOCKER_ROLE) {
+  function unlockWithdrawal(Transfer.Receipt calldata receipt) external onlyRole(WITHDRAWAL_UNLOCKER_ROLE) {
     bytes32 _receiptHash = receipt.hash();
     if (withdrawalHash[receipt.id] != receipt.hash()) {
       revert ErrInvalidReceipt();
@@ -250,9 +237,7 @@ contract MainchainGatewayV3 is
   /**
    * @inheritdoc IMainchainGatewayV3
    */
-  function getRoninToken(
-    address mainchainToken
-  ) public view returns (MappedToken memory token) {
+  function getRoninToken(address mainchainToken) public view returns (MappedToken memory token) {
     token = _roninToken[mainchainToken];
     if (token.tokenAddr == address(0)) revert ErrUnsupportedToken();
   }
@@ -457,9 +442,7 @@ contract MainchainGatewayV3 is
    * Emits the `WrappedNativeTokenContractUpdated` event.
    *
    */
-  function _setWrappedNativeTokenContract(
-    IWETH _wrappedToken
-  ) internal {
+  function _setWrappedNativeTokenContract(IWETH _wrappedToken) internal {
     wrappedNativeToken = _wrappedToken;
     emit WrappedNativeTokenContractUpdated(_wrappedToken);
   }
@@ -496,9 +479,7 @@ contract MainchainGatewayV3 is
   /**
    * @dev Returns the weight of an address.
    */
-  function _getWeight(
-    address addr
-  ) internal view returns (uint256) {
+  function _getWeight(address addr) internal view returns (uint256) {
     return _operatorWeight[addr];
   }
 
@@ -557,9 +538,7 @@ contract MainchainGatewayV3 is
     return IBridgeManagerCallback.onBridgeOperatorsRemoved.selector;
   }
 
-  function supportsInterface(
-    bytes4 interfaceId
-  ) public view override(AccessControlEnumerable, IERC165, ERC1155Receiver) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view override(AccessControlEnumerable, IERC165, ERC1155Receiver) returns (bool) {
     return
       interfaceId == type(IMainchainGatewayV3).interfaceId || interfaceId == type(IBridgeManagerCallback).interfaceId || super.supportsInterface(interfaceId);
   }

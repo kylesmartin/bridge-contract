@@ -124,9 +124,7 @@ contract RoninGatewayV3 is
     delete ____deprecated2;
   }
 
-  function initializeV3(
-    address bridgeAdmin
-  ) external reinitializer(3) {
+  function initializeV3(address bridgeAdmin) external reinitializer(3) {
     _setContract(ContractType.BRIDGE_MANAGER, bridgeAdmin);
   }
 
@@ -152,18 +150,14 @@ contract RoninGatewayV3 is
   /**
    * @inheritdoc IRoninGatewayV3
    */
-  function depositFor(
-    Transfer.Receipt calldata _receipt
-  ) external whenNotPaused onlyBridgeOperator {
+  function depositFor(Transfer.Receipt calldata _receipt) external whenNotPaused onlyBridgeOperator {
     _depositFor(_receipt, msg.sender, minimumVoteWeight());
   }
 
   /**
    * @inheritdoc IRoninGatewayV3
    */
-  function tryBulkAcknowledgeMainchainWithdrew(
-    uint256[] calldata _withdrawalIds
-  ) external onlyBridgeOperator returns (bool[] memory _executedReceipts) {
+  function tryBulkAcknowledgeMainchainWithdrew(uint256[] calldata _withdrawalIds) external onlyBridgeOperator returns (bool[] memory _executedReceipts) {
     address governor = msg.sender;
     uint256 minVoteWeight = minimumVoteWeight();
 
@@ -198,9 +192,7 @@ contract RoninGatewayV3 is
   /**
    * @inheritdoc IRoninGatewayV3
    */
-  function tryBulkDepositFor(
-    Transfer.Receipt[] calldata receipts
-  ) external whenNotPaused onlyBridgeOperator returns (bool[] memory _executedReceipts) {
+  function tryBulkDepositFor(Transfer.Receipt[] calldata receipts) external whenNotPaused onlyBridgeOperator returns (bool[] memory _executedReceipts) {
     uint length = receipts.length;
     _executedReceipts = new bool[](length);
     uint256 minVoteWeight = minimumVoteWeight();
@@ -239,9 +231,7 @@ contract RoninGatewayV3 is
   /**
    * @inheritdoc IRoninGatewayV3
    */
-  function requestWithdrawalSignatures(
-    uint256 _withdrawalId
-  ) external whenNotPaused {
+  function requestWithdrawalSignatures(uint256 _withdrawalId) external whenNotPaused {
     if (mainchainWithdrew(_withdrawalId)) revert ErrWithdrawnOnMainchainAlready();
 
     Transfer.Receipt memory _receipt = withdrawal[_withdrawalId];
@@ -339,9 +329,7 @@ contract RoninGatewayV3 is
   /**
    * @inheritdoc IRoninGatewayV3
    */
-  function mainchainWithdrew(
-    uint256 _withdrawalId
-  ) public view returns (bool) {
+  function mainchainWithdrew(uint256 _withdrawalId) public view returns (bool) {
     return mainchainWithdrewVote[_withdrawalId].status == VoteStatus.Executed;
   }
 
@@ -559,15 +547,11 @@ contract RoninGatewayV3 is
   /**
    * @dev Returns minimum trusted vote weight.
    */
-  function _minimumTrustedVoteWeight(
-    uint256 _totalTrustedWeight
-  ) internal view virtual returns (uint256) {
+  function _minimumTrustedVoteWeight(uint256 _totalTrustedWeight) internal view virtual returns (uint256) {
     return (_trustedNum * _totalTrustedWeight + _trustedDenom - 1) / _trustedDenom;
   }
 
-  function supportsInterface(
-    bytes4 interfaceId
-  ) public view override(AccessControlEnumerable, ERC1155Receiver) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view override(AccessControlEnumerable, ERC1155Receiver) returns (bool) {
     return AccessControlEnumerable.supportsInterface(interfaceId) || ERC1155Receiver.supportsInterface(interfaceId);
   }
 }
