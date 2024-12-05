@@ -120,7 +120,7 @@ abstract contract AssetMigrationUpgradeable {
   /**
    * @dev Returns the pointer of the AssetMigrationStorage struct.
    */
-  function _getAssetMigration() internal pure returns (AssetMigrationStorage storage $) {
+  function _getAssetMigration() private pure returns (AssetMigrationStorage storage $) {
     bytes32 loc = _$$AssetMigrationLocation();
     require(loc != 0, ErrInvalidStorageLocation());
 
