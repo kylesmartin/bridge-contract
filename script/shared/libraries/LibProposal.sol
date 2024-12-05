@@ -155,9 +155,15 @@ library LibProposal {
     }
   }
 
-  function voteForBySignature(IRoninBridgeManager bm, Proposal.ProposalDetail memory proposal, Ballot.VoteType support) internal {
+  function voteForBySignature(
+    IRoninBridgeManager bm,
+    Proposal.ProposalDetail memory proposal,
+    Ballot.VoteType support
+  ) internal returns (SignatureConsumer.Signature[] memory sigs) {
     Ballot.VoteType[] memory supports_ = new Ballot.VoteType[](1);
     supports_[0] = support;
+    address[] memory signers = new address[](bm.getGovernors().length);
+    sigs = new SignatureConsumer.Signature[](bm.getGovernors().length);
 
     address[] memory governors = bm.getGovernors();
     bool shouldPrankOnly = vme.isPostChecking();
@@ -167,6 +173,7 @@ library LibProposal {
     totalGas += totalGas * 20_00 / 100_00;
     // if totalGas is less than DEFAULT_PROPOSAL_GAS, set it to 120% of DEFAULT_PROPOSAL_GAS
     if (totalGas < DEFAULT_PROPOSAL_GAS) totalGas = DEFAULT_PROPOSAL_GAS * 120_00 / 100_00;
+    uint256 j;
 
     for (uint256 i = 1; i < governors.length; ++i) {
       (VoteStatusConsumer.VoteStatus status,,,,) = bm.vote(proposal.chainId, proposal.nonce);
@@ -182,7 +189,27 @@ library LibProposal {
       }
 
       bm.castProposalBySignatures{ gas: totalGas }(proposal, supports_, sig);
+
+      unchecked {
+        sigs[j] = sig[0];
+        signers[j] = governor;
+        j++;
+      }
     }
+
+    assembly ("memory-safe") {
+      mstore(sigs, j)
+      mstore(signers, j)
+    }
+
+    uint256[] memory indices = LibArray.arange(j);
+    LibArray.inplaceAscSortByValue(indices, signers);
+    SignatureConsumer.Signature[] memory sortedSigs = new SignatureConsumer.Signature[](j);
+    for (uint256 i; i < j; ++i) {
+      sortedSigs[i] = sigs[indices[i]];
+    }
+
+    return sortedSigs;
   }
 
   function verifyGlobalProposalGasAmount(
@@ -370,7 +397,9 @@ library LibProposal {
     }
   }
 
-  function resolveRoninTarget(GlobalProposal.TargetOption targetOption) internal view returns (address) {
+  function resolveRoninTarget(
+    GlobalProposal.TargetOption targetOption
+  ) internal view returns (address) {
     TNetwork network = vme.getCurrentNetwork();
     if (!(network == DefaultNetwork.RoninMainnet.key() || network == DefaultNetwork.RoninTestnet.key())) {
       network = vme.getCompanionNetwork(network);
@@ -395,7 +424,9 @@ library LibProposal {
     return address(0);
   }
 
-  function resolveMainchainTarget(GlobalProposal.TargetOption targetOption) internal view returns (address) {
+  function resolveMainchainTarget(
+    GlobalProposal.TargetOption targetOption
+  ) internal view returns (address) {
     TNetwork network = vme.getCurrentNetwork();
     if (!(network == Network.EthMainnet.key() || network == Network.Goerli.key())) {
       network = vme.getCompanionNetwork(network);
