@@ -10,6 +10,7 @@ import { IBridgeManagerCallback } from "../interfaces/bridge/IBridgeManagerCallb
 import { HasContracts, ContractType } from "../extensions/collections/HasContracts.sol";
 import "../extensions/WethUnwrapper.sol";
 import "../extensions/WithdrawalLimitation.sol";
+import "../extensions/AssetMigrationUpgradeable.sol";
 import "../libraries/Transfer.sol";
 import "../interfaces/IMainchainGatewayV3.sol";
 
@@ -20,6 +21,7 @@ contract MainchainGatewayV3 is
   ERC1155Holder,
   IMainchainGatewayV3,
   HasContracts,
+  AssetMigrationUpgradeable,
   IBridgeManagerCallback
 {
   using LibTokenInfo for TokenInfo;
@@ -133,6 +135,10 @@ contract MainchainGatewayV3 is
      *
      * wethUnwrapper = WethUnwrapper(wethUnwrapper_);
      */
+  }
+
+  function initializeV5(address migrator) external reinitializer(5) {
+    __AssetMigration_init_unchained(address(wrappedNativeToken), migrator);
   }
 
   /**

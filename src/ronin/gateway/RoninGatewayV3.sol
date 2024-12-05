@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "../../extensions/GatewayV3.sol";
 import "../../extensions/collections/HasContracts.sol";
 import "../../extensions/MinimumWithdrawal.sol";
+import "../../extensions/AssetMigrationUpgradeable.sol";
 import "../../interfaces/IERC20Mintable.sol";
 import "../../interfaces/IERC721Mintable.sol";
 import "../../interfaces/bridge/IBridgeTracking.sol";
@@ -24,7 +25,8 @@ contract RoninGatewayV3 is
   ERC1155Holder,
   VoteStatusConsumer,
   IRoninGatewayV3,
-  HasContracts
+  HasContracts,
+  AssetMigrationUpgradeable
 {
   using LibTokenInfo for TokenInfo;
   using Transfer for Transfer.Request;
@@ -124,6 +126,10 @@ contract RoninGatewayV3 is
 
   function initializeV3(address bridgeAdmin) external reinitializer(3) {
     _setContract(ContractType.BRIDGE_MANAGER, bridgeAdmin);
+  }
+
+  function initializeV4(address wnt, address migrator) external reinitializer(4) {
+    __AssetMigration_init(wnt, migrator);
   }
 
   /**
