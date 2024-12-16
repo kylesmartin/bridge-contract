@@ -118,7 +118,7 @@ abstract contract GatewayV3 is HasProxyAdmin, FunctionalPausable, IQuorum {
    * - The method caller must be admin or pauser.
    *
    */
-  function _requireAuth() internal view virtual override {
+  function _requireAuth() internal view override {
     if (!(msg.sender == _getProxyAdmin() || msg.sender == emergencyPauser)) {
       revert ErrUnauthorized(msg.sig, RoleAccess.ADMIN);
     }
