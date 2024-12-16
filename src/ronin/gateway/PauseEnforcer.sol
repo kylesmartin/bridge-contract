@@ -28,7 +28,7 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
   /// @dev Indicating whether or not the target contract is paused in emergency mode.
   bool public emergency;
 
-  /// @dev Emitted when the emergency ppause is triggered by `account`.
+  /// @dev Emitted when the emergency pause is triggered by `account`.
   event EmergencyPaused(address account);
   /// @dev Emitted when the emergency unpause is triggered by `account`.
   event EmergencyUnpaused(address account);
@@ -75,14 +75,18 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
   /**
    * @dev Grants the SENTRY_ROLE to the specified address.
    */
-  function grantSentry(address _sentry) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function grantSentry(
+    address _sentry
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _grantRole(SENTRY_ROLE, _sentry);
   }
 
   /**
    * @dev Revokes the SENTRY_ROLE from the specified address.
    */
-  function revokeSentry(address _sentry) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function revokeSentry(
+    address _sentry
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _revokeRole(SENTRY_ROLE, _sentry);
   }
 
@@ -114,19 +118,47 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
   }
 
   /**
+   * @dev Triggers a pause on the target contract for a specific function.
+   *
+   * Requirements:
+   * - Only be called by accounts with the SENTRY_ROLE.
+   */
+  function triggerPause(
+    bytes4 _fnSig
+  ) external onlyRole(SENTRY_ROLE) {
+    target.pauseFn(_fnSig);
+  }
+
+  /**
+   * @dev Triggers an unpause on the target contract for a specific function.
+   *
+   * Requirements:
+   * - Only be called by accounts with the SENTRY_ROLE.
+   */
+  function triggerUnpause(
+    bytes4 _fnSig
+  ) external onlyRole(SENTRY_ROLE) {
+    target.unpauseFn(_fnSig);
+  }
+
+  /**
    * @dev Setter for `target`.
    *
    * Requirements:
    * - Only admin can call this method.
    */
-  function changeTarget(IPauseTarget _target) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function changeTarget(
+    IPauseTarget _target
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _changeTarget(_target);
   }
 
   /**
    * @dev Internal helper for setting value to `target`.
    */
-  function _changeTarget(IPauseTarget _target) internal {
+  function _changeTarget(
+    IPauseTarget _target
+  ) internal {
     target = _target;
     emit TargetChanged(_target);
   }

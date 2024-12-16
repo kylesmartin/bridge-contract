@@ -68,8 +68,8 @@ abstract contract FunctionalPausable is Pausable {
 
   /**
    * @dev
-   * If interacted externally, return true if globally paused.
-   * If interacted internally, return true if globally paused or the function signature for given context is paused.
+   * If interacted externally, `msg.sig` will be Pausable.paused.selector, therefore only return true if globally paused.
+   * If interacted internally, `msg.sig` will be function which used `Pausable.whenNotPaused` or `Pausable.whenPaused` modifier, therefore return true if globally paused or the function signature for given context is paused.
    */
   function paused() public view virtual override returns (bool) {
     return Pausable.paused() || paused(msg.sig);

@@ -7,4 +7,16 @@ interface IPauseTarget {
   function unpause() external;
 
   function paused() external returns (bool);
+
+  function pauseFn(
+    bytes4 fnSig
+  ) external;
+
+  function unpauseFn(
+    bytes4 fnSig
+  ) external;
+
+  function paused(
+    bytes4 fnSig
+  ) external view returns (bool);
 }
