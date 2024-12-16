@@ -72,7 +72,7 @@ abstract contract FunctionalPausable is Pausable {
    * If interacted internally, return true if globally paused or the function signature for given context is paused.
    */
   function paused() public view virtual override returns (bool) {
-    return paused(msg.sig);
+    return Pausable.paused() || paused(msg.sig);
   }
 
   /**
@@ -81,7 +81,7 @@ abstract contract FunctionalPausable is Pausable {
   function paused(
     bytes4 fnSig
   ) public view returns (bool) {
-    return Pausable.paused() || _getFunctionalPause()._fnPaused[fnSig];
+    return _getFunctionalPause()._fnPaused[fnSig];
   }
 
   /**
