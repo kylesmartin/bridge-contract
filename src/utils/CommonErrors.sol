@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import { ContractType } from "./ContractType.sol";
 import { RoleAccess } from "./RoleAccess.sol";
 
+/// @dev Error when the storage location is null
+error ErrInvalidStorageLocation();
+
 error ErrSyncTooFarPeriod(uint256 period, uint256 latestRewardedPeriod);
 /**
  * @dev Error thrown when an address is expected to be an already created externally owned account (EOA).

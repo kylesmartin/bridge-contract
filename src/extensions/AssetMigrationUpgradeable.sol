@@ -2,18 +2,23 @@
 pragma solidity ^0.8.27;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IWETH } from "src/interfaces/IWETH.sol";
-import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
+import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 
-abstract contract AssetMigrationUpgradeable {
+import { IWETH } from "src/interfaces/IWETH.sol";
+import { ErrInvalidStorageLocation, ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
+
+abstract contract AssetMigrationUpgradeable is HasProxyAdmin {
   using SafeERC20 for IERC20;
 
-  /// @dev Error when the storage location is null
-  error ErrInvalidStorageLocation();
   /// @dev Error when the caller is not authorized
   error ErrUnauthorizedCaller(address expected, address caller);
+  /// @dev Error when the token is not whitelisted before
+  error ErrNotWhitelistedToken(address token);
+  /// @dev Error when the native token is whitelisted instead of the wrapped token
+  error ErrWhitelistWrappedTokenInstead();
 
   /// @dev The native token indicator address
   address internal constant _NATIVE_TOKEN_INDICATOR = address(0);
@@ -23,22 +28,30 @@ abstract contract AssetMigrationUpgradeable {
     IWETH _wnt;
     // Migrator address
     address _addr;
-    // Pending migrator address
-    address _pendingAddr;
+    // Whitelisted addresses
+    mapping(address token => address whitelist) _whitelist;
   }
 
   /// @dev Emitted when a new migrator is set.
   event NewMigrator(address indexed by, address indexed migrator);
   /// @dev Emitted when the wrapped native token is set.
   event WrappedNativeTokenSet(address indexed by, address indexed wnt);
-  /// @dev Emitted when the migrator transfer process is started.
-  event MigratorTransferStarted(address indexed migrator, address indexed newMigrator);
+  /// @dev Emitted when recipients are whitelisted.
+  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients);
 
   /**
    * @dev Modifier to check if the caller is the migrator.
    */
   modifier onlyMigrator() {
     _requireMigrator();
+    _;
+  }
+
+  /**
+   * @dev Modifier to check if `a` and `b` have the same length and are not empty.
+   */
+  modifier validInput(uint256[] memory a, uint256[] memory b) {
+    _requireValidInput(a, b);
     _;
   }
 
@@ -61,23 +74,48 @@ abstract contract AssetMigrationUpgradeable {
    * - The length of the arrays must be the same.
    * - The length of the arrays must not be zero.
    */
-  function adminMigrate(address[] calldata tos, IERC20[] calldata tokens, uint256[] calldata amounts) external onlyMigrator {
-    uint256 length = tos.length;
-
-    require(length != 0, ErrEmptyArray());
-    require(length == tokens.length && tokens.length == amounts.length, ErrLengthMismatch(msg.sig));
-
+  function migrateERC20(address[] calldata tokens, uint256[] calldata amounts) external onlyMigrator validInput(_toUint256s(tokens), amounts) {
+    uint256 length = amounts.length;
     IERC20 token;
 
     for (uint256 i; i < length; ++i) {
-      token = tokens[i];
+      token = IERC20(tokens[i]);
 
       if (address(token) == address(_NATIVE_TOKEN_INDICATOR)) {
         token = _wrap(amounts[i]);
       }
 
-      token.safeTransfer(tos[i], amounts[i]);
+      address recipient = _requireWhitelisted(address(token));
+      token.safeTransfer(recipient, amounts[i]);
     }
+  }
+
+  /**
+   * @dev Migrates the given ERC721 tokens to the specified addresses.
+   *
+   * Requirements:
+   * - The caller must be the migrator.
+   * - The length of the arrays must be the same.
+   * - The length of the arrays must not be zero.
+   * - If `recipient` is not whitelisted and not inherit from the `ERC721Receiver` interface, it will revert.
+   */
+  function migrateERC721(address[] calldata tokens, uint256[] calldata ids) external onlyMigrator validInput(_toUint256s(tokens), ids) {
+    uint256 length = tokens.length;
+
+    for (uint256 i; i < length; ++i) {
+      address recipient = _requireWhitelisted(tokens[i]);
+      IERC721(tokens[i]).safeTransferFrom(address(this), recipient, ids[i]);
+    }
+  }
+
+  /**
+   * @dev Whitelists the recipients for the given tokens.
+   *
+   * Requirements:
+   * - Must go through proposal via `BridgeManager`.
+   */
+  function whitelist(address[] calldata recipients, address[] calldata tokens) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
+    _whitelist(recipients, tokens);
   }
 
   /**
@@ -88,33 +126,19 @@ abstract contract AssetMigrationUpgradeable {
   }
 
   /**
-   * @dev Starts the process to change the migrator.
-   * Replaces the pending migrator address if there is one.
-   *
-   * Setting `newMigrator` to the zero address is allowed. This will cancel the pending migrator.
+   * @dev Get all whitelisted addresses for the given tokens.
    */
-  function changeMigrator(
-    address newMigrator
-  ) external onlyMigrator {
-    _getAssetMigration()._pendingAddr = newMigrator;
+  function getWhitelistedAddresses(
+    address[] calldata tokens
+  ) external view returns (address[] memory whitelisteds) {
+    AssetMigrationStorage storage $ = _getAssetMigration();
 
-    emit MigratorTransferStarted(msg.sender, newMigrator);
-  }
+    uint256 length = tokens.length;
+    whitelisteds = new address[](length);
 
-  /**
-   * @dev Accepts the migrator role.
-   */
-  function acceptMigrator() external {
-    require(_getAssetMigration()._pendingAddr == msg.sender, ErrUnauthorizedCaller(_getAssetMigration()._pendingAddr, msg.sender));
-
-    _setMigrator(msg.sender);
-  }
-
-  /**
-   * @dev Returns the pending migrator address.
-   */
-  function getPendingMigrator() external view returns (address) {
-    return _getAssetMigration()._pendingAddr;
+    for (uint256 i; i < length; ++i) {
+      whitelisteds[i] = $._whitelist[tokens[i]];
+    }
   }
 
   /**
@@ -144,10 +168,10 @@ abstract contract AssetMigrationUpgradeable {
   function _wrap(
     uint256 amount
   ) internal returns (IERC20) {
-    IWETH wrappedToken = _getWrappedNativeToken();
-    wrappedToken.deposit{ value: amount }();
+    IWETH w = _getWrappedNativeToken();
+    w.deposit{ value: amount }();
 
-    return IERC20(address(wrappedToken));
+    return IERC20(address(w));
   }
 
   /**
@@ -158,9 +182,26 @@ abstract contract AssetMigrationUpgradeable {
     address addr
   ) internal {
     _getAssetMigration()._addr = addr;
-    delete _getAssetMigration()._pendingAddr;
 
     emit NewMigrator(msg.sender, addr);
+  }
+
+  /**
+   * @dev Sets the whitelist status of the recipients.
+   * This function does not revert when the recipient is already whitelisted or not.
+   * if `recipient` is zero address, it will remove the whitelist status.
+   */
+  function _whitelist(address[] calldata recipients, address[] calldata tokens) internal {
+    AssetMigrationStorage storage $ = _getAssetMigration();
+    uint256 length = recipients.length;
+
+    for (uint256 i; i < length; ++i) {
+      require(tokens[i] != _NATIVE_TOKEN_INDICATOR, ErrWhitelistWrappedTokenInstead());
+
+      $._whitelist[tokens[i]] = recipients[i];
+    }
+
+    emit WhitelistUpdated(msg.sender, tokens, recipients);
   }
 
   /**
@@ -175,9 +216,36 @@ abstract contract AssetMigrationUpgradeable {
   }
 
   /**
+   * @dev Throws if the recipient is not whitelisted.
+   * Returns the recipient address.
+   */
+  function _requireWhitelisted(
+    address token
+  ) internal view returns (address recipient) {
+    recipient = _getAssetMigration()._whitelist[token];
+    require(recipient != address(0x0), ErrNotWhitelistedToken(token));
+  }
+
+  /**
+   * @dev Throws if `a` and `b` have different lengths or are empty.
+   */
+  function _requireValidInput(uint256[] memory a, uint256[] memory b) internal pure {
+    require(a.length != 0, ErrEmptyArray());
+    require(a.length == b.length, ErrLengthMismatch(msg.sig));
+  }
+
+  /**
    * @dev Throws if the caller is not the migrator.
    */
   function _requireMigrator() internal view {
     require(_getAssetMigration()._addr != msg.sender, ErrUnauthorizedCaller(_getAssetMigration()._addr, msg.sender));
+  }
+
+  function _toUint256s(
+    address[] memory a
+  ) internal pure returns (uint256[] memory b) {
+    assembly ("memory-safe") {
+      b := a
+    }
   }
 }
