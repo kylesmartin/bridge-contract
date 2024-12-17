@@ -374,6 +374,7 @@ contract MainchainGatewayV3 is
     address mainchainWeth = address(wrappedNativeToken);
 
     _request.info.validate();
+    if (_request.info.erc == TokenStandard.ERC20) revert ErrInvalidTokenStandard();
     if (_request.tokenAddr == address(0)) {
       if (_request.info.quantity != msg.value) revert ErrInvalidRequest();
 
