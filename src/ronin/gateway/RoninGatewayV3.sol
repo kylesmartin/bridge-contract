@@ -134,6 +134,8 @@ contract RoninGatewayV3 is
     _setWrappedNativeToken(wnt);
     _setMigrator(migrator);
     emergencyPauser = newEmergencyPauser;
+    _restrict(this.requestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
+    _restrict(this.bulkRequestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
   }
 
   /**
@@ -413,6 +415,7 @@ contract RoninGatewayV3 is
   function _depositFor(Transfer.Receipt memory receipt, address operator, uint256 minVoteWeight) internal {
     uint256 id = receipt.id;
     receipt.info.validate();
+    _requireNotRestricted(msg.sig, receipt.info.erc);
     if (receipt.kind != Transfer.Kind.Deposit) revert ErrInvalidReceiptKind();
     if (receipt.ronin.chainId != block.chainid) revert ErrInvalidChainId(msg.sig, receipt.ronin.chainId, block.chainid);
 
@@ -451,6 +454,7 @@ contract RoninGatewayV3 is
    */
   function _requestWithdrawalFor(Transfer.Request calldata _request, address _requester, uint256 _chainId) internal {
     _request.info.validate();
+    _requireNotRestricted(msg.sig, _request.info.erc);
     _checkWithdrawal(_request);
     MappedToken memory _token = getMainchainToken(_request.tokenAddr, _chainId);
     if (_request.info.erc != _token.erc) revert ErrInvalidTokenStandard();

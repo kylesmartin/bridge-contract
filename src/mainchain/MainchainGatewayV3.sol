@@ -12,6 +12,7 @@ import "../extensions/WethUnwrapper.sol";
 import "../extensions/WithdrawalLimitation.sol";
 import "../extensions/AssetMigrationUpgradeable.sol";
 import "../libraries/Transfer.sol";
+import { TokenStandard } from "../libraries/LibTokenInfo.sol";
 import "../interfaces/IMainchainGatewayV3.sol";
 
 contract MainchainGatewayV3 is
@@ -145,6 +146,8 @@ contract MainchainGatewayV3 is
   function initializeV5(address migrator, address newEmergencyPauser) external reinitializer(5) {
     _setWrappedNativeToken(address(wrappedNativeToken));
     _setMigrator(migrator);
+    _restrict(this.requestDepositFor.selector, _toBitmap(TokenStandard.ERC20));
+    _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
     emergencyPauser = newEmergencyPauser;
   }
 
@@ -296,6 +299,7 @@ contract MainchainGatewayV3 is
     address tokenAddr = receipt.mainchain.tokenAddr;
 
     receipt.info.validate();
+    _requireNotRestricted(msg.sig, receipt.info.erc);
     if (receipt.kind != Transfer.Kind.Withdrawal) revert ErrInvalidReceiptKind();
 
     if (receipt.mainchain.chainId != block.chainid) {
@@ -374,7 +378,7 @@ contract MainchainGatewayV3 is
     address mainchainWeth = address(wrappedNativeToken);
 
     _request.info.validate();
-    if (_request.info.erc == TokenStandard.ERC20) revert ErrInvalidTokenStandard();
+    _requireNotRestricted(msg.sig, _request.info.erc);
     if (_request.tokenAddr == address(0)) {
       if (_request.info.quantity != msg.value) revert ErrInvalidRequest();
 

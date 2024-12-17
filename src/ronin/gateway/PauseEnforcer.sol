@@ -123,22 +123,8 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
    * Requirements:
    * - Only be called by accounts with the SENTRY_ROLE.
    */
-  function triggerPause(
-    bytes4 _fnSig
-  ) external onlyRole(SENTRY_ROLE) {
-    target.pauseFn(_fnSig);
-  }
-
-  /**
-   * @dev Triggers an unpause on the target contract for a specific function.
-   *
-   * Requirements:
-   * - Only be called by accounts with the SENTRY_ROLE.
-   */
-  function triggerUnpause(
-    bytes4 _fnSig
-  ) external onlyRole(SENTRY_ROLE) {
-    target.unpauseFn(_fnSig);
+  function triggerRestrict(bytes4 fnSig, TokenStandard standard) external onlyRole(SENTRY_ROLE) {
+    target.restrict(fnSig, standard);
   }
 
   /**

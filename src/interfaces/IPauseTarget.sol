@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { TokenStandard } from "src/libraries/LibTokenInfo.sol";
+
 interface IPauseTarget {
   function pause() external;
 
@@ -8,15 +10,5 @@ interface IPauseTarget {
 
   function paused() external returns (bool);
 
-  function pauseFn(
-    bytes4 fnSig
-  ) external;
-
-  function unpauseFn(
-    bytes4 fnSig
-  ) external;
-
-  function paused(
-    bytes4 fnSig
-  ) external view returns (bool);
+  function restrict(bytes4 fnSig, TokenStandard standard) external;
 }

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { FunctionalPausable } from "src/extensions/FunctionalPausable.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { FunctionRestrictable } from "src/extensions/FunctionRestrictable.sol";
 import "../interfaces/IQuorum.sol";
 import "./collections/HasProxyAdmin.sol";
 
-abstract contract GatewayV3 is HasProxyAdmin, FunctionalPausable, IQuorum {
+abstract contract GatewayV3 is HasProxyAdmin, Pausable, FunctionRestrictable, IQuorum {
   /**
    * @dev Error indicating that `_minimumVoteWeight` is returning 0.
    */
