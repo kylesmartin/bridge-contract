@@ -118,10 +118,13 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
   }
 
   /**
-   * @dev Triggers a pause on the target contract for a specific function.
+   * @dev Triggers a restrict a function with one or more standards represented by the bitmap.
    *
    * Requirements:
    * - Only be called by accounts with the SENTRY_ROLE.
+   *
+   * @param fnSig The function signature to restrict.
+   * @param enumBitmap The bitmap of the standard to restrict.
    */
   function triggerRestrict(bytes4 fnSig, uint8 enumBitmap) external onlyRole(SENTRY_ROLE) {
     target.restrict(fnSig, enumBitmap);
