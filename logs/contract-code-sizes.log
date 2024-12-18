@@ -44,7 +44,7 @@
 | LibTokenOwner                                   |              164 |               214 |             24,412 |              48,938 |
 | MainchainBridgeManager                          |           20,517 |            20,742 |              4,059 |              28,410 |
 | MainchainGatewayBatcher                         |            4,051 |             4,276 |             20,525 |              44,876 |
-| MainchainGatewayV3                              |           26,594 |            26,831 |             -2,018 |              22,321 |
+| MainchainGatewayV3                              |           26,548 |            26,785 |             -1,972 |              22,367 |
 | Math                                            |               85 |               135 |             24,491 |              49,017 |
 | MockBridge                                      |            1,254 |             1,282 |             23,322 |              47,870 |
 | MockBridgeManager                               |            2,614 |             2,642 |             21,962 |              46,510 |
@@ -65,7 +65,7 @@
 | MockValidatorSet_ForFoundryTest                 |              165 |               191 |             24,411 |              48,961 |
 | MockWrappedToken                                |            2,169 |             2,870 |             22,407 |              46,282 |
 | PRBMathUtils                                    |               62 |                88 |             24,514 |              49,064 |
-| PauseEnforcer                                   |            4,717 |             4,945 |             19,859 |              44,207 |
+| PauseEnforcer                                   |            4,673 |             4,901 |             19,903 |              44,251 |
 | Proposal                                        |               85 |               135 |             24,491 |              49,017 |
 | RoninBridgeManager                              |           24,326 |            24,551 |                250 |              24,601 |
 | RoninBridgeManagerConstructor                   |           14,743 |            14,968 |              9,833 |              34,184 |
