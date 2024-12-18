@@ -44,7 +44,7 @@
 | LibTokenOwner                                   |              164 |               214 |             24,412 |              48,938 |
 | MainchainBridgeManager                          |           20,517 |            20,742 |              4,059 |              28,410 |
 | MainchainGatewayBatcher                         |            4,051 |             4,276 |             20,525 |              44,876 |
-| MainchainGatewayV3                              |           26,548 |            26,785 |             -1,972 |              22,367 |
+| MainchainGatewayV3                              |           26,033 |            26,270 |             -1,457 |              22,882 |
 | Math                                            |               85 |               135 |             24,491 |              49,017 |
 | MockBridge                                      |            1,254 |             1,282 |             23,322 |              47,870 |
 | MockBridgeManager                               |            2,614 |             2,642 |             21,962 |              46,510 |
@@ -57,7 +57,7 @@
 | MockERC721                                      |            4,663 |             5,355 |             19,913 |              43,797 |
 | MockGatewayForTracking                          |            1,583 |             1,885 |             22,993 |              47,267 |
 | MockRoninBridgeManager                          |           24,326 |            24,551 |                250 |              24,601 |
-| MockRoninGatewayV3Extended                      |           25,948 |            26,185 |             -1,372 |              22,967 |
+| MockRoninGatewayV3Extended                      |           25,429 |            25,666 |               -853 |              23,486 |
 | MockSLP                                         |            2,403 |             2,877 |             22,173 |              46,275 |
 | MockTUint256Slot                                |            2,619 |             2,647 |             21,957 |              46,505 |
 | MockUSDC                                        |            2,404 |             2,869 |             22,172 |              46,283 |
@@ -69,7 +69,7 @@
 | Proposal                                        |               85 |               135 |             24,491 |              49,017 |
 | RoninBridgeManager                              |           24,326 |            24,551 |                250 |              24,601 |
 | RoninBridgeManagerConstructor                   |           14,743 |            14,968 |              9,833 |              34,184 |
-| RoninGatewayV3                                  |           25,697 |            25,934 |             -1,121 |              23,218 |
+| RoninGatewayV3                                  |           25,178 |            25,415 |               -602 |              23,737 |
 | RoninMockERC1155                                |            8,696 |             9,657 |             15,880 |              39,495 |
 | SafeERC20                                       |               85 |               135 |             24,491 |              49,017 |
 | StdStyle                                        |               85 |               135 |             24,491 |              49,017 |
