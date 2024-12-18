@@ -123,8 +123,8 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
    * Requirements:
    * - Only be called by accounts with the SENTRY_ROLE.
    */
-  function triggerRestrict(bytes4 fnSig, TokenStandard standard) external onlyRole(SENTRY_ROLE) {
-    target.restrict(fnSig, standard);
+  function triggerRestrict(bytes4 fnSig, uint8 enumBitmap) external onlyRole(SENTRY_ROLE) {
+    target.restrict(fnSig, enumBitmap);
   }
 
   /**

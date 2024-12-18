@@ -61,10 +61,6 @@ contract MainchainGatewayV3 is
     _disableInitializers();
   }
 
-  fallback() external payable {
-    _fallback();
-  }
-
   receive() external payable {
     _fallback();
   }
@@ -476,17 +472,7 @@ contract MainchainGatewayV3 is
       return;
     }
 
-    _createDepositOnFallback();
-  }
-
-  /**
-   * @dev Creates deposit request.
-   */
-  function _createDepositOnFallback() internal virtual whenNotPaused {
-    Transfer.Request memory _request;
-    _request.recipientAddr = msg.sender;
-    _request.info.quantity = msg.value;
-    _requestDepositFor(_request, _request.recipientAddr);
+    revert("MainchainGatewayV3: fallback not allowed");
   }
 
   /**
