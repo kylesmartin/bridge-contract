@@ -88,8 +88,10 @@ abstract contract FunctionRestrictable {
   /**
    * @dev Require the function with specific `msg.sig` is not restricted for the specific standard.
    */
-  function _requireNotRestricted(bytes4 fnSig, TokenStandard standard) internal view {
-    require(!restricted(fnSig, standard), ErrRestricted(fnSig, standard));
+  function _requireNotRestricted(
+    TokenStandard standard
+  ) internal view {
+    require(!restricted(msg.sig, standard), ErrRestricted(msg.sig, standard));
   }
 
   /**

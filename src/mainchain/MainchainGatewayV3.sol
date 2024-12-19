@@ -295,7 +295,7 @@ contract MainchainGatewayV3 is
     address tokenAddr = receipt.mainchain.tokenAddr;
 
     receipt.info.validate();
-    _requireNotRestricted(msg.sig, receipt.info.erc);
+    _requireNotRestricted(receipt.info.erc);
     if (receipt.kind != Transfer.Kind.Withdrawal) revert ErrInvalidReceiptKind();
 
     if (receipt.mainchain.chainId != block.chainid) {
@@ -374,7 +374,7 @@ contract MainchainGatewayV3 is
     address mainchainWeth = address(wrappedNativeToken);
 
     _request.info.validate();
-    _requireNotRestricted(msg.sig, _request.info.erc);
+    _requireNotRestricted(_request.info.erc);
     if (_request.tokenAddr == address(0)) {
       if (_request.info.quantity != msg.value) revert ErrInvalidRequest();
 
