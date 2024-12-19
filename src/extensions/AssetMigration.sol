@@ -10,7 +10,7 @@ import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 import { IWETH } from "src/interfaces/IWETH.sol";
 import { ErrInvalidStorageLocation, ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-abstract contract AssetMigrationUpgradeable is HasProxyAdmin {
+abstract contract AssetMigration is HasProxyAdmin {
   using SafeERC20 for IERC20;
 
   /// @dev Error when the caller is not authorized

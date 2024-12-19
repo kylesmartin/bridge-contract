@@ -10,7 +10,7 @@ import { IBridgeManagerCallback } from "../interfaces/bridge/IBridgeManagerCallb
 import { HasContracts, ContractType } from "../extensions/collections/HasContracts.sol";
 import "../extensions/WethUnwrapper.sol";
 import "../extensions/WithdrawalLimitation.sol";
-import "../extensions/AssetMigrationUpgradeable.sol";
+import "../extensions/AssetMigration.sol";
 import "../libraries/Transfer.sol";
 import { TokenStandard } from "../libraries/LibTokenInfo.sol";
 import "../interfaces/IMainchainGatewayV3.sol";
@@ -22,7 +22,7 @@ contract MainchainGatewayV3 is
   ERC1155Holder,
   IMainchainGatewayV3,
   HasContracts,
-  AssetMigrationUpgradeable,
+  AssetMigration,
   IBridgeManagerCallback
 {
   using LibTokenInfo for TokenInfo;
