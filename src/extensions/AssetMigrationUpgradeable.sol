@@ -176,7 +176,6 @@ abstract contract AssetMigrationUpgradeable is HasProxyAdmin {
 
   /**
    * @dev Sets the migrator address.
-   * Delete any pending migrator address.
    */
   function _setMigrator(
     address addr
