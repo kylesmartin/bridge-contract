@@ -2,10 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../../interfaces/IPauseTarget.sol";
 
-contract PauseEnforcer is AccessControlEnumerable, Initializable {
+contract PauseEnforcer is AccessControlEnumerable {
   /**
    * @dev Error thrown when the target is already on paused state.
    */
@@ -53,22 +52,15 @@ contract PauseEnforcer is AccessControlEnumerable, Initializable {
     _;
   }
 
-  constructor() {
-    _disableInitializers();
-  }
+  constructor(IPauseTarget target_, address[] memory admins, address[] memory sentries) {
+    _changeTarget(target_);
 
-  /**
-   * @dev Initializes the contract storage.
-   */
-  function initialize(IPauseTarget _target, address _admin, address[] memory _sentries) external initializer {
-    _changeTarget(_target);
-    _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-    for (uint _i; _i < _sentries.length;) {
-      _grantRole(SENTRY_ROLE, _sentries[_i]);
+    for (uint256 i; i < sentries.length; ++i) {
+      _grantRole(SENTRY_ROLE, sentries[i]);
+    }
 
-      unchecked {
-        ++_i;
-      }
+    for (uint256 i; i < admins.length; ++i) {
+      _grantRole(DEFAULT_ADMIN_ROLE, admins[i]);
     }
   }
 
