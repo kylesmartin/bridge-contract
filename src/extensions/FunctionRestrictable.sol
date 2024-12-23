@@ -62,7 +62,7 @@ abstract contract FunctionRestrictable {
    * @return yes True if the function is restricted for the specific standard.
    */
   function restricted(bytes4 fnSig, TokenStandard standard) public view returns (bool yes) {
-    yes = _getFunctionalRestrictable()._enumBitmap[fnSig] & (1 << uint8(standard)) != 0;
+    yes = _getFunctionalRestrictable()._enumBitmap[fnSig] & _toBitmap(standard) != 0;
   }
 
   /**
