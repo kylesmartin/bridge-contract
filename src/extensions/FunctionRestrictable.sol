@@ -67,8 +67,6 @@ abstract contract FunctionRestrictable {
 
   /**
    * @dev Restrict a specific function with standard bitmap.
-   *
-   * Requirement:
    */
   function _restrict(bytes4 fnSig, uint8 enumBitmap) internal {
     _getFunctionalRestrictable()._enumBitmap[fnSig] = enumBitmap;
