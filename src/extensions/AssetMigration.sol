@@ -114,7 +114,7 @@ abstract contract AssetMigration is HasProxyAdmin {
    * Requirements:
    * - Must go through proposal via `BridgeManager`.
    */
-  function whitelist(address[] calldata recipients, address[] calldata tokens) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
+  function whitelist(address[] calldata tokens, address[] calldata recipients) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
     _whitelist(recipients, tokens);
   }
 
@@ -190,7 +190,7 @@ abstract contract AssetMigration is HasProxyAdmin {
    * This function does not revert when the recipient is already whitelisted or not.
    * if `recipient` is zero address, it will remove the whitelist status.
    */
-  function _whitelist(address[] calldata recipients, address[] calldata tokens) internal {
+  function _whitelist(address[] calldata tokens, address[] calldata recipients) internal {
     AssetMigrationStorage storage $ = _getAssetMigration();
     uint256 length = recipients.length;
 
@@ -237,7 +237,7 @@ abstract contract AssetMigration is HasProxyAdmin {
    * @dev Throws if the caller is not the migrator.
    */
   function _requireMigrator() internal view {
-    require(_getAssetMigration()._addr != msg.sender, ErrUnauthorizedCaller(_getAssetMigration()._addr, msg.sender));
+    require(_getAssetMigration()._addr == msg.sender, ErrUnauthorizedCaller(_getAssetMigration()._addr, msg.sender));
   }
 
   function _toUint256s(
