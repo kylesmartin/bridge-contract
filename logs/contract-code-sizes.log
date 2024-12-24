@@ -1,3 +1,144 @@
+13 |     address bridgeRewardLogic = _deployLogic(Contract.BridgeReward.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-3-deploy-all-contract-roninchain.sol:14:5:
+   |
+14 |     address bridgeSlashLogic = _deployLogic(Contract.BridgeSlash.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-3-deploy-all-contract-roninchain.sol:15:5:
+   |
+15 |     address bridgeTrackingLogic = _deployLogic(Contract.BridgeTracking.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-3-deploy-all-contract-roninchain.sol:16:5:
+   |
+16 |     address pauseEnforcerLogic = _deployLogic(Contract.RoninPauseEnforcer.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-3-deploy-all-contract-roninchain.sol:17:5:
+   |
+17 |     address roninGatewayV3Logic = _deployLogic(Contract.RoninGatewayV3.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (5667): Unused function parameter. Remove or comment out the variable name to silence this warning.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-4-deploy-all-contract-roninchain.sol:20:34:
+   |
+20 |   function run() public returns (WBTC instance) {
+   |                                  ^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-4-deploy-all-contract-roninchain.sol:82:5:
+   |
+82 |     address wethUnwrapper = new MainchainWethUnwrapperDeploy().overrideArgs(abi.encode(weth)).run();
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2072): Unused local variable.
+  --> script/20240716-upgrade-v3.2.0-mainnet/20240716-p1-4-deploy-all-contract-roninchain.sol:86:5:
+   |
+86 |     address mainchainGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:17:5:
+   |
+17 |     function bound(SD1x18 x, SD1x18 min, SD1x18 max) internal view returns (SD1x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:27:5:
+   |
+27 |     function bound(SD1x18 x, int64 min, SD1x18 max) internal view returns (SD1x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:37:5:
+   |
+37 |     function bound(SD1x18 x, SD1x18 min, int64 max) internal view returns (SD1x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:47:5:
+   |
+47 |     function bound(SD1x18 x, int64 min, int64 max) internal view returns (SD1x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:61:5:
+   |
+61 |     function bound(SD59x18 x, SD59x18 min, SD59x18 max) internal view returns (SD59x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:71:5:
+   |
+71 |     function bound(SD59x18 x, int256 min, SD59x18 max) internal view returns (SD59x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:81:5:
+   |
+81 |     function bound(SD59x18 x, SD59x18 min, int256 max) internal view returns (SD59x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+  --> lib/prb-math/test/utils/Utils.sol:91:5:
+   |
+91 |     function bound(SD59x18 x, int256 min, int256 max) internal view returns (SD59x18 result) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:105:5:
+    |
+105 |     function bound(UD2x18 x, UD2x18 min, UD2x18 max) internal view returns (UD2x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:115:5:
+    |
+115 |     function bound(UD2x18 x, uint64 min, UD2x18 max) internal view returns (UD2x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:125:5:
+    |
+125 |     function bound(UD2x18 x, UD2x18 min, uint64 max) internal view returns (UD2x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:135:5:
+    |
+135 |     function bound(UD2x18 x, uint64 min, uint64 max) internal view returns (UD2x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:149:5:
+    |
+149 |     function bound(UD60x18 x, UD60x18 min, UD60x18 max) internal view returns (UD60x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:159:5:
+    |
+159 |     function bound(UD60x18 x, uint256 min, UD60x18 max) internal view returns (UD60x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:169:5:
+    |
+169 |     function bound(UD60x18 x, UD60x18 min, uint256 max) internal view returns (UD60x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> lib/prb-math/test/utils/Utils.sol:179:5:
+    |
+179 |     function bound(UD60x18 x, uint256 min, uint256 max) internal view returns (UD60x18 result) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
 | Contract                                        | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
 |-------------------------------------------------|------------------|-------------------|--------------------|---------------------|
 | Address                                         |               85 |               135 |             24,491 |              49,017 |
@@ -44,7 +185,8 @@
 | LibTokenOwner                                   |              164 |               214 |             24,412 |              48,938 |
 | MainchainBridgeManager                          |           20,517 |            20,742 |              4,059 |              28,410 |
 | MainchainGatewayBatcher                         |            4,051 |             4,276 |             20,525 |              44,876 |
-| MainchainGatewayV3                              |           25,293 |            25,530 |               -717 |              23,622 |
+| MainchainGatewayV3                              |           23,579 |            23,816 |                997 |              25,336 |
+| MainchainGatewayV3_initialize                   |           25,293 |            25,530 |               -717 |              23,622 |
 | Math                                            |               85 |               135 |             24,491 |              49,017 |
 | MockBridge                                      |            1,254 |             1,282 |             23,322 |              47,870 |
 | MockBridgeManager                               |            2,614 |             2,642 |             21,962 |              46,510 |
@@ -57,7 +199,7 @@
 | MockERC721                                      |            4,663 |             5,355 |             19,913 |              43,797 |
 | MockGatewayForTracking                          |            1,583 |             1,885 |             22,993 |              47,267 |
 | MockRoninBridgeManager                          |           24,326 |            24,551 |                250 |              24,601 |
-| MockRoninGatewayV3Extended                      |           24,874 |            25,111 |               -298 |              24,041 |
+| MockRoninGatewayV3Extended                      |           24,133 |            24,370 |                443 |              24,782 |
 | MockSLP                                         |            2,403 |             2,877 |             22,173 |              46,275 |
 | MockTUint256Slot                                |            2,619 |             2,647 |             21,957 |              46,505 |
 | MockUSDC                                        |            2,404 |             2,869 |             22,172 |              46,283 |
@@ -69,7 +211,8 @@
 | Proposal                                        |               85 |               135 |             24,491 |              49,017 |
 | RoninBridgeManager                              |           24,326 |            24,551 |                250 |              24,601 |
 | RoninBridgeManagerConstructor                   |           14,743 |            14,968 |              9,833 |              34,184 |
-| RoninGatewayV3                                  |           24,623 |            24,860 |                -47 |              24,292 |
+| RoninGatewayV3                                  |           23,867 |            24,104 |                709 |              25,048 |
+| RoninGatewayV3_initialize                       |           24,623 |            24,860 |                -47 |              24,292 |
 | RoninMockERC1155                                |            8,696 |             9,657 |             15,880 |              39,495 |
 | SafeERC20                                       |               85 |               135 |             24,491 |              49,017 |
 | StdStyle                                        |               85 |               135 |             24,491 |              49,017 |
