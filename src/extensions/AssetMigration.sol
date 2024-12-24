@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { AccessControlEnumerable } from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -8,13 +9,11 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 
 import { IWETH } from "src/interfaces/IWETH.sol";
-import { ErrInvalidStorageLocation, ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
+import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-abstract contract AssetMigration is HasProxyAdmin {
+abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   using SafeERC20 for IERC20;
 
-  /// @dev Error when the caller is not authorized
-  error ErrUnauthorizedCaller(address expected, address caller);
   /// @dev Error when the token is not whitelisted before
   error ErrNotWhitelistedToken(address token);
   /// @dev Error when the native token is whitelisted instead of the wrapped token
@@ -22,30 +21,17 @@ abstract contract AssetMigration is HasProxyAdmin {
 
   /// @dev The native token indicator address
   address internal constant _NATIVE_TOKEN_INDICATOR = address(0);
+  /// @dev The migrator role
+  bytes32 internal constant _MIGRATOR_ROLE = keccak256("MIGRATOR_ROLE");
 
   /// @custom:storage-location erc7201:ronin.bridge.AssetMigration
   struct AssetMigrationStorage {
-    IWETH _wnt;
-    // Migrator address
-    address _addr;
     // Whitelisted addresses
     mapping(address token => address whitelist) _whitelist;
   }
 
-  /// @dev Emitted when a new migrator is set.
-  event NewMigrator(address indexed by, address indexed migrator);
-  /// @dev Emitted when the wrapped native token is set.
-  event WrappedNativeTokenSet(address indexed by, address indexed wnt);
   /// @dev Emitted when recipients are whitelisted.
   event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients);
-
-  /**
-   * @dev Modifier to check if the caller is the migrator.
-   */
-  modifier onlyMigrator() {
-    _requireMigrator();
-    _;
-  }
 
   /**
    * @dev Modifier to check if `a` and `b` have the same length and are not empty.
@@ -57,11 +43,10 @@ abstract contract AssetMigration is HasProxyAdmin {
 
   /**
    * @dev Returns the wrapped native token.
-   * - For `RoninGatewayV3`, it MUST return the WRON token.
    * - For `MainchainGatewayV3`, it MUST return the WETH token.
    */
-  function _getWrappedNativeToken() internal view returns (IWETH) {
-    return _getAssetMigration()._wnt;
+  function wrappedNativeToken() external view virtual returns (IWETH) {
+    revert("Not implemented");
   }
 
   /**
@@ -74,7 +59,7 @@ abstract contract AssetMigration is HasProxyAdmin {
    * - The length of the arrays must be the same.
    * - The length of the arrays must not be zero.
    */
-  function migrateERC20(address[] calldata tokens, uint256[] calldata amounts) external onlyMigrator validInput(_toUint256s(tokens), amounts) {
+  function migrateERC20(address[] calldata tokens, uint256[] calldata amounts) external onlyRole(_MIGRATOR_ROLE) validInput(_toUint256s(tokens), amounts) {
     uint256 length = amounts.length;
     IERC20 token;
 
@@ -85,7 +70,7 @@ abstract contract AssetMigration is HasProxyAdmin {
         token = _wrap(amounts[i]);
       }
 
-      address recipient = _requireWhitelisted(address(token));
+      address recipient = _getRecipient(address(token));
       token.safeTransfer(recipient, amounts[i]);
     }
   }
@@ -99,11 +84,11 @@ abstract contract AssetMigration is HasProxyAdmin {
    * - The length of the arrays must not be zero.
    * - If `recipient` is not whitelisted and not inherit from the `ERC721Receiver` interface, it will revert.
    */
-  function migrateERC721(address[] calldata tokens, uint256[] calldata ids) external onlyMigrator validInput(_toUint256s(tokens), ids) {
+  function migrateERC721(address[] calldata tokens, uint256[] calldata ids) external onlyRole(_MIGRATOR_ROLE) validInput(_toUint256s(tokens), ids) {
     uint256 length = tokens.length;
 
     for (uint256 i; i < length; ++i) {
-      address recipient = _requireWhitelisted(tokens[i]);
+      address recipient = _getRecipient(tokens[i]);
       IERC721(tokens[i]).safeTransferFrom(address(this), recipient, ids[i]);
     }
   }
@@ -116,13 +101,6 @@ abstract contract AssetMigration is HasProxyAdmin {
    */
   function whitelist(address[] calldata tokens, address[] calldata recipients) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
     _whitelist(recipients, tokens);
-  }
-
-  /**
-   * @dev Renounces the migrator role.
-   */
-  function renounceMigrator() external onlyMigrator {
-    _setMigrator(address(0));
   }
 
   /**
@@ -145,21 +123,13 @@ abstract contract AssetMigration is HasProxyAdmin {
    * @dev Returns the pointer of the AssetMigrationStorage struct.
    */
   function _getAssetMigration() private pure returns (AssetMigrationStorage storage $) {
-    bytes32 loc = _$$AssetMigrationLocation();
-    require(loc != 0, ErrInvalidStorageLocation());
-
-    assembly ("memory-safe") {
-      $.slot := loc
-    }
-  }
-
-  /**
-   * @dev Returns the custom storage location of the AssetMigrationStorage struct.
-   */
-  function _$$AssetMigrationLocation() internal pure virtual returns (bytes32 storageLoc) {
     // value is equal to keccak256(abi.encode(uint256(keccak256("ronin.bridge.AssetMigration")) - 1)) &
     // ~bytes32(uint256(0xff))
-    storageLoc = 0x06e9d321f1aa72738d882c53ba334d30578ba3db2fbd2df66a07059b7abc9900;
+    bytes32 storageLoc = 0x06e9d321f1aa72738d882c53ba334d30578ba3db2fbd2df66a07059b7abc9900;
+
+    assembly ("memory-safe") {
+      $.slot := storageLoc
+    }
   }
 
   /**
@@ -168,21 +138,10 @@ abstract contract AssetMigration is HasProxyAdmin {
   function _wrap(
     uint256 amount
   ) internal returns (IERC20) {
-    IWETH w = _getWrappedNativeToken();
+    IWETH w = this.wrappedNativeToken();
     w.deposit{ value: amount }();
 
     return IERC20(address(w));
-  }
-
-  /**
-   * @dev Sets the migrator address.
-   */
-  function _setMigrator(
-    address addr
-  ) internal {
-    _getAssetMigration()._addr = addr;
-
-    emit NewMigrator(msg.sender, addr);
   }
 
   /**
@@ -204,21 +163,10 @@ abstract contract AssetMigration is HasProxyAdmin {
   }
 
   /**
-   * @dev Sets the wrapped native token.
-   */
-  function _setWrappedNativeToken(
-    address wnt
-  ) internal {
-    _getAssetMigration()._wnt = IWETH(wnt);
-
-    emit WrappedNativeTokenSet(msg.sender, wnt);
-  }
-
-  /**
    * @dev Throws if the recipient is not whitelisted.
    * Returns the recipient address.
    */
-  function _requireWhitelisted(
+  function _getRecipient(
     address token
   ) internal view returns (address recipient) {
     recipient = _getAssetMigration()._whitelist[token];
@@ -231,13 +179,6 @@ abstract contract AssetMigration is HasProxyAdmin {
   function _requireValidInput(uint256[] memory a, uint256[] memory b) internal pure {
     require(a.length != 0, ErrEmptyArray());
     require(a.length == b.length, ErrLengthMismatch(msg.sig));
-  }
-
-  /**
-   * @dev Throws if the caller is not the migrator.
-   */
-  function _requireMigrator() internal view {
-    require(_getAssetMigration()._addr == msg.sender, ErrUnauthorizedCaller(_getAssetMigration()._addr, msg.sender));
   }
 
   function _toUint256s(

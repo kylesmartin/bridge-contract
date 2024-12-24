@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import { TokenStandard } from "src/libraries/LibTokenInfo.sol";
-import { ErrInvalidStorageLocation } from "src/utils/CommonErrors.sol";
 
 abstract contract FunctionRestrictable {
   /// @custom:storage-location erc7201:ronin.bridge.FunctionRestrictable
@@ -105,20 +104,12 @@ abstract contract FunctionRestrictable {
    * @dev Returns the storage pointer of the FunctionalRestrictableStorage struct.
    */
   function _getFunctionalRestrictable() private pure returns (FunctionalRestrictableStorage storage $) {
-    bytes32 loc = _$$FunctionalRestrictableLocation();
-    require(loc != 0, ErrInvalidStorageLocation());
-
-    assembly ("memory-safe") {
-      $.slot := loc
-    }
-  }
-
-  /**
-   * @dev Returns the custom storage location of the FunctionalRestrictableStorage struct.
-   */
-  function _$$FunctionalRestrictableLocation() private pure returns (bytes32 storageLoc) {
     // value is equal to keccak256(abi.encode(uint256(keccak256("ronin.bridge.FunctionRestrictable")) - 1)) &
     // ~bytes32(uint256(0xff))
-    storageLoc = 0xa7959878b25ffc8190f7b5440888c97e9a819bbb4963604c213ae021e3145700;
+    bytes32 storageLoc = 0xa7959878b25ffc8190f7b5440888c97e9a819bbb4963604c213ae021e3145700;
+
+    assembly ("memory-safe") {
+      $.slot := storageLoc
+    }
   }
 }
