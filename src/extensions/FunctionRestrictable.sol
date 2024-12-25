@@ -10,7 +10,7 @@ abstract contract FunctionRestrictable {
   }
 
   /// @dev Emit when a function is paused.
-  event Restricted(address indexed by, bytes4 indexed fnSig, uint8 stdBitmap);
+  event Restricted(address indexed by, bytes4 indexed fnSig, uint8 enumBitmap);
   /// @dev Emit when a function is unpaused.
   event UnRestricted(address indexed by, bytes4 indexed fnSig);
 
