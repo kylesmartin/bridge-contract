@@ -100,7 +100,7 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * - Must go through proposal via `BridgeManager`.
    */
   function whitelist(address[] calldata tokens, address[] calldata recipients) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
-    _whitelist(recipients, tokens);
+    _whitelist(tokens, recipients);
   }
 
   /**
