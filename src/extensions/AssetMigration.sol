@@ -10,7 +10,7 @@ import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 import { IWETH } from "src/interfaces/IWETH.sol";
 import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-interface ICCIPLiquidityProvider {
+interface ICCIPLiquidityContainer {
   function provideLiquidity(uint64 remoteChainSelector, uint256 amount) external;
 
   function provideLiquidity(
@@ -88,9 +88,9 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
 
       // This should revert if the pool did not accept the tokens
       if (remoteChainSelector == 0) {
-        ICCIPLiquidityProvider(recipient).provideLiquidity(amounts[i]);
+        ICCIPLiquidityContainer(recipient).provideLiquidity(amounts[i]);
       } else {
-        ICCIPLiquidityProvider(recipient).provideLiquidity(remoteChainSelector, amounts[i]);
+        ICCIPLiquidityContainer(recipient).provideLiquidity(remoteChainSelector, amounts[i]);
       }
     }
   }
@@ -221,6 +221,9 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
     require(a.length == b.length, ErrLengthMismatch(msg.sig));
   }
 
+  /**
+   * @dev Converts the address array to uint256 array.
+   */
   function _toUint256s(
     address[] memory a
   ) internal pure returns (uint256[] memory b) {
@@ -229,6 +232,9 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
     }
   }
 
+  /**
+   * @dev Converts the uint64 array to uint256 array.
+   */
   function _toUint256s(
     uint64[] memory a
   ) internal pure returns (uint256[] memory b) {
