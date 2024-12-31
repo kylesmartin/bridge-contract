@@ -3,20 +3,12 @@ pragma solidity ^0.8.27;
 
 import { AccessControlEnumerable } from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 
 import { IWETH } from "src/interfaces/IWETH.sol";
+import { ICCIPLiquidityContainer } from "src/interfaces/ext/ICCIPLiquidityContainer.sol";
 import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
-
-interface ICCIPLiquidityContainer {
-  function provideLiquidity(uint64 remoteChainSelector, uint256 amount) external;
-
-  function provideLiquidity(
-    uint256 amount
-  ) external;
-}
 
 abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   /// @dev Error when the token is not whitelisted before
@@ -36,8 +28,11 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   }
 
   struct WhitelistInfo {
-    address recipient;
-    uint64 remoteChainSelector;
+    // CCIP Pool address
+    address _recipient;
+    // Remote chain selector
+    // If zero, will interact `_recipient` via ICCIPLiquidityContainer.provideLiquidity(uint256)
+    uint64 _remoteChainSelector;
   }
 
   /// @dev Emitted when recipients are whitelisted.
@@ -96,24 +91,6 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   }
 
   /**
-   * @dev Migrates the given ERC721 tokens to the specified addresses.
-   *
-   * Requirements:
-   * - The caller must be the migrator.
-   * - The length of the arrays must be the same.
-   * - The length of the arrays must not be zero.
-   * - If `recipient` is not whitelisted and not inherit from the `ERC721Receiver` interface, it will revert.
-   */
-  function migrateERC721(address[] calldata tokens, uint256[] calldata ids) external onlyRole(_MIGRATOR_ROLE) validInput(_toUint256s(tokens), ids) {
-    uint256 length = tokens.length;
-
-    for (uint256 i; i < length; ++i) {
-      address recipient = _getRecipient(tokens[i]);
-      IERC721(tokens[i]).safeTransferFrom(address(this), recipient, ids[i]);
-    }
-  }
-
-  /**
    * @dev Whitelists the recipients for the given tokens, with targeted remote chain selector.
    *
    * Requirements:
@@ -143,8 +120,8 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
     for (uint256 i; i < length; ++i) {
       WhitelistInfo storage $wlInfo = $._wlInfo[tokens[i]];
 
-      whitelisteds[i] = $wlInfo.recipient;
-      remoteChainSelectors[i] = $wlInfo.remoteChainSelector;
+      whitelisteds[i] = $wlInfo._recipient;
+      remoteChainSelectors[i] = $wlInfo._remoteChainSelector;
     }
   }
 
@@ -186,8 +163,8 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
       require(tokens[i] != _NATIVE_TOKEN_INDICATOR, ErrWhitelistWrappedTokenInstead());
 
       WhitelistInfo storage $wlInfo = $._wlInfo[tokens[i]];
-      $wlInfo.recipient = recipients[i];
-      $wlInfo.remoteChainSelector = remoteChainSelectors[i];
+      $wlInfo._recipient = recipients[i];
+      $wlInfo._remoteChainSelector = remoteChainSelectors[i];
     }
 
     emit WhitelistUpdated(msg.sender, tokens, recipients, remoteChainSelectors);
@@ -200,7 +177,7 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   function _getRecipient(
     address token
   ) internal view returns (address recipient) {
-    recipient = _getAssetMigration()._wlInfo[token].recipient;
+    recipient = _getAssetMigration()._wlInfo[token]._recipient;
     require(recipient != address(0x0), ErrNotWhitelistedToken(token));
   }
 
@@ -210,7 +187,7 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   function _getRemoteChainSelector(
     address token
   ) internal view returns (uint64 remoteChainSelector) {
-    remoteChainSelector = _getAssetMigration()._wlInfo[token].remoteChainSelector;
+    remoteChainSelector = _getAssetMigration()._wlInfo[token]._remoteChainSelector;
   }
 
   /**
