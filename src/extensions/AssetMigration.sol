@@ -4,16 +4,21 @@ pragma solidity ^0.8.27;
 import { AccessControlEnumerable } from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { HasProxyAdmin } from "src/extensions/collections/HasProxyAdmin.sol";
 
 import { IWETH } from "src/interfaces/IWETH.sol";
 import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
-  using SafeERC20 for IERC20;
+interface ICCIPLiquidityProvider {
+  function provideLiquidity(uint64 remoteChainSelector, uint256 amount) external;
 
+  function provideLiquidity(
+    uint256 amount
+  ) external;
+}
+
+abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   /// @dev Error when the token is not whitelisted before
   error ErrNotWhitelistedToken(address token);
   /// @dev Error when the native token is whitelisted instead of the wrapped token
@@ -27,11 +32,16 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   /// @custom:storage-location erc7201:ronin.bridge.AssetMigration
   struct AssetMigrationStorage {
     // Whitelisted addresses
-    mapping(address token => address whitelist) _whitelist;
+    mapping(address token => WhitelistInfo wlInfo) _wlInfo;
+  }
+
+  struct WhitelistInfo {
+    address recipient;
+    uint64 remoteChainSelector;
   }
 
   /// @dev Emitted when recipients are whitelisted.
-  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients);
+  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients, uint64[] remoteChainSelectors);
 
   /**
    * @dev Modifier to check if `a` and `b` have the same length and are not empty.
@@ -71,7 +81,17 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
       }
 
       address recipient = _getRecipient(address(token));
-      token.safeTransfer(recipient, amounts[i]);
+      uint64 remoteChainSelector = _getRemoteChainSelector(address(token));
+
+      // Approve specific allowance to the Chainlink Pool
+      token.approve(recipient, amounts[i]);
+
+      // This should revert if the pool did not accept the tokens
+      if (remoteChainSelector == 0) {
+        ICCIPLiquidityProvider(recipient).provideLiquidity(amounts[i]);
+      } else {
+        ICCIPLiquidityProvider(recipient).provideLiquidity(remoteChainSelector, amounts[i]);
+      }
     }
   }
 
@@ -94,13 +114,18 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   }
 
   /**
-   * @dev Whitelists the recipients for the given tokens.
+   * @dev Whitelists the recipients for the given tokens, with targeted remote chain selector.
    *
    * Requirements:
    * - Must go through proposal via `BridgeManager`.
+   * - The length of the arrays must be the same.
    */
-  function whitelist(address[] calldata tokens, address[] calldata recipients) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) {
-    _whitelist(tokens, recipients);
+  function whitelist(
+    address[] calldata tokens,
+    address[] calldata recipients,
+    uint64[] calldata remoteChainSelectors
+  ) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) validInput(_toUint256s(recipients), _toUint256s(remoteChainSelectors)) {
+    _whitelist(tokens, recipients, remoteChainSelectors);
   }
 
   /**
@@ -108,14 +133,18 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    */
   function getWhitelistedAddresses(
     address[] calldata tokens
-  ) external view returns (address[] memory whitelisteds) {
+  ) external view returns (address[] memory whitelisteds, uint64[] memory remoteChainSelectors) {
     AssetMigrationStorage storage $ = _getAssetMigration();
 
     uint256 length = tokens.length;
     whitelisteds = new address[](length);
+    remoteChainSelectors = new uint64[](length);
 
     for (uint256 i; i < length; ++i) {
-      whitelisteds[i] = $._whitelist[tokens[i]];
+      WhitelistInfo storage $wlInfo = $._wlInfo[tokens[i]];
+
+      whitelisteds[i] = $wlInfo.recipient;
+      remoteChainSelectors[i] = $wlInfo.remoteChainSelector;
     }
   }
 
@@ -149,17 +178,19 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * This function does not revert when the recipient is already whitelisted or not.
    * if `recipient` is zero address, it will remove the whitelist status.
    */
-  function _whitelist(address[] calldata tokens, address[] calldata recipients) internal {
+  function _whitelist(address[] calldata tokens, address[] calldata recipients, uint64[] calldata remoteChainSelectors) internal {
     AssetMigrationStorage storage $ = _getAssetMigration();
     uint256 length = recipients.length;
 
     for (uint256 i; i < length; ++i) {
       require(tokens[i] != _NATIVE_TOKEN_INDICATOR, ErrWhitelistWrappedTokenInstead());
 
-      $._whitelist[tokens[i]] = recipients[i];
+      WhitelistInfo storage $wlInfo = $._wlInfo[tokens[i]];
+      $wlInfo.recipient = recipients[i];
+      $wlInfo.remoteChainSelector = remoteChainSelectors[i];
     }
 
-    emit WhitelistUpdated(msg.sender, tokens, recipients);
+    emit WhitelistUpdated(msg.sender, tokens, recipients, remoteChainSelectors);
   }
 
   /**
@@ -169,8 +200,17 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
   function _getRecipient(
     address token
   ) internal view returns (address recipient) {
-    recipient = _getAssetMigration()._whitelist[token];
+    recipient = _getAssetMigration()._wlInfo[token].recipient;
     require(recipient != address(0x0), ErrNotWhitelistedToken(token));
+  }
+
+  /**
+   * @dev Returns the remote chain selector.
+   */
+  function _getRemoteChainSelector(
+    address token
+  ) internal view returns (uint64 remoteChainSelector) {
+    remoteChainSelector = _getAssetMigration()._wlInfo[token].remoteChainSelector;
   }
 
   /**
@@ -183,6 +223,14 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
 
   function _toUint256s(
     address[] memory a
+  ) internal pure returns (uint256[] memory b) {
+    assembly ("memory-safe") {
+      b := a
+    }
+  }
+
+  function _toUint256s(
+    uint64[] memory a
   ) internal pure returns (uint256[] memory b) {
     assembly ("memory-safe") {
       b := a
