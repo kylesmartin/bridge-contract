@@ -76,7 +76,8 @@ contract MainchainGatewayV3 is
   ) external reinitializer(5) {
     _grantRole(_MIGRATOR_ROLE, migrator);
     _restrict(this.requestDepositFor.selector, _toBitmap(TokenStandard.ERC20));
-    _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
+    // We allow pending ERC20 withdrawals while snapshotting.
+    // _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
     if (tokens.length != 0 || recipients.length != 0 || remoteChainSelectors.length != 0) {
       _whitelist(tokens, recipients, remoteChainSelectors);
     }
