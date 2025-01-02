@@ -77,7 +77,9 @@ contract MainchainGatewayV3 is
     _grantRole(_MIGRATOR_ROLE, migrator);
     _restrict(this.requestDepositFor.selector, _toBitmap(TokenStandard.ERC20));
     _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
-    _whitelist(tokens, recipients, remoteChainSelectors);
+    if (tokens.length != 0 || recipients.length != 0 || remoteChainSelectors.length != 0) {
+      _whitelist(tokens, recipients, remoteChainSelectors);
+    }
     emergencyPauser = newEmergencyPauser;
   }
 
