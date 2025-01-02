@@ -67,10 +67,17 @@ contract MainchainGatewayV3 is
     _fallback();
   }
 
-  function initializeV5(address migrator, address newEmergencyPauser) external reinitializer(5) {
+  function initializeV5(
+    address migrator,
+    address newEmergencyPauser,
+    address[] calldata tokens,
+    address[] calldata recipients,
+    uint64[] calldata remoteChainSelectors
+  ) external reinitializer(5) {
     _grantRole(_MIGRATOR_ROLE, migrator);
     _restrict(this.requestDepositFor.selector, _toBitmap(TokenStandard.ERC20));
     _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
+    _whitelist(tokens, recipients, remoteChainSelectors);
     emergencyPauser = newEmergencyPauser;
   }
 

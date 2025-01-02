@@ -84,11 +84,18 @@ contract RoninGatewayV3 is
     }
   }
 
-  function initializeV4(address migrator, address newEmergencyPauser) external reinitializer(4) {
+  function initializeV4(
+    address migrator,
+    address newEmergencyPauser,
+    address[] calldata tokens,
+    address[] calldata recipients,
+    uint64[] calldata remoteChainSelectors
+  ) external reinitializer(4) {
     _grantRole(_MIGRATOR_ROLE, migrator);
-    emergencyPauser = newEmergencyPauser;
     _restrict(this.requestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
     _restrict(this.bulkRequestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
+    _whitelist(tokens, recipients, remoteChainSelectors);
+    emergencyPauser = newEmergencyPauser;
   }
 
   /**

@@ -97,11 +97,7 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * - Must go through proposal via `BridgeManager`.
    * - The length of the arrays must be the same.
    */
-  function whitelist(
-    address[] calldata tokens,
-    address[] calldata recipients,
-    uint64[] calldata remoteChainSelectors
-  ) external onlyProxyAdmin validInput(_toUint256s(recipients), _toUint256s(tokens)) validInput(_toUint256s(recipients), _toUint256s(remoteChainSelectors)) {
+  function whitelist(address[] calldata tokens, address[] calldata recipients, uint64[] calldata remoteChainSelectors) external onlyProxyAdmin {
     _whitelist(tokens, recipients, remoteChainSelectors);
   }
 
@@ -155,7 +151,11 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * This function does not revert when the recipient is already whitelisted or not.
    * if `recipient` is zero address, it will remove the whitelist status.
    */
-  function _whitelist(address[] calldata tokens, address[] calldata recipients, uint64[] calldata remoteChainSelectors) internal {
+  function _whitelist(
+    address[] calldata tokens,
+    address[] calldata recipients,
+    uint64[] calldata remoteChainSelectors
+  ) internal validInput(_toUint256s(recipients), _toUint256s(tokens)) validInput(_toUint256s(recipients), _toUint256s(remoteChainSelectors)) {
     AssetMigrationStorage storage $ = _getAssetMigration();
     uint256 length = recipients.length;
 
