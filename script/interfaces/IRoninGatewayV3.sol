@@ -57,7 +57,7 @@ interface IRoninGatewayV3 {
   );
   event UnRestricted(address indexed by, bytes4 indexed fnSig);
   event Unpaused(address account);
-  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients);
+  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients, uint64[] remoteChainSelectors);
   event WithdrawalRequested(bytes32 receiptHash, Transfer.Receipt);
   event WithdrawalSignaturesRequested(bytes32 receiptHash, Transfer.Receipt);
 
@@ -147,7 +147,7 @@ interface IRoninGatewayV3 {
   ) external returns (bool[] memory _executedReceipts);
   function unmapTokens(address[] memory roninTokens_, uint256[] memory chainIds_) external;
   function unpause() external;
-  function whitelist(address[] memory tokens, address[] memory recipients) external;
+  function whitelist(address[] memory tokens, address[] memory recipients, uint64[] memory remoteChainSelectors) external;
   function withdrawal(
     uint256
   ) external view returns (uint256 id, Transfer.Kind kind, TokenOwner memory mainchain, TokenOwner memory ronin, TokenInfo memory info);

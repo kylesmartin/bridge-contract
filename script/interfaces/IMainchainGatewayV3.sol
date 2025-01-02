@@ -63,7 +63,7 @@ interface IMainchainGatewayV3 {
   event UnRestricted(address indexed by, bytes4 indexed fnSig);
   event UnlockFeePercentagesUpdated(address[] tokens, uint256[] percentages);
   event Unpaused(address account);
-  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients);
+  event WhitelistUpdated(address indexed by, address[] tokens, address[] recipients, uint64[] remoteChainSelectors);
   event WithdrawalLocked(bytes32 receiptHash, Transfer.Receipt receipt);
   event WithdrawalUnlocked(bytes32 receiptHash, Transfer.Receipt receipt);
   event Withdrew(bytes32 receiptHash, Transfer.Receipt receipt);
@@ -169,7 +169,7 @@ interface IMainchainGatewayV3 {
     Transfer.Receipt memory receipt
   ) external;
   function unpause() external;
-  function whitelist(address[] memory tokens, address[] memory recipients) external;
+  function whitelist(address[] memory tokens, address[] memory recipients, uint64[] memory remoteChainSelectors) external;
   function withdrawalHash(
     uint256
   ) external view returns (bytes32);
