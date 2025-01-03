@@ -38,39 +38,9 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
   IRoninBridgeManager internal _ronBM;
   IMainchainBridgeManager internal _ethBM;
 
-  function _getProposalExecutor() internal view virtual override returns (address) {
-    return address(0);
-  }
+  function run() public virtual override {
+    super.run();
 
-  function _getProposalProposer() internal view virtual override returns (address) {
-    return _ronBM.getGovernors()[0];
-  }
-
-  function _getRoninMigratorAddress() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getEthereumMigratorAddress() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getRoninGatewayV3Logic() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getMainchainGatewayV3Logic() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getRoninPauseEnforcer() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getEthereumPauseEnforcer() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function run() public virtual {
     (_companionChainId, _companionNetwork) = network().companionNetworkData();
 
     _expiry = block.timestamp + _DEFAULT_EXPIRY_DURATION;
@@ -87,19 +57,27 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
     uint256[] memory values = new uint256[](1);
     uint256[] memory gasAmounts = new uint256[](1);
 
+    MigrateConfig memory cfg = ethConfig();
+    (address[] memory tokens, address[] memory recipients, uint64[] memory remoteChainSelectors) = toWhitelistData(cfg.whitelistInfos);
+
     targets[0] = vme.getAddress(_companionNetwork, Contract.MainchainGatewayV3.key());
     callDatas[0] = abi.encodeCall(
       ITransparentUpgradeableProxyV2.upgradeToAndCall,
-      (_getMainchainGatewayV3Logic(), abi.encodeWithSignature("initializeV5(address,address)", _getEthereumMigratorAddress(), _getEthereumPauseEnforcer()))
+      (
+        cfg.newGatewayLogic,
+        abi.encodeWithSignature(
+          "initializeV5(address,address,address[],address[],uint64[])", cfg.migrator, cfg.newPauseEnforcer, tokens, recipients, remoteChainSelectors
+        )
+      )
     );
     values[0] = 0;
     gasAmounts[0] = 1_000_000;
 
     LibProposal.verifyMainchainProposalGasAmount(_companionNetwork, address(_ethBM), targets, values, callDatas, gasAmounts);
 
-    vm.broadcast(_getProposalProposer());
+    vm.broadcast(cfg.proposer);
     vm.recordLogs();
-    _ronBM.propose(_companionChainId, _expiry, _getProposalExecutor(), targets, values, callDatas, gasAmounts);
+    _ronBM.propose(_companionChainId, _expiry, cfg.executor, targets, values, callDatas, gasAmounts);
     Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
     for (uint256 i; i < recordedLogs.length; ++i) {
       if (recordedLogs[i].emitter == address(_ronBM) && recordedLogs[i].topics[0] == IRoninBridgeManager.ProposalCreated.selector) {
@@ -117,13 +95,16 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
     uint256[] memory values = new uint256[](1);
     uint256[] memory gasAmounts = new uint256[](1);
 
+    MigrateConfig memory cfg = ronConfig();
+    (address[] memory tokens, address[] memory recipients, uint64[] memory remoteChainSelectors) = toWhitelistData(cfg.whitelistInfos);
+
     targets[0] = gw;
     callDatas[0] = abi.encodeCall(
       ITransparentUpgradeableProxyV2.upgradeToAndCall,
       (
-        _getRoninGatewayV3Logic(),
+        cfg.newGatewayLogic,
         abi.encodeWithSignature(
-          "initializeV4(address,address,address)", loadContract(Contract.WRON.key()), _getRoninMigratorAddress(), _getRoninPauseEnforcer()
+          "initializeV4(address,address,address[],address[],uint64[])", cfg.migrator, cfg.newPauseEnforcer, tokens, recipients, remoteChainSelectors
         )
       )
     );
@@ -132,18 +113,25 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
 
     uint256 nonce = _ronBM.round(block.chainid) + 1;
     _ronProposal = LibProposal.createProposal(address(_ronBM), nonce, _expiry, targets, values, callDatas, gasAmounts);
-    _ronProposal.executor = _getProposalExecutor();
+    _ronProposal.executor = cfg.executor;
 
-    vm.broadcast(_getProposalProposer());
-    _ronBM.propose(block.chainid, _expiry, _getProposalExecutor(), targets, values, callDatas, gasAmounts);
+    vm.broadcast(cfg.proposer);
+    _ronBM.propose(block.chainid, _expiry, cfg.executor, targets, values, callDatas, gasAmounts);
+  }
+
+  function postCheck() external {
+    _postCheck();
   }
 
   function _postCheck() internal virtual override {
     // Simulate voting for the Ronin proposal
     LibProposal.voteFor(_ronBM, _ronProposal);
+    if (_ronProposal.executor != address(0)) {
+      vm.prank(_ronProposal.executor);
+      _ronBM.execute(_ronProposal);
+    }
 
     // Simulate voting for the Ethereum proposal
-    uint256 ronSnapshotId = vm.snapshot();
     genMockBOs(address(_ronBM));
     overrideMockBOs(address(_ronBM));
 
@@ -151,9 +139,9 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
 
     (TNetwork prvNetwork, uint256 prvForkId) = switchTo(_companionNetwork);
 
-    uint256 ethSnapshotId = vm.snapshot();
-
     overrideMockBOs(address(_ethBM));
+
+    MigrateConfig memory cfg = ethConfig();
 
     // Cheat re-add executor as bridge operator since we assigned executor as bridge operator in the proposal
     address[] memory ops = new address[](1);
@@ -161,18 +149,15 @@ contract Migration_02_Propose_Upgrades is Migrate_Assets_Base {
     uint96[] memory vws = new uint96[](1);
     vws[0] = 1;
     address[] memory gvs = new address[](1);
-    gvs[0] = _getProposalExecutor();
-    // SkyMavis Gnosis Safe
-    vm.prank(0x51F6696Ae42C6C40CA9F5955EcA2aaaB1Cefb26e);
+    gvs[0] = cfg.executor;
+
+    address pa = LibProxy.getProxyAdmin(address(_ethBM));
+    vm.prank(pa);
     ITransparentUpgradeableProxyV2(address(_ethBM)).functionDelegateCall(abi.encodeCall(IBridgeManager.addBridgeOperators, (vws, gvs, ops)));
-    vm.prank(_getProposalExecutor());
+    vm.prank(cfg.executor);
     _ethBM.relayProposal(_ethProposal, new Ballot.VoteType[](sigs.length), sigs);
 
-    vm.revertTo(ethSnapshotId);
-
     switchBack(prvNetwork, prvForkId);
-
-    vm.revertTo(ronSnapshotId);
   }
 
   function genMockBOs(

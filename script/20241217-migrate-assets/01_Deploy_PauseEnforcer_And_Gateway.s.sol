@@ -17,18 +17,28 @@ import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
 contract Migration_01_Deploy_PauseEnforcer_And_Gateway is Migrate_Assets_Base {
   using LibCompanionNetwork for *;
 
-  address private constant _PRV_RON_PAUSE_ENFORCER = 0x2367cD5468c2b3cD18aA74AdB7e14E43426aF837;
-  address private constant _PRV_ETH_PAUSE_ENFORCER = 0xe514d9DEB7966c8BE0ca922de8a064264eA6bcd4;
-
   address private _ronPauseEnforcer;
   address private _ronGatewayV3Logic;
 
   address private _ethPauseEnforcer;
   address private _ethGatewayV3Logic;
 
-  function run() public virtual {
+  function run() public virtual override {
+    super.run();
+
+    MigrateConfig memory ronCfg = ronConfig();
+    MigrateConfig memory ethCfg = ethConfig();
+
+    require(ronCfg.prevPauseEnforcer != address(0), "[Ronin] prevPauseEnforcer is required");
+    require(ronCfg.newPauseEnforcer == address(0), "[Ronin] newPauseEnforcer must be empty");
+    require(ronCfg.newGatewayLogic == address(0), "[Ronin] newGatewayLogic must be empty");
+
+    require(ethCfg.prevPauseEnforcer != address(0), "[Ethereum] prevPauseEnforcer is required");
+    require(ethCfg.newPauseEnforcer == address(0), "[Ethereum] newPauseEnforcer must be empty");
+    require(ethCfg.newGatewayLogic == address(0), "[Ethereum] newGatewayLogic must be empty");
+
     address ronGw = loadContract(Contract.RoninGatewayV3.key());
-    (address[] memory admins, address[] memory sentries) = _getAllSentriesFromPreviousPauseEnforcer(_PRV_RON_PAUSE_ENFORCER);
+    (address[] memory admins, address[] memory sentries) = _getAllSentriesFromPreviousPauseEnforcer(ronCfg.prevPauseEnforcer);
 
     _ronPauseEnforcer = _deployImmutable(Contract.RoninPauseEnforcer.key(), abi.encode(ronGw, admins, sentries));
     _ronGatewayV3Logic = _deployLogic(Contract.RoninGatewayV3.key());
@@ -38,12 +48,30 @@ contract Migration_01_Deploy_PauseEnforcer_And_Gateway is Migrate_Assets_Base {
     (TNetwork prvNetwork, uint256 prvForkId) = switchTo(companionNetwork);
 
     address ethGw = loadContract(Contract.MainchainGatewayV3.key());
-    (admins, sentries) = _getAllSentriesFromPreviousPauseEnforcer(_PRV_ETH_PAUSE_ENFORCER);
+    (admins, sentries) = _getAllSentriesFromPreviousPauseEnforcer(ethCfg.prevPauseEnforcer);
 
     _ethPauseEnforcer = _deployImmutable(Contract.MainchainPauseEnforcer.key(), abi.encode(ethGw, admins, sentries));
     _ethGatewayV3Logic = _deployLogic(Contract.MainchainGatewayV3.key());
 
     switchBack(prvNetwork, prvForkId);
+
+    _saveToConfig();
+  }
+
+  function _saveToConfig() internal {
+    string memory path = configPath();
+
+    require(_ronPauseEnforcer != address(0), "Ronin Pause Enforcer is not deployed");
+    require(_ronGatewayV3Logic != address(0), "Ronin Gateway Logic is not deployed");
+
+    require(_ethPauseEnforcer != address(0), "Ethereum Pause Enforcer is not deployed");
+    require(_ethGatewayV3Logic != address(0), "Ethereum Gateway Logic is not deployed");
+
+    vm.writeJson(vm.toString(_ronPauseEnforcer), path, ".ronin.newPauseEnforcer");
+    vm.writeJson(vm.toString(_ronGatewayV3Logic), path, ".ronin.newGatewayLogic");
+
+    vm.writeJson(vm.toString(_ethPauseEnforcer), path, ".ethereum.newPauseEnforcer");
+    vm.writeJson(vm.toString(_ethGatewayV3Logic), path, ".ethereum.newGatewayLogic");
   }
 
   function _getAllSentriesFromPreviousPauseEnforcer(
@@ -59,29 +87,5 @@ contract Migration_01_Deploy_PauseEnforcer_And_Gateway is Migrate_Assets_Base {
     for (uint256 i; i < sentries.length; ++i) {
       sentries[i] = AccessControlEnumerable(pauseEnforcer).getRoleMember(keccak256("SENTRY_ROLE"), i);
     }
-  }
-
-  function _getRoninMigratorAddress() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getEthereumMigratorAddress() internal view virtual override returns (address) {
-    revert("Not implemented");
-  }
-
-  function _getRoninGatewayV3Logic() internal view virtual override returns (address) {
-    return _ronGatewayV3Logic;
-  }
-
-  function _getMainchainGatewayV3Logic() internal view virtual override returns (address) {
-    return _ethGatewayV3Logic;
-  }
-
-  function _getRoninPauseEnforcer() internal view virtual override returns (address) {
-    return _ronPauseEnforcer;
-  }
-
-  function _getEthereumPauseEnforcer() internal view virtual override returns (address) {
-    return _ethPauseEnforcer;
   }
 }
