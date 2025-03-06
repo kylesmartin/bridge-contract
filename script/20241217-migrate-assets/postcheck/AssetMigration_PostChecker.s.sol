@@ -1,31 +1,39 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.23;
+
+import { PostCheck_Gateway_Quorum } from "script/post-check/gateway/quorum/PostCheck_Gateway_Quorum.s.sol";
+import { PostCheck_BridgeManager } from "script/post-check/manager/PostCheck_BridgeManager.s.sol";
+import { PostCheck_Gateway_DepositAndWithdraw_AfterRestrict } from
+  "script/20241217-migrate-assets/postcheck/PostCheck_Gateway_DepositAndWithdraw_AfterRestrict.sol";
 
 import { console } from "forge-std/console.sol";
-import { LibProxy } from "@fdk/libraries/LibProxy.sol";
-import { BaseMigration } from "@fdk/BaseMigration.s.sol";
-import { TContract, Contract } from "script/utils/Contract.sol";
-import { Network } from "script/utils/Network.sol";
-import { TNetwork, DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
-import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
-import { PostCheck_BridgeManager } from "./post-check/manager/PostCheck_BridgeManager.s.sol";
-import { PostCheck_Gateway } from "./post-check/gateway/PostCheck_Gateway.s.sol";
-import { Migration } from "./Migration.s.sol";
-import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
-import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
-import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
 
-contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
+import { Migration } from "script/Migration.s.sol";
+import { BaseMigration } from "@fdk/BaseMigration.s.sol";
+import { TContract } from "@fdk/types/TContract.sol";
+import { DefaultContract } from "@fdk/utils/DefaultContract.sol";
+import { DefaultNetwork } from "@fdk/utils/DefaultNetwork.sol";
+import { TNetwork } from "@fdk/types/TNetwork.sol";
+import { Network } from "script/utils/Network.sol";
+import { Contract } from "script/utils/Contract.sol";
+import { ProxyInterface } from "@fdk/libraries/LibDeploy.sol";
+import { LibProxy } from "@fdk/libraries/LibProxy.sol";
+import { ScriptExtended } from "@fdk/extensions/ScriptExtended.s.sol";
+import { IRuntimeConfig } from "@fdk/interfaces/configs/IRuntimeConfig.sol";
+import { LibCompanionNetwork } from "script/shared/libraries/LibCompanionNetwork.sol";
+
+contract AssetMigration_PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway_Quorum, PostCheck_Gateway_DepositAndWithdraw_AfterRestrict {
   using LibCompanionNetwork for *;
 
   function run() external {
+    vm.makePersistent(address(this));
     IRuntimeConfig.Option memory opt;
     opt = CONFIG.getRuntimeConfig();
     _originForkBlockNumber = opt.forkBlockNumber;
 
     _loadSysContract();
-    _validate_Gateway();
-    _validate_BridgeManager();
+
+    _validate_Gateway_DepositAndWithdraw();
   }
 
   function _deployLogic(
@@ -80,8 +88,6 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
 
       _loadRoninContracts();
     }
-
-    _markSysContractsAsPersistent();
   }
 
   function _loadRoninContracts() private {
@@ -91,6 +97,4 @@ contract PostChecker is Migration, PostCheck_BridgeManager, PostCheck_Gateway {
     brTk = loadContract(Contract.BridgeTracking.key());
     ronBM = loadContract(Contract.RoninBridgeManager.key());
   }
-
-  function _markSysContractsAsPersistent() internal { }
 }

@@ -254,13 +254,13 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
   }
 
   // @dev Called by `Migration._upgradeProxy()`
-  function upgradeCallback(
+  function _upgradeCallback(
     address proxy,
     address logic,
     uint256, /* callValue */
     bytes memory args,
     ProxyInterface /* proxyInterface */
-  ) public virtual override {
+  ) internal virtual override {
     if (!config.isPostChecking() && logic.codehash == proxy.getProxyImplementation({ nullCheck: true }).codehash) {
       console.log("BaseMigration: Logic is already upgraded!".yellow());
       return;
@@ -332,7 +332,7 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
-    deployed = LibDeploy.deployTransparentProxyV2({
+    deployed = LibDeploy.deployTransparentProxy({
       implInfo: DeployInfo({
         callValue: 0,
         by: nominatedSender,
@@ -366,7 +366,7 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
     address proxyAdmin = _getProxyAdmin();
     assertTrue(proxyAdmin != address(0x0), "BaseMigration: Null ProxyAdmin");
 
-    deployed = LibDeploy.deployTransparentProxyV2({
+    deployed = LibDeploy.deployTransparentProxy({
       implInfo: DeployInfo({
         callValue: 0,
         by: sender(),

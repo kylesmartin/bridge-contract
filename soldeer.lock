@@ -1,9 +1,9 @@
 [[dependencies]]
 name = "@fdk"
-version = "0.3.1-beta"
-url = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.1-beta.zip"
-checksum = "53cb5bf15abdc909d177c64e78070387af24ef39b2a4b408651836ac9de059c4"
-integrity = "112ec6a82b06c190e027635779b052ca4fb4ee534c42407ea73a5009fd160d53"
+version = "0.3.5-rc"
+url = "https://github.com/axieinfinity/foundry-deployment-kit/archive/refs/tags/v0.3.5-rc.zip"
+checksum = "1b2a5c4cb7836463d821d79483d45594fcab2f96f0200641da52d14ccdd6ccbc"
+integrity = "a9a42316943b53d68a2dd135906632a264175585a0d4f9f50927228061a35b82"
 
 [[dependencies]]
 name = "@openzeppelin"
