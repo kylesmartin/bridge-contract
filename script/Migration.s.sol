@@ -76,7 +76,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
       param.test.governorPKs = governorPKs;
 
       // Mainchain Gateway Pause Enforcer
-      param.mainchainPauseEnforcer.admin = 0x968D0Cd7343f711216817E617d3f92a23dC91c07;
+      param.mainchainPauseEnforcer.admin = new address[](1);
+      param.mainchainPauseEnforcer.admin[0] = 0x968D0Cd7343f711216817E617d3f92a23dC91c07;
       param.mainchainPauseEnforcer.sentries = wrapAddress(0x8Ed0c5B427688f2Bd945509199CAa4741C81aFFe); // Gnosis Sepolia
 
       // Mainchain Gateway V3
@@ -161,7 +162,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
       // Bridge Tracking
 
       // Ronin Gateway Pause Enforcer
-      param.roninPauseEnforcer.admin = makeAddr("pause-enforcer-admin");
+      param.roninPauseEnforcer.admin = new address[](1);
+      param.roninPauseEnforcer.admin[0] = makeAddr("pause-enforcer-admin");
       param.roninPauseEnforcer.sentries = wrapAddress(makeAddr("pause-enforcer-sentry"));
 
       // Ronin Gateway V3
@@ -182,7 +184,8 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
       param.roninBridgeManager.targets = targets;
 
       // Mainchain Gateway Pause Enforcer
-      param.mainchainPauseEnforcer.admin = makeAddr("pause-enforcer-admin");
+      param.mainchainPauseEnforcer.admin = new address[](1);
+      param.mainchainPauseEnforcer.admin[0] = makeAddr("pause-enforcer-admin");
       param.mainchainPauseEnforcer.sentries = wrapAddress(makeAddr("pause-enforcer-sentry"));
 
       // Mainchain Gateway V3
@@ -313,7 +316,9 @@ contract Migration is BaseMigration, Utils, SignatureConsumer {
     }
   }
 
-  function _deployLogic(TContract contractType) internal virtual override returns (address payable logic) {
+  function _deployLogic(
+    TContract contractType
+  ) internal virtual override returns (address payable logic) {
     logic = _deployLogic(contractType, EMPTY_ARGS);
   }
 
