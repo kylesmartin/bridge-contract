@@ -92,8 +92,15 @@ contract RoninGatewayV3 is
     uint64[] calldata remoteChainSelectors
   ) external reinitializer(4) {
     _grantRole(_MIGRATOR_ROLE, migrator);
-    _restrict(this.requestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
-    _restrict(this.bulkRequestWithdrawalFor.selector, _toBitmap(TokenStandard.ERC20));
+
+    uint8 forbidAllIndicator = type(uint8).max;
+
+    _restrict(this.depositFor.selector, forbidAllIndicator);
+    _restrict(this.tryBulkDepositFor.selector, forbidAllIndicator);
+    _restrict(this.requestWithdrawalFor.selector, forbidAllIndicator);
+    _restrict(this.bulkRequestWithdrawalFor.selector, forbidAllIndicator);
+    _restrict(this.requestWithdrawalSignatures.selector, forbidAllIndicator);
+
     if (tokens.length != 0 || recipients.length != 0 || remoteChainSelectors.length != 0) {
       _whitelist(tokens, recipients, remoteChainSelectors);
     }
@@ -210,6 +217,7 @@ contract RoninGatewayV3 is
     if (mainchainWithdrew(_withdrawalId)) revert ErrWithdrawnOnMainchainAlready();
 
     Transfer.Receipt memory _receipt = withdrawal[_withdrawalId];
+    _requireNotRestricted(_receipt.info.erc);
     if (_receipt.ronin.chainId != block.chainid) {
       revert ErrInvalidChainId(msg.sig, _receipt.ronin.chainId, block.chainid);
     }
@@ -232,8 +240,13 @@ contract RoninGatewayV3 is
 
     uint256 id;
     IBridgeTracking _bridgeTrackingContract = IBridgeTracking(getContract(ContractType.BRIDGE_TRACKING));
+    Transfer.Receipt storage $receipt;
+
     for (uint i; i < length; ++i) {
       id = withdrawals[i];
+      $receipt = withdrawal[id];
+      _requireNotRestricted($receipt.info.erc);
+
       _withdrawalSig[id][operator] = signatures[i];
       _bridgeTrackingContract.recordVote(IBridgeTracking.VoteKind.Withdrawal, id, operator);
 
