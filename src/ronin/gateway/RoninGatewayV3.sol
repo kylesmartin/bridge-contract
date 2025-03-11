@@ -100,6 +100,7 @@ contract RoninGatewayV3 is
     _restrict(this.requestWithdrawalFor.selector, forbidAllIndicator);
     _restrict(this.bulkRequestWithdrawalFor.selector, forbidAllIndicator);
     _restrict(this.requestWithdrawalSignatures.selector, forbidAllIndicator);
+    _restrict(this.bulkSubmitWithdrawalSignatures.selector, forbidAllIndicator);
 
     if (tokens.length != 0 || recipients.length != 0 || remoteChainSelectors.length != 0) {
       _whitelist(tokens, recipients, remoteChainSelectors);
