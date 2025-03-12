@@ -25,5 +25,7 @@ contract Migrate_Assets_FullFlow is Migration {
 
     migration_02.postCheck();
     assetMigration_PostChecker.run();
+
+    super._postCheck();
   }
 }
