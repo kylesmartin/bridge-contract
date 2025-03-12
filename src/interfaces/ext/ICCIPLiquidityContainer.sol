@@ -7,4 +7,6 @@ interface ICCIPLiquidityContainer {
   function provideLiquidity(
     uint256 amount
   ) external;
+
+  function provideSiloedLiquidity(uint64 remoteChainSelector, uint256 amount) external;
 }
