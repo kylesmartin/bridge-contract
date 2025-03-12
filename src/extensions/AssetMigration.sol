@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { AccessControlEnumerable } from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -10,7 +11,7 @@ import { IWETH } from "src/interfaces/IWETH.sol";
 import { ICCIPLiquidityContainer } from "src/interfaces/ext/ICCIPLiquidityContainer.sol";
 import { ErrLengthMismatch, ErrEmptyArray } from "src/utils/CommonErrors.sol";
 
-abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
+abstract contract AssetMigration is HasProxyAdmin, Pausable, AccessControlEnumerable {
   /// @dev Error when the token is not whitelisted before
   error ErrNotWhitelistedToken(address token);
   /// @dev Error when the native token is whitelisted instead of the wrapped token
@@ -64,7 +65,10 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * - The length of the arrays must be the same.
    * - The length of the arrays must not be zero.
    */
-  function migrateERC20(address[] calldata tokens, uint256[] calldata amounts) external onlyRole(_MIGRATOR_ROLE) validInput(_toUint256s(tokens), amounts) {
+  function migrateERC20(
+    address[] calldata tokens,
+    uint256[] calldata amounts
+  ) external whenNotPaused onlyRole(_MIGRATOR_ROLE) validInput(_toUint256s(tokens), amounts) {
     uint256 length = amounts.length;
     IERC20 token;
 
@@ -97,7 +101,7 @@ abstract contract AssetMigration is HasProxyAdmin, AccessControlEnumerable {
    * - Must go through proposal via `BridgeManager`.
    * - The length of the arrays must be the same.
    */
-  function whitelist(address[] calldata tokens, address[] calldata recipients, uint64[] calldata remoteChainSelectors) external onlyProxyAdmin {
+  function whitelist(address[] calldata tokens, address[] calldata recipients, uint64[] calldata remoteChainSelectors) external whenNotPaused onlyProxyAdmin {
     _whitelist(tokens, recipients, remoteChainSelectors);
   }
 

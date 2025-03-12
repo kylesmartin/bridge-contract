@@ -75,9 +75,12 @@ contract MainchainGatewayV3 is
     uint64[] calldata remoteChainSelectors
   ) external reinitializer(5) {
     _grantRole(_MIGRATOR_ROLE, migrator);
-    _restrict(this.requestDepositFor.selector, _toBitmap(TokenStandard.ERC20));
-    // We allow pending ERC20 withdrawals while snapshotting.
-    // _restrict(this.submitWithdrawal.selector, _toBitmap(TokenStandard.ERC20));
+
+    uint8 forbidAllIndicator = type(uint8).max;
+
+    _restrict(this.requestDepositFor.selector, forbidAllIndicator);
+    _restrict(this.submitWithdrawal.selector, forbidAllIndicator);
+
     if (tokens.length != 0 || recipients.length != 0 || remoteChainSelectors.length != 0) {
       _whitelist(tokens, recipients, remoteChainSelectors);
     }
