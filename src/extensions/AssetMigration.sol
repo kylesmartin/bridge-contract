@@ -89,7 +89,11 @@ abstract contract AssetMigration is HasProxyAdmin, Pausable, AccessControlEnumer
       if (remoteChainSelector == 0) {
         ICCIPLiquidityContainer(recipient).provideLiquidity(amounts[i]);
       } else {
-        ICCIPLiquidityContainer(recipient).provideLiquidity(remoteChainSelector, amounts[i]);
+        try ICCIPLiquidityContainer(recipient).provideSiloedLiquidity(remoteChainSelector, amounts[i]) {
+          // Do nothing
+        } catch {
+          ICCIPLiquidityContainer(recipient).provideLiquidity(remoteChainSelector, amounts[i]);
+        }
       }
     }
   }
